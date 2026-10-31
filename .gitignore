@@ -1,0 +1,32 @@
+# Dependencies and build output
+node_modules/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+
+# Local configuration and credentials
+.env*
+!.env.example
+
+# Vercel
+.vercel/
+
+# Supabase CLI local artifacts
+supabase/.branches/
+supabase/.temp/
+.sf/
+
+# Generated service worker output
+public/sw*
+public/swe-worker*
+
+# Test output
+playwright-report/
+test-results/
+
+# Local editor and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

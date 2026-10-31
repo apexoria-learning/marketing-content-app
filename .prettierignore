@@ -1,0 +1,13 @@
+node_modules/
+.next/
+.sf/
+coverage/
+playwright-report/
+test-results/
+PRD.md
+DESIGN.md
+ARCHITECTURE.md
+AGENTS.md
+API.md
+DATABASE.md
+IMPLEMENTATION-PLAN.md
