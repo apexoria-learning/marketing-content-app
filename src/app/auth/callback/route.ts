@@ -28,7 +28,10 @@ export async function GET(request: NextRequest) {
   const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error || !data.user) {
-    console.error("Google OAuth code exchange failed.");
+    console.error("Google OAuth code exchange failed.", {
+      code: error?.code,
+      message: error?.message ?? "No user returned from the code exchange.",
+    });
     return signInRedirect(request, "exchange");
   }
 

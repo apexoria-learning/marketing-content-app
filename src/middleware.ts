@@ -61,8 +61,11 @@ export async function middleware(request: NextRequest) {
   const { data, error } = await supabase.auth.getUser();
   const user = error ? null : data.user;
 
-  if (error) {
-    console.error("Middleware session verification failed.");
+  if (error && error.name !== "AuthSessionMissingError") {
+    console.error("Middleware session verification failed.", {
+      code: error.code,
+      message: error.message,
+    });
   }
 
   const pathname = request.nextUrl.pathname;
