@@ -68,11 +68,24 @@ test.describe("isolated, genuinely authenticated content journeys", () => {
         await page.evaluate((value) => {
           document.documentElement.dataset.theme = value;
         }, theme);
+        await page.evaluate(async () => {
+          getComputedStyle(document.body).getPropertyValue("color");
+          const animations = document
+            .getAnimations()
+            .filter(
+              (animation) =>
+                animation.effect?.getComputedTiming().iterations !== Infinity,
+            );
+          await Promise.allSettled(
+            animations.map((animation) => animation.finished),
+          );
+        });
         const { violations } = await new AxeBuilder({ page }).analyze();
         expect(
           violations.map((value) => ({
             id: value.id,
             targets: value.nodes.map((node) => node.target),
+            details: value.nodes.map((node) => node.failureSummary),
           })),
         ).toEqual([]);
       }
@@ -149,6 +162,25 @@ test.describe("isolated, genuinely authenticated content journeys", () => {
     await expect(page.getByLabel("Format", { exact: true })).toHaveValue("");
   });
 
+  test("unfinished ideas remain readable but cannot be skipped before generation", async ({
+    page,
+  }) => {
+    await page.goto("/create");
+    const row = page
+      .locator("main li")
+      .filter({ has: page.locator('input[type="checkbox"][disabled]') })
+      .first();
+    await row.getByRole("link").click();
+    await expect(
+      page.getByRole("button", { name: "Skip item" }),
+    ).toBeDisabled();
+    await expect(
+      page.getByText("The idea remains in your Create queue.", {
+        exact: false,
+      }),
+    ).toBeVisible();
+  });
+
   test("Archive all-scope pages contain exactly 30 unique rows and malformed cursors restart", async ({
     page,
   }) => {
@@ -158,12 +190,20 @@ test.describe("isolated, genuinely authenticated content journeys", () => {
       .locator("main article a")
       .evaluateAll((links) => links.map((link) => link.getAttribute("href")));
     await page.getByRole("link", { name: "Next 30 posts" }).click();
+    await expect(page.locator("main article a").first()).not.toHaveAttribute(
+      "href",
+      first[0] ?? "",
+    );
     await expect(page.locator("main article")).toHaveCount(30);
     const second = await page
       .locator("main article a")
       .evaluateAll((links) => links.map((link) => link.getAttribute("href")));
     expect(second.some((href) => first.includes(href))).toBe(false);
     await page.getByRole("link", { name: "Next 30 posts" }).click();
+    await expect(page.locator("main article a").first()).not.toHaveAttribute(
+      "href",
+      second[0] ?? "",
+    );
     expect(await page.locator("main article").count()).toBeGreaterThan(0);
   });
 
@@ -189,6 +229,8 @@ test.describe("isolated, genuinely authenticated content journeys", () => {
         .textContent(),
     );
     await card.locator("a").click();
+    await expect(page).toHaveURL(/\/item\//);
+    await expect(page).toHaveTitle(/Content details/);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
     await page

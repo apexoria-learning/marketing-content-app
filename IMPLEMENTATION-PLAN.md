@@ -373,6 +373,8 @@ Read-only. Implements the read contracts in `API.md` §6.
 
 ## PHASE 7 — Status tracking
 
+**Approved staging refinement:** until hydration is implemented, unfinished ideas cannot be skipped by the application. Skip stays reversible for fully hydrated content; existing skipped unfinished ideas remain accessible in Calendar/detail. Revisit this restriction when the hydration action lands.
+
 **Goal:** the product becomes genuinely usable end to end.
 
 ### Tasks

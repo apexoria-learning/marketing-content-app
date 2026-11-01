@@ -1,4 +1,5 @@
 import { PageHeader } from "@/components/shell/PageHeader";
+import type { Metadata } from "next";
 import { EmptyState } from "@/components/feedback/States";
 import { QueueRow } from "@/components/content/QueueRow";
 import { FormatSchema, ContentPreviewSchema } from "@/lib/schemas/content";
@@ -8,6 +9,8 @@ import { ReadFilters } from "@/features/content/ReadFilters";
 import { ScopeControl } from "@/features/content/ScopeControl";
 import { TrackedTick } from "@/features/content/TrackedTick";
 import { getCreateQueue } from "@/server/db/queries";
+
+export const metadata: Metadata = { title: "Create" };
 
 const groups = {
   carousel: "Carousels",

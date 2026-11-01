@@ -476,6 +476,8 @@ Rules: no full-screen spinners anywhere; no layout shift when content replaces a
 
 **Phases 4–7 staging:** generation is deferred to its approved later phases. Empty states explain this explicitly and link to existing Calendar/Today where useful; no generation CTA invokes an unavailable action or pretends content was generated.
 
+Skip is disabled for unfinished ideas during this batch, with an explanation that the idea stays in Create. This avoids removing content without a working return-to-Ready path before hydration exists. Hydrated ready items retain reversible Skip.
+
 | Surface | Glyph | Statement | Guidance | Action |
 |---|---|---|---|---|
 | Today — nothing planned | calendar-plus | "No content planned for today." | "Generate a plan and you'll have something to post in under a minute." | Generate today's content |

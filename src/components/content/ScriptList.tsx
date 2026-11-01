@@ -17,7 +17,10 @@ export function ScriptList({ body }: { body: z.infer<typeof ReelBodySchema> }) {
             <p className="whitespace-pre-wrap text-body text-primary">
               {scene.action}
             </p>
-            <CopyBlock label="On-screen text" text={scene.on_screen_text} />
+            <CopyBlock
+              label={`On-screen text · ${scene.from}`}
+              text={scene.on_screen_text}
+            />
           </li>
         ))}
       </ol>

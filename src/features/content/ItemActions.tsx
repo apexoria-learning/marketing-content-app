@@ -21,8 +21,7 @@ export function ItemActions({ item }: { item: ItemControls }) {
   const toast = useToast();
   const router = useRouter();
   const hydrated = item.is_hydrated;
-  const canSkip =
-    item.status !== "posted" && (item.status !== "skipped" || hydrated);
+  const canSkip = item.status !== "posted" && hydrated;
   return (
     <>
       <div className="flex flex-wrap gap-3">
@@ -52,6 +51,12 @@ export function ItemActions({ item }: { item: ItemControls }) {
         <p className="mt-2 text-sm text-secondary">
           This skipped idea must be generated before it can return to ready.
           Generation is available in a later phase.
+        </p>
+      ) : null}
+      {item.status === "idea" && !hydrated ? (
+        <p className="mt-2 text-sm text-secondary">
+          Skip is unavailable for unfinished ideas until content generation is
+          enabled. The idea remains in your Create queue.
         </p>
       ) : null}
       <BottomSheet

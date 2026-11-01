@@ -1,7 +1,7 @@
 import "server-only";
 import { changeContentStatus as persistStatus } from "../db/content";
 import { getItem } from "../db/queries";
-import { canChangeStatus } from "../../lib/utils/status";
+import { canChangeStatus, hasHydratedContent } from "../../lib/utils/status";
 import { parseReadParams } from "../../lib/schemas/read-params";
 import { getMonthItems } from "../db/queries";
 
@@ -12,8 +12,7 @@ export async function changeContentStatus(
   if (
     !item ||
     !canChangeStatus(item.status, input.status) ||
-    (input.status === "ready" &&
-      (!item.body || !item.design_brief || !item.hydrated_at))
+    (["ready", "skipped"].includes(input.status) && !hasHydratedContent(item))
   ) {
     throw Object.assign(new Error("Illegal content status transition."), {
       code: "23514",

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { Metadata } from "next";
 import {
   ContentPreviewSchema,
   ItemControlsSchema,
@@ -20,7 +21,10 @@ import { Banner } from "@/components/feedback/Banner";
 import { TrackedTick } from "@/features/content/TrackedTick";
 import { ItemActions } from "@/features/content/ItemActions";
 import { displayDate, displayTimestamp } from "@/lib/utils/dates";
+import { hasHydratedContent } from "@/lib/utils/status";
 import { getActivity, getItem } from "@/server/db/queries";
+
+export const metadata: Metadata = { title: "Content details" };
 
 export default async function ItemPage({
   params,
@@ -120,9 +124,7 @@ export default async function ItemPage({
         <ItemActions
           item={ItemControlsSchema.parse({
             ...item,
-            is_hydrated: Boolean(
-              item.body && item.design_brief && item.hydrated_at,
-            ),
+            is_hydrated: hasHydratedContent(item),
           })}
         />
         <ActivityList activity={activity} />

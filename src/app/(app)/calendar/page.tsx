@@ -1,4 +1,5 @@
 import { PageHeader } from "@/components/shell/PageHeader";
+import type { Metadata } from "next";
 import { EmptyState } from "@/components/feedback/States";
 import { Banner } from "@/components/feedback/Banner";
 import { CalendarView } from "@/features/calendar/CalendarView";
@@ -7,6 +8,8 @@ import { parseReadParams } from "@/lib/schemas/read-params";
 import { ContentPreviewSchema } from "@/lib/schemas/content";
 import { todayInIst } from "@/lib/utils/dates";
 import { getMonthItems, getMonthPlan } from "@/server/db/queries";
+
+export const metadata: Metadata = { title: "Calendar" };
 
 export default async function CalendarPage({
   searchParams,

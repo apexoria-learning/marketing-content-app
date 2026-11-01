@@ -1,9 +1,12 @@
 import { TipCard } from "@/components/content/TipCard";
+import type { Metadata } from "next";
 import { ContentPreviewSchema } from "@/lib/schemas/content";
 import { TodayDeck } from "@/features/content/TodayDeck";
 import { parseReadParams } from "@/lib/schemas/read-params";
 import { displayDate, shiftDate, todayInIst } from "@/lib/utils/dates";
 import { getDailyTip, getMonthItems, getTodayItems } from "@/server/db/queries";
+
+export const metadata: Metadata = { title: "Today" };
 
 export default async function HomePage() {
   const today = todayInIst();

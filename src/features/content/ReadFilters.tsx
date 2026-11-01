@@ -76,9 +76,12 @@ export function ReadFilters({
           <input type="hidden" name="scope" value={params.scope} />
         ) : null}
         {selects.map((select) => (
-          <label key={select.name} className="block text-sm text-secondary">
-            {select.label}
+          <div key={select.name} className="text-sm text-secondary">
+            <label htmlFor={`${path.slice(1)}-${select.name}`}>
+              {select.label}
+            </label>
             <select
+              id={`${path.slice(1)}-${select.name}`}
               name={select.name}
               defaultValue={
                 params[
@@ -96,7 +99,7 @@ export function ReadFilters({
                 </option>
               ))}
             </select>
-          </label>
+          </div>
         ))}
         <div className="flex gap-3">
           <Button type="submit" variant="secondary">

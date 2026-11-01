@@ -332,6 +332,8 @@ Business rules: the status transition must be legal (`ready → posted`, `posted
 
 > **Refinement over `ARCHITECTURE.md` §7.2**, which listed a one-way `skipItem`. `DATABASE.md` §7.7 permits `skipped → ready`, and `US-15` implies reversibility. A boolean toggle matches `markPosted`, keeping the two status actions symmetrical rather than inventing a separate `unskipItem`.
 
+**Approved Phase 7 staging:** `skipItem` currently rejects unfinished ideas before calling the RPC, because restoring them to Ready requires AI hydration that is not enabled yet. The UI explains the restriction and disables Skip. Ready/hydrated items remain reversibly skippable. This is an application-layer staging rule; the database's documented lifecycle is unchanged.
+
 **`addNote`**
 
 | | |

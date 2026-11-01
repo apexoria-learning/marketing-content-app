@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { EmptyState } from "@/components/feedback/States";
 import { ContentCard } from "@/components/content/ContentCard";
@@ -15,6 +16,8 @@ import { ScopeControl } from "@/features/content/ScopeControl";
 import { TrackedTick } from "@/features/content/TrackedTick";
 import { parseReadParams } from "@/lib/schemas/read-params";
 import { getActivity, getArchive } from "@/server/db/queries";
+
+export const metadata: Metadata = { title: "Archive" };
 
 export default async function ArchivePage({
   searchParams,
