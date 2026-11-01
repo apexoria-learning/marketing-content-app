@@ -20,7 +20,7 @@ export const databaseUrl = parseLocalDatabaseUrl(
 
 // Supabase provisions these cluster-wide, so create them only when absent —
 // a scratch database on the same cluster shares them (DATABASE.md §7.2).
-const SUPABASE_BOOTSTRAP = `
+const SUPABASE_ROLES = `
   do $$
   begin
     if not exists (select 1 from pg_roles where rolname = 'anon') then
@@ -34,7 +34,9 @@ const SUPABASE_BOOTSTRAP = `
     end if;
   end
   $$;
+`;
 
+const SUPABASE_BOOTSTRAP = `
   grant usage on schema public to anon, authenticated, service_role;
 
   alter default privileges in schema public
@@ -119,8 +121,17 @@ export async function createTestDatabase({ seed = false } = {}) {
   const admin = new pg.Client({ connectionString: databaseUrl });
 
   await admin.connect();
-  await admin.query(`create database ${name}`);
-  await admin.end();
+
+  try {
+    // Roles are cluster-wide, so parallel suites coordinate in the admin DB.
+    await admin.query("begin");
+    await admin.query("select pg_advisory_xact_lock(20261101)");
+    await admin.query(SUPABASE_ROLES);
+    await admin.query("commit");
+    await admin.query(`create database ${name}`);
+  } finally {
+    await admin.end();
+  }
 
   const client = await connectTo(name);
 
