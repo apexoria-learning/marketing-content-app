@@ -259,6 +259,8 @@ denial check complete based only on mocked tests.
 
 **Approved refinements:** posted-only Archive (skipped content remains in Calendar/detail), agenda below 400px, readable posted-card styling instead of whole-card opacity, and seven-day last-verified-session offline reads with explicit purge/expiry rules in ARCHITECTURE.md §3.2.
 
+**Verification checkpoint (2026-11-01):** 271 local tests pass; 83 database tests are intentionally skipped on the shared laptop. Typecheck, lint, production build, client-secret scan, 23 existing browser regressions and the production anonymous offline-shell test pass. Isolated database CI also passes migrations/RLS/concurrency, schema fixtures and generated-type drift. Authenticated production browser CI on `57807b1` passes 21 of 22 tests, including all six formats, screen accessibility, 320px/text enlargement, verbatim/long-press/fallback copy, exact 30-row Archive keysets, posting/Undo/history, offline refresh and sign-out cache purge. The remaining blocker is intermittent Calendar month navigation; do not mark the batch complete yet. Physical-device installation/splash/safe-area/update checks, tab scroll restoration, Lighthouse/performance and measured layout-shift checks remain unverified.
+
 ### Tasks
 
 | # | Task |
@@ -324,11 +326,11 @@ None — schemas must match the `DATABASE.md` §5.3 column shapes exactly.
 - Line clamping never truncates mid-word with an inserted ellipsis.
 
 ### Completion criteria
-- [ ] All six formats render correctly from fixtures
-- [ ] Generated content rendered at ≥16px with authored line breaks intact
-- [ ] Posted treatment keeps content readable
-- [ ] No component accesses the database
-- [ ] Schema types align with generated database types
+- [x] All six formats render correctly from fixtures
+- [x] Generated content rendered at ≥16px with authored line breaks intact
+- [x] Posted treatment keeps content readable
+- [x] No component accesses the database
+- [x] Schema types align with generated database types
 
 ---
 
@@ -364,7 +366,7 @@ Read-only. Implements the read contracts in `API.md` §6.
 - Partial e2e for J2 (designer queue ordering and grouping).
 
 ### Completion criteria
-- [ ] All five screens render from the dev seed
+- [x] All five screens render from the dev seed
 - [ ] Every empty state in `DESIGN.md` §9.2 reachable and correct
 - [ ] Deck, calendar and month swipe all have non-gesture equivalents
 - [ ] `DESIGN.md` §14 checklist passes per screen
@@ -403,10 +405,10 @@ Implements `API.md` §5.1. No schema change.
 - **e2e J1** — open → read → copy → mark posted → ring advances → survives reload.
 
 ### Completion criteria
-- [ ] J1 passes end to end
+- [x] J1 passes end to end
 - [ ] Tick animation, haptic and ring advance choreographed together
-- [ ] Posted items immutable
-- [ ] Archive shows complete history
+- [x] Posted items immutable
+- [x] Archive shows complete history
 
 > **Milestone.** With a manually seeded month, the product now delivers its core value. Everything after this automates the content supply.
 
