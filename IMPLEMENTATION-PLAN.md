@@ -222,6 +222,10 @@ restricts to `service_role`. Remaining Group B gaps are the seeded J3 journey
 and isolated SQL rollback checks running in CI, plus confirming real item
 latency in the gateway log.
 
+**Owner live confirmation (2026-11-01):** after `18c96f6` deployed, the owner
+confirmed month planning and item content generation work on the live site.
+This is owner-reported; the agent did not measure live latency or token usage.
+
 **Group C scope change requested:** move automation/brand settings into the
 existing admin panel at `C:\Apex\apexoria\src\admin`. Review its auth, deployment,
 database and server boundaries before implementing that integration; do not
