@@ -1,11 +1,24 @@
 import withSerwistInit from "@serwist/next";
 import type { NextConfig } from "next";
 
+// Next puts a random per-build ID in these two Pages Router manifest URLs.
+// Precaching them changed sw.js on every deploy — even docs-only ones — so
+// browsers always installed a "new" worker and showed the update prompt. The
+// App Router never loads them, so excluding them keeps sw.js byte-identical
+// until a shipped asset actually changes.
+const BUILD_ID_MANIFEST = /\/_(build|ssg)Manifest\.js$/;
+
 const withSerwist = withSerwistInit({
   swSrc: "src/app/sw.ts",
   swDest: "public/sw.js",
   disable: process.env.NODE_ENV !== "production",
   cacheOnNavigation: false,
+  manifestTransforms: [
+    async (entries) => ({
+      manifest: entries.filter((entry) => !BUILD_ID_MANIFEST.test(entry.url)),
+      warnings: [],
+    }),
+  ],
 });
 
 // Behind Vercel's proxy the Origin/Host check must be pinned explicitly or it

@@ -90,14 +90,30 @@ export function PwaControls() {
     document.addEventListener("click", navigateOffline, true);
     let registration: ServiceWorkerRegistration | undefined;
     let installing: ServiceWorker | null = null;
+    let offered: ServiceWorker | null = null;
     let disposed = false;
+    // Another tab may activate (or a newer build may replace) the offered
+    // worker; then "Update" would post to a worker that never takes control.
+    const offeredChanged = () => {
+      if (offered?.state === "activated" || offered?.state === "redundant") {
+        offered.removeEventListener("statechange", offeredChanged);
+        offered = null;
+        if (!disposed) setWaiting(null);
+      }
+    };
     const stateChanged = () => {
+      const next = registration?.waiting ?? null;
       if (
-        !disposed &&
-        registration?.waiting &&
-        navigator.serviceWorker.controller
+        disposed ||
+        !next ||
+        !navigator.serviceWorker.controller ||
+        next === offered
       )
-        setWaiting(registration.waiting);
+        return;
+      offered?.removeEventListener("statechange", offeredChanged);
+      offered = next;
+      offered.addEventListener("statechange", offeredChanged);
+      setWaiting(next);
     };
     const updateFound = () => {
       installing = registration?.installing ?? null;
@@ -132,6 +148,7 @@ export function PwaControls() {
       document.removeEventListener("click", navigateOffline, true);
       registration?.removeEventListener("updatefound", updateFound);
       installing?.removeEventListener("statechange", stateChanged);
+      offered?.removeEventListener("statechange", offeredChanged);
     };
   }, [toast]);
 
