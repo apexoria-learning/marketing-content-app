@@ -56,6 +56,7 @@ export async function generateMonthPlan(
         role: "user",
         content: [
           "Return one or two items for EVERY date in the requested month, slots starting at 1.",
+          "Each idea is ONE line of at most 200 characters naming the topic and angle only. Do not write hooks, slide-by-slide copy, captions, scripts, hashtags or production notes; those are generated later for each item.",
           context.news.length
             ? "Each of the ten pillars must appear at least twice. No pillar may repeat on adjacent dates."
             : "Omit salesforce_news explicitly. Each of the other nine pillars must appear at least twice. No pillar may repeat on adjacent dates.",

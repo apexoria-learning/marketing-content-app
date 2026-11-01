@@ -185,6 +185,18 @@ and tips keep 60s. A gateway 408 is now classified as a timeout. Actual
 month-plan latency/token counts were not recorded because the request was cut
 off; confirm them from the next gateway log.
 
+**Live "AI response validation failed" fix (2026-11-01):** the SDK defaults to
+sending `strict-open-ai-compliance: false`, so the gateway returned Claude's raw
+`stop_reason` (`end_turn`) as `finish_reason`. The transport accepts only
+OpenAI's `stop`, so every Claude reply — items, days, tips and months — was
+rejected even when complete. Mocked tests had used `stop` and missed it. The
+client now requests strict compliance (`end_turn → stop`, `max_tokens → length`);
+truncated replies remain rejected. Validation-failure logs now include the
+non-sensitive finish reason and completion-token count. The observed month reply
+also used ~267-character mini-briefs (31 of 34 over 200 characters) instead of
+the `one_line_idea` that ARCHITECTURE.md §4.3 specifies, so skeleton ideas are
+now single-line, ≤200 characters, in both the prompt and the schema.
+
 **Group C scope change requested:** move automation/brand settings into the
 existing admin panel at `C:\Apex\apexoria\src\admin`. Review its auth, deployment,
 database and server boundaries before implementing that integration; do not

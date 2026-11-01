@@ -8,7 +8,14 @@ export const PlannedSlotSchema = z
     platform: PlatformSchema,
     format: FormatSchema,
     pillar: PillarSchema,
-    idea: z.string().trim().min(1).max(2000),
+    // Skeleton slots carry a one-line idea (ARCHITECTURE.md §4.3); hooks and
+    // per-slide copy belong to hydration and would bloat the whole-month reply.
+    idea: z
+      .string()
+      .trim()
+      .min(1)
+      .max(200)
+      .regex(/^[^\r\n]+$/, "Must be a single line"),
   })
   .strict();
 

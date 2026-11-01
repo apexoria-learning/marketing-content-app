@@ -51,6 +51,7 @@ describe("AI gateway transport", () => {
       apiKey: configuration.PORTKEY_API_KEY,
       baseURL: configuration.PORTKEY_BASE_URL,
       requestTimeout: 60000,
+      strictOpenAiCompliance: true,
     });
     expect(mocks.instances[0]?.maxRetries).toBe(0);
     expect(mocks.create).toHaveBeenCalledWith(
@@ -104,6 +105,45 @@ describe("AI gateway transport", () => {
       reason: "INVALID_OUTPUT",
     });
     expect(console.error).toHaveBeenCalled();
+  });
+
+  it.each(["end_turn", "max_tokens"])(
+    "rejects a raw provider stop reason (%s), which only appears if strict compliance is lost",
+    async (finishReason) => {
+      mocks.create.mockResolvedValue({
+        ...completion,
+        choices: [{ finish_reason: finishReason, message: { content: "{}" } }],
+      });
+      await expect(
+        createAiClient(configuration)(request),
+      ).rejects.toMatchObject({ reason: "INVALID_OUTPUT" });
+      expect(console.error).toHaveBeenCalledWith(
+        "AI response validation failed.",
+        { finish_reason: finishReason, completion_tokens: 12 },
+      );
+    },
+  );
+
+  it("logs a truncated reply's finish reason and token count without its content", async () => {
+    mocks.create.mockResolvedValue({
+      choices: [
+        {
+          finish_reason: "length",
+          message: { content: '{"items":[{"idea":"private draft' },
+        },
+      ],
+      usage: { prompt_tokens: 900, completion_tokens: 4096 },
+    });
+    await expect(createAiClient(configuration)(request)).rejects.toMatchObject({
+      reason: "INVALID_OUTPUT",
+    });
+    expect(console.error).toHaveBeenCalledWith(
+      "AI response validation failed.",
+      { finish_reason: "length", completion_tokens: 4096 },
+    );
+    expect(JSON.stringify(vi.mocked(console.error).mock.calls)).not.toContain(
+      "private draft",
+    );
   });
 
   it("classifies a gateway rate limit without leaking its message or retrying", async () => {

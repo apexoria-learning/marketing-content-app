@@ -558,6 +558,7 @@ Four outbound integrations. None is in the critical path for reading content.
 | Timeout | 60s per request; whole-month planning 120s per request (initial + one repair within the 240s work budget). Sent to the gateway as its per-request deadline and enforced locally |
 | Retries | None in the current owner-confirmed gateway setup; SDK retries disabled |
 | Streaming | **No** — output must be validated whole before use |
+| Response contract | Strict OpenAI compliance requested, so Claude's `end_turn`/`max_tokens` arrive as `stop`/`length`; only `stop` is accepted |
 
 **Why a gateway rather than calling the provider directly:** retries, timeouts, fallbacks and per-request token/cost accounting live at the gateway instead of in application code, and the provider credential is held by Portkey rather than in the application's environment. Switching models becomes a configuration change.
 

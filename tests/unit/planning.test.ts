@@ -230,6 +230,40 @@ describe("deterministic planning rules", () => {
 });
 
 describe("month generation pipeline", () => {
+  it("rejects brief-style ideas from the live failure and repairs once to one-line ideas", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const verbose = validPlan();
+    const first = verbose.items[0];
+    if (!first) throw new Error("Fixture missing");
+    // Shape observed in the truncated live reply: a hook plus slide-by-slide copy.
+    first.idea =
+      "Hook: 'SOQL in a loop?' 5-slide carousel. Slide 1 shows the bad pattern, a SOQL query inside a for loop. Slide 2 explains the governor limit. Slide 3 shows the fix: query once outside the loop. Slide 4 shows a Map.";
+    expect(
+      validatePlanningRules("2026-11", verbose, []).violations.length,
+    ).toBeGreaterThan(0);
+    expect(
+      validatePlanningRules(
+        "2026-11",
+        {
+          items: verbose.items.map((item, index) =>
+            index === 0 ? { ...item, idea: "Line one\nLine two" } : item,
+          ),
+        },
+        [],
+      ).violations.length,
+    ).toBeGreaterThan(0);
+    const generate = vi
+      .fn()
+      .mockResolvedValueOnce({ content: JSON.stringify(verbose) })
+      .mockResolvedValueOnce({ content: JSON.stringify(validPlan()) });
+    const result = await generateMonthPlan({ ...input, context }, generate);
+    expect(result.items).toHaveLength(30);
+    expect(generate).toHaveBeenCalledTimes(2);
+    const instructions = JSON.stringify(generate.mock.calls[0]?.[0].messages);
+    expect(instructions).toContain("ONE line of at most 200 characters");
+    expect(instructions).toContain('\\"maxLength\\":200');
+  });
+
   it("makes one deterministic request for a valid month", async () => {
     const generate = vi
       .fn()

@@ -61,6 +61,10 @@ export function createAiClient(
     apiKey: configuration.PORTKEY_API_KEY,
     baseURL: configuration.PORTKEY_BASE_URL,
     requestTimeout: timeoutMs,
+    // The SDK otherwise sends strict-open-ai-compliance=false, and the gateway
+    // returns Claude's raw stop_reason ("end_turn"/"max_tokens") instead of the
+    // OpenAI finish_reason ("stop"/"length") that CompletionSchema validates.
+    strictOpenAiCompliance: true,
   });
   // Gateway retries must not multiply with SDK retries (API.md §8.1).
   client.maxRetries = 0;
@@ -98,7 +102,26 @@ export function createAiClient(
 
     const parsed = CompletionSchema.safeParse(response);
     if (!parsed.success || parsed.data.choices[0].message.refusal) {
-      console.error("AI response validation failed.");
+      // Only non-sensitive metadata: a truncated reply reports a non-"stop"
+      // finish reason, which distinguishes an output cap from malformed data.
+      const diagnostic = z
+        .object({
+          choices: z
+            .array(z.object({ finish_reason: z.string().nullish() }))
+            .optional(),
+          usage: z
+            .object({ completion_tokens: z.number().optional() })
+            .optional(),
+        })
+        .safeParse(response);
+      console.error("AI response validation failed.", {
+        finish_reason: diagnostic.success
+          ? diagnostic.data.choices?.[0]?.finish_reason
+          : undefined,
+        completion_tokens: diagnostic.success
+          ? diagnostic.data.usage?.completion_tokens
+          : undefined,
+      });
       throw new AiTransportError("INVALID_OUTPUT");
     }
     const choice = parsed.data.choices[0];
