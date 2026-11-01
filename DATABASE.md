@@ -837,7 +837,11 @@ excluded.
 
 After applying, the workflow runs
 [read-only database checks](./scripts/verify-database.sql) over the development
-session pooler with TLS required. These check table/RLS presence, forbidden
+session pooler with TLS required by the client's `PGSSLMODE=require`.
+The same `psql` session prints `\conninfo` before running the checks.
+PostgreSQL's `pg_stat_ssl` describes the pooler-to-database connection, not
+the client's TLS connection to the pooler, so it is not used to validate
+client transport encryption. These check table/RLS presence, forbidden
 policies, function permissions, audit triggers, and the brand singleton.
 These deployment checks do not replace behavioral integration tests.
 No other hosted target or automatic push/pull-request trigger is configured.

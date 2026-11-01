@@ -4,12 +4,6 @@ do $$
 declare
   v_table text;
 begin
-  if not exists (
-    select 1 from pg_stat_ssl where pid = pg_backend_pid() and ssl
-  ) then
-    raise exception 'Database verification requires an encrypted connection';
-  end if;
-
   foreach v_table in array array[
     'brand_profile', 'content_plans', 'content_items', 'daily_tips',
     'news_items', 'activity_log', 'generation_runs', 'rate_limits'

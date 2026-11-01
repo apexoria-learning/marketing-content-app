@@ -91,7 +91,8 @@ jobs:
             sudo apt-get update
             sudo apt-get install --yes postgresql-client
           fi
-          psql --no-psqlrc --set=ON_ERROR_STOP=1 --file=scripts/verify-database.sql
+          psql --no-psqlrc --set=ON_ERROR_STOP=1 \
+            --command='\conninfo' --file=scripts/verify-database.sql
 
       - name: Show migration history after deployment
         if: ${{ inputs.apply_migrations }}
