@@ -52,6 +52,16 @@ describe("full-document read navigation", () => {
       expect(warning).toHaveBeenCalledOnce();
     },
   );
+  it("normalizes Safari overscroll without discarding other tabs' offsets", () => {
+    saveTabScrolls(
+      new Map([
+        ["/calendar", -20],
+        ["/create", 500],
+      ]),
+    );
+    expect(readTabScrolls().get("/calendar")).toBe(0);
+    expect(readTabScrolls().get("/create")).toBe(500);
+  });
   it("navigates via a document GET and remembers the initiating control", () => {
     navigateReadPage(
       "/calendar",

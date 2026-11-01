@@ -34,7 +34,10 @@ export function saveTabScrolls(positions: Map<string, number>) {
       SCROLL_KEY,
       JSON.stringify(
         Object.fromEntries(
-          TAB_PATHS.map((path) => [path, positions.get(path) ?? 0]),
+          TAB_PATHS.map((path) => [
+            path,
+            Math.max(0, positions.get(path) ?? 0),
+          ]),
         ),
       ),
     );
