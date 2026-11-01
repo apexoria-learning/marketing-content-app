@@ -2,6 +2,7 @@ import "server-only";
 import { z } from "zod";
 import type { BrandProfileUpdate } from "../../lib/schemas/brand-profile";
 import { createUserDatabaseClient } from "./client";
+import type { TablesUpdate } from "./database.types";
 
 const ContentStatusSchema = z.enum(["idea", "ready", "posted", "skipped"]);
 
@@ -30,8 +31,10 @@ export async function changeContentStatus(input: {
   const { data, error } = await supabase.rpc("change_content_status", {
     p_item_id: input.itemId,
     p_status: input.status,
-    p_skip_reason: input.skipReason ?? null,
-    p_note: input.note ?? null,
+    ...(input.skipReason !== undefined
+      ? { p_skip_reason: input.skipReason }
+      : {}),
+    ...(input.note !== undefined ? { p_note: input.note } : {}),
   });
 
   if (error) {
@@ -64,20 +67,9 @@ export async function updateBrandProfile(input: {
   actorEmail: string;
 }): Promise<{ updated_at: string }> {
   const supabase = await createUserDatabaseClient();
-  const changes: {
-    business_name?: string;
-    business_description?: string;
-    audience_description?: string;
-    courses?: string[];
-    current_offers?: string | null;
-    tone_instagram?: string;
-    tone_linkedin?: string;
-    tone_whatsapp?: string;
-    do_list?: string[];
-    dont_list?: string[];
-    links?: Record<string, string>;
-    updated_by: string;
-  } = { updated_by: input.actorEmail };
+  const changes: TablesUpdate<"brand_profile"> = {
+    updated_by: input.actorEmail,
+  };
 
   for (const field of [
     "business_name",

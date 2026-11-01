@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { writeFile } from "node:fs/promises";
+import { format, resolveConfig } from "prettier";
 import {
   createTestDatabase,
   databaseUrl,
@@ -37,7 +38,14 @@ try {
     );
   }
 
-  await writeFile("src/server/db/database.types.ts", result.stdout, "utf8");
+  const filePath = "src/server/db/database.types.ts";
+  const config = await resolveConfig(filePath);
+  const formatted = await format(result.stdout, {
+    ...config,
+    filepath: filePath,
+  });
+
+  await writeFile(filePath, formatted, "utf8");
 } finally {
   await dropTestDatabase(db);
 }

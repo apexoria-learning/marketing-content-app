@@ -851,7 +851,10 @@ Test and type-generation URLs must use loopback hosts without query overrides.
 The concurrency test uses ten distinct PostgreSQL connections, not ten queued
 queries on one connection. Supabase CLI 2.122.0 generates
 `src/server/db/database.types.ts` from a separate migrated scratch database.
-The generated file is committed as the query contract, never hand-edited.
+The generated file is formatted with the existing Prettier configuration and
+committed as the query contract, never hand-edited. Both user and middleware
+clients use its `Database` generic; validated JSON/RPC results still pass through
+Zod at the external-data boundary.
 CI rejects drift and uploads the file as the `database-types` artifact; retrieve
 that artifact after a migration when local generation is unavailable.
 `npm run db:types:ci` runs this generator on a runner with the CLI and Docker;

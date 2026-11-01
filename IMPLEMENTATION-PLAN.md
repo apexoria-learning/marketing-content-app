@@ -194,11 +194,16 @@ The full `DATABASE.md` §11 list, notably:
 - `consume_rate_limit` never exceeds the limit under concurrency.
 
 ### Completion criteria
-- [ ] Migrations apply cleanly to an empty database
-- [ ] `DATABASE.md` §11 checklist passes
-- [ ] Generated types compile
-- [ ] Dev seed produces a browsable month containing every edge case above
-- [ ] Brand profile seeded with genuine Apexoria content, not placeholders
+- [x] Migrations apply cleanly to an empty isolated CI database
+- [x] Phase 2 schema, RLS, constraint, trigger and concurrency gates from `DATABASE.md` §11 pass in CI
+- [x] Supabase CLI-generated types compile and type both database client factories; CI checks drift
+- [x] Dev seed supplies the rolling fixture window and all required edge cases in isolated CI databases
+- [x] Brand profile seeded with genuine Apexoria content, not placeholders
+
+Hosted fixture browsing is deferred under the approved shared-database exception.
+The cron-idempotency, backup and restore release gates in `DATABASE.md` §11 remain
+for their later implementation phases; the schema suites check row uniqueness
+but do not claim to exercise a cron handler that does not yet exist.
 
 > **Gate:** do not start Phase 6 until 2.10 produces data rich enough to exercise every state in `DESIGN.md` §9.2.
 

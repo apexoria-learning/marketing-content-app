@@ -1,6 +1,7 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import type { NextRequest } from "next/server";
 import { getAuthCookieOptions } from "../../lib/auth/session-cookie";
+import type { Database } from "./database.types";
 
 type AuthCookie = { name: string; value: string; options: CookieOptions };
 
@@ -15,7 +16,7 @@ export function createMiddlewareDatabaseClient(
     throw new Error("Supabase middleware configuration is missing.");
   }
 
-  return createServerClient(url, anonKey, {
+  return createServerClient<Database>(url, anonKey, {
     cookieOptions: getAuthCookieOptions(process.env.NODE_ENV === "production"),
     cookies: {
       getAll() {

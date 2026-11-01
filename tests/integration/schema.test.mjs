@@ -315,6 +315,31 @@ describeDatabase("atomic content status changes", () => {
     expect(item.rows[0].status).toBe("idea");
     expect(events.rows).toHaveLength(0);
   });
+
+  it("uses null defaults when optional status RPC arguments are omitted", async () => {
+    const itemId = await insertContentItem(db, {
+      scheduled_date: "2026-07-12",
+    });
+
+    await db.query("select set_config('request.jwt.claims', $1, false)", [
+      JSON.stringify({ email: "member@apexoria.test" }),
+    ]);
+
+    const result = await asRole(db, "authenticated", () =>
+      db.query(
+        "select public.change_content_status($1, 'skipped') as changed",
+        [itemId],
+      ),
+    );
+    const events = await db.query(
+      "select action from public.activity_log where content_item_id = $1",
+      [itemId],
+    );
+
+    expect(result.rows[0].changed.item.status).toBe("skipped");
+    expect(result.rows[0].changed.item.skip_reason).toBeNull();
+    expect(events.rows).toEqual([{ action: "status_changed" }]);
+  });
 });
 
 describeDatabase("content_items constraints", () => {

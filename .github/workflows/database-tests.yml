@@ -59,7 +59,9 @@ jobs:
         run: npm run db:types:ci
 
       - name: Check generated type drift
-        run: git diff --exit-code -- src/server/db/database.types.ts
+        run: |
+          git ls-files --error-unmatch src/server/db/database.types.ts
+          git diff --exit-code -- src/server/db/database.types.ts
 
       - name: Check types and lint
         run: |
