@@ -63,6 +63,16 @@ begin
     raise exception 'Required atomic planning function protection is missing';
   end if;
 
+  if not exists (
+    select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.proname = 'user_display_names'
+      and p.prosecdef and p.proconfig @> array['search_path=""']
+      and has_function_privilege('authenticated', p.oid, 'execute')
+      and not has_function_privilege('anon', p.oid, 'execute')
+  ) then
+    raise exception 'Required display-name function protection is missing';
+  end if;
+
   if (
     select count(*)
     from pg_trigger

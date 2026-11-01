@@ -222,6 +222,15 @@ restricts to `service_role`. Remaining Group B gaps are the seeded J3 journey
 and isolated SQL rollback checks running in CI, plus confirming real item
 latency in the gateway log.
 
+**Display names (2026-11-01):** at the owner's request, "Posted by" and history
+attribution show the person's Google name instead of their email. Migration
+`0014` adds a read-only, authenticated-only lookup over Supabase Auth metadata,
+limited to people already recorded in the app; stored attribution remains email
+and the UI falls back to the email when no name exists or before `0014` is
+applied. The owner must apply `0014` via the manual migration workflow (dry run
+first). Its generated type entry was written to match generator output and is
+verified by CI's drift gate; its SQL behaviour is covered by isolated CI tests.
+
 **Owner live confirmation (2026-11-01):** after `18c96f6` deployed, the owner
 confirmed month planning and item content generation work on the live site.
 This is owner-reported; the agent did not measure live latency or token usage.

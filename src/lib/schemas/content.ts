@@ -240,6 +240,8 @@ export const ActivitySchema = z.object({
   from_value: z.string().nullable(),
   to_value: z.string().nullable(),
   actor_email: z.string().nullable(),
+  // Presentation only: Google display name for actor_email, when available.
+  actor_name: z.string().nullable().optional(),
   note: z.string().nullable(),
   created_at: timestamp,
 });
@@ -267,7 +269,11 @@ export const ContentPreviewSchema = base
     posted_at: true,
     posted_by: true,
   })
-  .extend({ format: FormatSchema });
+  .extend({
+    format: FormatSchema,
+    // Presentation only: Google display name for posted_by, when available.
+    posted_by_name: z.string().nullable().optional(),
+  });
 export const ItemControlsSchema = ContentPreviewSchema.extend({
   is_hydrated: z.boolean(),
 });

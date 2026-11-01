@@ -30,6 +30,63 @@ afterAll(async () => {
 });
 
 describeDatabase("migrations", () => {
+  it("resolves display names only for people already recorded in application data", async () => {
+    const itemId = await insertContentItem(db, {
+      scheduled_date: "2028-12-09",
+    });
+    await db.query(
+      `insert into auth.users (email, raw_user_meta_data) values
+         ('member@apexoria.test', '{"full_name":"Asha Member"}'),
+         ('named@apexoria.test', '{"name":"Ravi Named"}'),
+         ('noname@apexoria.test', '{}'),
+         ('stranger@example.test', '{"full_name":"Not An Actor"}')`,
+    );
+    await db.query(
+      `insert into public.activity_log (content_item_id, action, actor_email)
+       values ($1, 'note_added', 'Member@Apexoria.test'),
+              ($1, 'note_added', 'named@apexoria.test'),
+              ($1, 'note_added', 'noname@apexoria.test')`,
+      [itemId],
+    );
+    const result = await asRole(db, "authenticated", () =>
+      db.query("select public.user_display_names($1) as names", [
+        [
+          "MEMBER@apexoria.test",
+          "named@apexoria.test",
+          "noname@apexoria.test",
+          "stranger@example.test",
+        ],
+      ]),
+    );
+    expect(result.rows[0].names).toEqual({
+      "member@apexoria.test": "Asha Member",
+      "named@apexoria.test": "Ravi Named",
+    });
+    const empty = await asRole(db, "authenticated", () =>
+      db.query("select public.user_display_names('{}') as names"),
+    );
+    expect(empty.rows[0].names).toEqual({});
+    await expectRejection(() =>
+      asRole(db, "authenticated", () =>
+        db.query("select public.user_display_names($1)", [
+          Array.from({ length: 201 }, (_, index) => `${index}@example.test`),
+        ]),
+      ),
+    );
+    await expectRejection(() =>
+      asRole(db, "authenticated", () =>
+        db.query("select email from auth.users"),
+      ),
+    );
+    const access = await db.query(
+      `select has_function_privilege('anon', p.oid, 'execute') as anon_may,
+         has_function_privilege('authenticated', p.oid, 'execute') as authenticated_may
+       from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+       where n.nspname = 'public' and p.proname = 'user_display_names'`,
+    );
+    expect(access.rows).toEqual([{ anon_may: false, authenticated_may: true }]);
+  });
+
   it("saves generated payload and history together, preserves scheduling, and rejects stale/posted writes", async () => {
     const id = await insertContentItem(db, {
       scheduled_date: "2028-12-03",

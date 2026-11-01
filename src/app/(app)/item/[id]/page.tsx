@@ -24,7 +24,7 @@ import { GenerationControl } from "@/features/content/GenerationControl";
 import { env } from "@/server/config/env";
 import { displayDate, displayTimestamp } from "@/lib/utils/dates";
 import { hasHydratedContent } from "@/lib/utils/status";
-import { getActivity, getItem } from "@/server/db/queries";
+import { getActivity, getItem, withPosterNames } from "@/server/db/queries";
 
 export const metadata: Metadata = { title: "Content details" };
 // hydrateItem/regenerateItem run from this route within a 240s budget.
@@ -40,6 +40,8 @@ export default async function ItemPage({
   const item = await getItem(parsed.data);
   if (!item) notFound();
   const activity = await getActivity([item.id]);
+  const postedByName =
+    (await withPosterNames([item]))[0]?.posted_by_name ?? null;
   return (
     <>
       <PageHeader
@@ -64,8 +66,9 @@ export default async function ItemPage({
       </h1>
       {item.status === "posted" && item.posted_at ? (
         <p className="mb-4 text-sm text-secondary">
-          Posted by {item.posted_by} · {displayTimestamp(item.posted_at)} IST.
-          Content is read-only; un-tick to return it to ready.
+          Posted by {postedByName ?? item.posted_by} ·{" "}
+          {displayTimestamp(item.posted_at)} IST. Content is read-only; un-tick
+          to return it to ready.
         </p>
       ) : null}
       {item.skip_reason ? (

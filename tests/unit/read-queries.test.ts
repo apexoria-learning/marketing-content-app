@@ -14,9 +14,73 @@ import {
   decodeArchiveCursor,
   getActivity,
   getArchive,
+  getDisplayNames,
+  withPosterNames,
 } from "../../src/server/db/queries";
 
 beforeEach(() => vi.clearAllMocks());
+
+describe("display names for attribution", () => {
+  it("looks up each distinct email once, case-insensitively, and keeps emails without names", async () => {
+    const rpc = vi.fn().mockResolvedValue({
+      data: { "member@apexoria.test": "Asha Member" },
+      error: null,
+    });
+    mocks.create.mockResolvedValue({ rpc });
+    const items = await withPosterNames([
+      { id: "1", posted_by: "Member@Apexoria.test" },
+      { id: "2", posted_by: "member@apexoria.test" },
+      { id: "3", posted_by: "unnamed@apexoria.test" },
+      { id: "4", posted_by: null },
+    ]);
+    expect(rpc).toHaveBeenCalledTimes(1);
+    expect(rpc).toHaveBeenCalledWith("user_display_names", {
+      p_emails: ["member@apexoria.test", "unnamed@apexoria.test"],
+    });
+    expect(items.map((item) => item.posted_by_name)).toEqual([
+      "Asha Member",
+      "Asha Member",
+      null,
+      null,
+    ]);
+  });
+
+  it("makes no database call when nothing is attributed", async () => {
+    expect(await getDisplayNames([null, null])).toEqual(new Map());
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
+
+  it("batches large lookups within the function's 200-email cap", async () => {
+    const rpc = vi
+      .fn<(name: string, args: { p_emails: string[] }) => Promise<unknown>>()
+      .mockResolvedValue({ data: {}, error: null });
+    mocks.create.mockResolvedValue({ rpc });
+    await getDisplayNames(
+      Array.from({ length: 450 }, (_, index) => `${index}@example.test`),
+    );
+    expect(rpc.mock.calls.map(([, args]) => args.p_emails.length)).toEqual([
+      200, 200, 50,
+    ]);
+  });
+
+  it("falls back to emails, with a logged code, when the lookup is unavailable", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    mocks.create.mockResolvedValue({
+      rpc: vi.fn().mockResolvedValue({
+        data: null,
+        error: { code: "PGRST202", message: "function not found" },
+      }),
+    });
+    const [item] = await withPosterNames([
+      { id: "1", posted_by: "member@apexoria.test" },
+    ]);
+    expect(item?.posted_by_name).toBeNull();
+    expect(error).toHaveBeenCalledWith(
+      "Display names unavailable; showing emails.",
+      { code: "PGRST202" },
+    );
+  });
+});
 describe("archive query contracts", () => {
   it("reads complete activity history beyond the PostgREST cap with stable keysets", async () => {
     const itemId = "c862f630-7968-4b35-b048-9b7e9183fef1";
@@ -34,6 +98,10 @@ describe("archive query contracts", () => {
     const limits: number[] = [];
     let pageIndex = 0;
     mocks.create.mockResolvedValue({
+      rpc: vi.fn().mockResolvedValue({
+        data: { "browser-test@example.test": "Browser Tester" },
+        error: null,
+      }),
       from: () => {
         const page = rows.slice(pageIndex * 500, ++pageIndex * 500);
         const builder = {
@@ -56,6 +124,7 @@ describe("archive query contracts", () => {
     });
     const activity = await getActivity([itemId]);
     expect(activity).toHaveLength(1001);
+    expect(activity[0]?.actor_name).toBe("Browser Tester");
     expect(new Set(activity.map((event) => event.id)).size).toBe(1001);
     expect(limits).toEqual([500, 500, 500]);
     expect(filters).toEqual([

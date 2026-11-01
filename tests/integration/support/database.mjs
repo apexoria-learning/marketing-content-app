@@ -45,6 +45,15 @@ const SUPABASE_BOOTSTRAP = `
     grant all on sequences to anon, authenticated, service_role;
   alter default privileges in schema public
     grant execute on functions to anon, authenticated, service_role;
+
+  -- Minimal stand-in for Supabase Auth's users table: only the columns that
+  -- public.user_display_names reads. Like Supabase, no grants to API roles.
+  create schema if not exists auth;
+  create table if not exists auth.users (
+    id uuid primary key default gen_random_uuid(),
+    email text,
+    raw_user_meta_data jsonb not null default '{}'::jsonb
+  );
 `;
 
 export const APPLICATION_TABLES = [

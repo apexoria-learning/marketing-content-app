@@ -16,6 +16,62 @@ import {
 import { monthBounds, shiftMonth, todayInIst } from "../../lib/utils/dates";
 import { createUserDatabaseClient } from "./client";
 
+const DISPLAY_NAME_BATCH = 200;
+
+/**
+ * Maps lower-cased emails to Google display names. Attribution is stored as
+ * email; a name is presentation only, so an unavailable lookup (for example
+ * before migration 0014 is applied) is logged and the UI shows the email.
+ */
+export async function getDisplayNames(
+  emails: readonly (string | null)[],
+): Promise<Map<string, string>> {
+  const unique = [
+    ...new Set(
+      emails
+        .filter((email): email is string => Boolean(email))
+        .map((email) => email.toLowerCase()),
+    ),
+  ];
+  const names = new Map<string, string>();
+  if (!unique.length) return names;
+  try {
+    const client = await createUserDatabaseClient();
+    for (let start = 0; start < unique.length; start += DISPLAY_NAME_BATCH) {
+      const { data, error } = await client.rpc("user_display_names", {
+        p_emails: unique.slice(start, start + DISPLAY_NAME_BATCH),
+      });
+      if (error) throw error;
+      for (const [email, name] of Object.entries(
+        z.record(z.string(), z.string().min(1)).parse(data),
+      ))
+        names.set(email.toLowerCase(), name);
+    }
+  } catch (failure) {
+    console.error("Display names unavailable; showing emails.", {
+      code:
+        typeof failure === "object" && failure !== null && "code" in failure
+          ? String(failure.code)
+          : undefined,
+    });
+  }
+  return names;
+}
+
+function nameFor(names: Map<string, string>, email: string | null) {
+  return email ? (names.get(email.toLowerCase()) ?? null) : null;
+}
+
+export async function withPosterNames<T extends { posted_by: string | null }>(
+  items: T[],
+): Promise<(T & { posted_by_name: string | null })[]> {
+  const names = await getDisplayNames(items.map((item) => item.posted_by));
+  return items.map((item) => ({
+    ...item,
+    posted_by_name: nameFor(names, item.posted_by),
+  }));
+}
+
 export function decodeArchiveCursor(value: unknown) {
   if (
     typeof value !== "string" ||
@@ -43,7 +99,7 @@ export async function getTodayItems(date: string) {
     .eq("scheduled_date", date)
     .order("slot");
   if (error) throw error;
-  return z.array(ContentItemSchema).parse(data);
+  return withPosterNames(z.array(ContentItemSchema).parse(data));
 }
 
 export async function getMonthItems(params: ReadParams) {
@@ -59,7 +115,7 @@ export async function getMonthItems(params: ReadParams) {
   if (params.status) query = query.eq("status", params.status);
   const { data, error } = await query.order("scheduled_date").order("slot");
   if (error) throw error;
-  return z.array(ContentItemSchema).parse(data);
+  return withPosterNames(z.array(ContentItemSchema).parse(data));
 }
 
 export async function getMonthPlan(month: string) {
@@ -131,9 +187,16 @@ export async function getActivity(itemIds: string[]) {
     if (error) throw error;
     const page = z.array(ActivitySchema).parse(data);
     activity.push(...page);
-    if (page.length < 500) return activity;
+    if (page.length < 500) break;
     cursor = page.at(-1);
   }
+  const names = await getDisplayNames(
+    activity.map((event) => event.actor_email),
+  );
+  return activity.map((event) => ({
+    ...event,
+    actor_name: nameFor(names, event.actor_email),
+  }));
 }
 
 export async function getArchive(params: ReadParams, rawCursor: unknown) {
@@ -207,7 +270,7 @@ export async function getArchive(params: ReadParams, rawCursor: unknown) {
   const items = params.scope === "all" ? parsed.slice(0, 30) : parsed;
   const last = items.at(-1);
   return {
-    items,
+    items: await withPosterNames(items),
     summary,
     nextCursor:
       parsed.length > 30 && params.scope === "all" && last?.posted_at

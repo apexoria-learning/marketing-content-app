@@ -863,6 +863,14 @@ and the five-plan cap together or rolls back all counters on denial. Caller
 email is derived from JWT claims; IST midnight is derived inside PostgreSQL.
 Anonymous execution is explicitly revoked. These routines require generated
 type refresh and manual hosted migration before generation actions activate.
+Migration `0014` adds `user_display_names(text[]) → jsonb`, a read-only
+`SECURITY DEFINER` lookup (`search_path = ''`) mapping lower-cased emails to
+the Google `full_name`/`name` in Supabase Auth metadata, so "Posted by" and
+history show names. It returns names only for people already recorded as
+`posted_by` or `actor_email`, caps requests at 200 emails, and is executable by
+`authenticated` only. Stored attribution stays email; the app falls back to the
+email when no name exists or the lookup is unavailable. The isolated test
+database stubs only `auth.users(id, email, raw_user_meta_data)`.
 No other hosted target or automatic push/pull-request trigger is configured.
 
 #### Isolated behavioral tests and generated types

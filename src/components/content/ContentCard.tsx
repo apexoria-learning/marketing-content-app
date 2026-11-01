@@ -67,7 +67,7 @@ export function ContentCard({
       </footer>
       {isPosted && item.posted_at ? (
         <p className="mt-2 text-caption text-secondary">
-          Posted by {item.posted_by} ·{" "}
+          Posted by {item.posted_by_name ?? item.posted_by} ·{" "}
           <time dateTime={item.posted_at}>
             {displayTimestamp(item.posted_at)} IST
           </time>

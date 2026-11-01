@@ -438,6 +438,7 @@ export type Database = {
         };
         Returns: Json;
       };
+      user_display_names: { Args: { p_emails: string[] }; Returns: Json };
     };
     Enums: {
       activity_action:

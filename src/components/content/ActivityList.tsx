@@ -15,7 +15,7 @@ export function ActivityList({ activity }: { activity: Activity[] }) {
                     : event.action.replaceAll("_", " "))}
               </p>
               <p className="mt-1 break-words text-caption text-secondary">
-                {event.actor_email ?? "System"} ·{" "}
+                {event.actor_name ?? event.actor_email ?? "System"} ·{" "}
                 <time dateTime={event.created_at}>
                   {displayTimestamp(event.created_at)} IST
                 </time>
