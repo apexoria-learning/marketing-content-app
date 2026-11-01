@@ -259,7 +259,9 @@ denial check complete based only on mocked tests.
 
 **Approved refinements:** posted-only Archive (skipped content remains in Calendar/detail), agenda below 400px, readable posted-card styling instead of whole-card opacity, and seven-day last-verified-session offline reads with explicit purge/expiry rules in ARCHITECTURE.md §3.2.
 
-**Verification checkpoint (2026-11-01):** 271 local tests pass; 83 database tests are intentionally skipped on the shared laptop. Typecheck, lint, production build, client-secret scan, 23 existing browser regressions and the production anonymous offline-shell test pass. Isolated database CI also passes migrations/RLS/concurrency, schema fixtures and generated-type drift. Authenticated production browser CI on `57807b1` passes 21 of 22 tests, including all six formats, screen accessibility, 320px/text enlargement, verbatim/long-press/fallback copy, exact 30-row Archive keysets, posting/Undo/history, offline refresh and sign-out cache purge. The remaining blocker is intermittent Calendar month navigation; do not mark the batch complete yet. Physical-device installation/splash/safe-area/update checks, tab scroll restoration, Lighthouse/performance and measured layout-shift checks remain unverified.
+**Automated verification (2026-11-01):** 279 local tests pass; 83 database tests are intentionally skipped on the shared laptop. Typecheck, lint, production build, the 59-file client-secret scan, 23 existing browser regressions and the production anonymous offline-shell test pass. Isolated database CI passes all 362 tests without skips, including migrations/RLS/concurrency, schema fixtures and generated-type drift. Production browser CI passes all 24 tests, including all six formats, screen accessibility, 320px/text enlargement, verbatim/long-press/fallback copy, 30-row Archive keysets while another page posts content, posting/Undo/history, offline refresh and sign-out cache purge. Month/scope navigation, keyboard focus and tab scroll preservation now pass using the user's approved full-document GET refinement (API.md §6.2).
+
+**Release sign-off still pending:** physical-device installation/splash/safe-area/update checks, visual/haptic design review, production Lighthouse thresholds and measured layout-shift checks. Implementation and automated verification are complete; do not mark every phase's manual completion criteria signed off yet. AI generation remains deferred. Verified code/test commit: `9b2d1b8`; database run `41295198032` and browser run `41295198046` both succeeded.
 
 ### Tasks
 
@@ -290,7 +292,7 @@ None.
 ### Completion criteria
 - [ ] Installs with correct icon and splash on both platforms
 - [ ] Lighthouse reports installable
-- [ ] Tab scroll positions preserved independently
+- [x] Tab scroll positions preserved independently
 - [ ] Safe areas correct on a notched device
 - [ ] Service worker update prompt verified
 
@@ -368,7 +370,7 @@ Read-only. Implements the read contracts in `API.md` §6.
 ### Completion criteria
 - [x] All five screens render from the dev seed
 - [ ] Every empty state in `DESIGN.md` §9.2 reachable and correct
-- [ ] Deck, calendar and month swipe all have non-gesture equivalents
+- [x] Deck, calendar and month swipe all have non-gesture equivalents
 - [ ] `DESIGN.md` §14 checklist passes per screen
 
 ---
