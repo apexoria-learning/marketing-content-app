@@ -202,7 +202,11 @@ test.describe("isolated, genuinely authenticated content journeys", () => {
       .toBeLessThanOrEqual(2);
     const nav = page.getByRole("navigation", { name: "Main navigation" });
     await nav.getByRole("link", { name: "Archive", exact: true }).click();
-    await page.getByRole("radio", { name: "All", exact: true }).click();
+    await expect(page).toHaveURL(/\/archive$/);
+    await page
+      .getByRole("radiogroup", { name: "Archive scope" })
+      .getByRole("radio", { name: "All", exact: true })
+      .click();
     await expect(page.locator("main article")).toHaveCount(30);
     await page.getByRole("link", { name: "Next 30 posts" }).click();
     await expect(page).toHaveURL(/cursor=ey/);
