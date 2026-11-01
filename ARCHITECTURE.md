@@ -333,6 +333,13 @@ still violating → reject the run, change nothing, log the failure
 
 Models are persuadable, not reliable. Constraints that matter are enforced by code. This is also what makes metric `M4` (pillar coverage) a guarantee rather than a hope.
 
+Owner-approved refinements: normalize idea words with Unicode NFKC and compare
+word-set Jaccard similarity at ≥0.70, including exact normalized matches.
+When news grounding is absent, omit the news pillar explicitly and require
+coverage of the remaining nine; retain all-ten coverage when sources exist.
+See API.md §5.2. Month persistence uses the invoker/RLS-constrained
+`commit_month_plan` transaction, not sequential parent/child writes.
+
 ### 4.5 The daily cron
 
 One job, because each Hobby cron fires at most once per day (§1.2). Splitting into several jobs would buy nothing — they would all still run once daily, while multiplying the authentication surface and the failure modes. It runs four stages in dependency order, each independently failure-isolated:

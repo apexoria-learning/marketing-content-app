@@ -848,6 +848,14 @@ Migration `0011` explicitly revokes anonymous execution of both application
 RPCs: hosted Supabase's role-specific default grants survive a revoke from
 `PUBLIC` alone. Authenticated execution and existing service-role access remain.
 Isolated tests reproduce those function defaults and verify both RPCs deny anon.
+Migration `0012` adds invoker/RLS-constrained `commit_month_plan`: parent and
+child inserts are atomic, duplicate months reject, and an invalid child rolls
+back the parent. The routine verifies every date belongs to and covers the
+requested month; deterministic pillar/format/similarity rules remain enforced
+by the planning service before submission. Anonymous execution is explicitly
+revoked. Generated types must be refreshed from isolated CI before callers
+wire the new RPC. The CI artifact is uploaded before the drift gate so a
+schema-changing release can retrieve generated types without a laptop database.
 No other hosted target or automatic push/pull-request trigger is configured.
 
 #### Isolated behavioral tests and generated types

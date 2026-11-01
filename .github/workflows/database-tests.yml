@@ -56,7 +56,17 @@ jobs:
           version: 2.122.0
 
       - name: Generate types from isolated migrated schema
+        id: generated-types
         run: npm run db:types:ci
+
+      - name: Upload generated database types
+        if: ${{ steps.generated-types.outcome == 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: database-types
+          path: src/server/db/database.types.ts
+          if-no-files-found: error
+          retention-days: 7
 
       - name: Check generated type drift
         run: |
@@ -67,11 +77,3 @@ jobs:
         run: |
           npm run typecheck
           npm run lint
-
-      - name: Upload generated database types
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: database-types
-          path: src/server/db/database.types.ts
-          if-no-files-found: error
-          retention-days: 7

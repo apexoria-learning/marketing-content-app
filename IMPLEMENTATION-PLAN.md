@@ -127,6 +127,28 @@ requirement. No paid call is authorized; the real smoke checkpoint remains.
 Unknown cost does not provide monetary spend enforcement. Fixed-point pricing
 support remains available when verified rates are supplied later.
 
+**Group B started (2026-11-01):** the owner approved proceeding with mocked
+implementation while Group A's real smoke gate remains open, and activating
+signed-in user generation only after Group B passes. Agent calls remain
+mock-only. Approved near-duplicate rule: normalized word-set Jaccard ≥0.70
+plus exact matches. When news is absent, explicitly omit that pillar and
+enforce twice-monthly coverage of the other nine.
+
+The first Group B increment implements generation input schemas, deterministic
+month validation/generation with one repair, a transactional month-plan RPC,
+bounded hydration orchestration and anti-repeating daily tips. Persistence
+adapters, generation actions/rate limits, UI and J3 remain pending; no generation
+entry point is active. New migration `0012` requires isolated SQL validation and
+generated-type refresh before adapter wiring and manual hosted deployment.
+Simulated 240-second batch tests verify 30 items at 8s/item and 20 at 12s/item;
+these are not real-model throughput measurements.
+
+**Group C scope change requested:** move automation/brand settings into the
+existing admin panel at `C:\Apex\apexoria\src\admin`. Review its auth, deployment,
+database and server boundaries before implementing that integration; do not
+assume its authorization can replace this app's independent safeguards.
+Groups C/D are not started and real-smoke/backup/live cron gates remain.
+
 ## 2. Phase map
 
 | # | Phase | Depends on | Outcome |

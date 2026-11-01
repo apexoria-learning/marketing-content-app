@@ -4,14 +4,8 @@ import type { ActionCode, ActionResult } from "../../lib/schemas/action-result";
 import { getAuthorizedUser } from "../auth";
 import { destroyUserSession } from "../db/client";
 
-export class ActionFailure extends Error {
-  constructor(
-    public readonly code: "VALIDATION" | "GENERATION_FAILED",
-    message: string,
-  ) {
-    super(message);
-  }
-}
+import { ActionFailure } from "../services/service-error";
+export { ActionFailure } from "../services/service-error";
 
 function failure(
   code: ActionCode,

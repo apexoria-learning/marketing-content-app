@@ -385,6 +385,15 @@ Just-in-time hydration (`ARCHITECTURE.md` §4.3) when a user opens an item still
 
 Generates the skeleton only (phase 1); hydration follows via cron or on demand. Idempotent through the `content_plans.plan_month` unique constraint — a second call for an existing month returns `VALIDATION` with "This month is already planned." Bounded by `PLANNING_HORIZON_MONTHS` (default 2); a request beyond the horizon is rejected. Runs the deterministic planning-rule validator (`ARCHITECTURE.md` §4.4) before any insert; a plan that cannot be repaired is **rejected whole, writing nothing**.
 
+**Owner-approved planning refinements (2026-11-01):** recent-idea similarity
+uses Unicode-normalized, case/punctuation-insensitive word-set Jaccard ≥0.70,
+including exact normalized matches. When verified news is unavailable, omit
+`salesforce_news` explicitly and require the other nine pillars at least twice;
+return/display the omission rather than inventing news. With sources present,
+all ten pillars remain required. `commit_month_plan` (migration `0012`) inserts
+the parent and all children in one RLS-constrained transaction; date coverage
+and child constraints reject incomplete plans without leaving a parent behind.
+
 **`generateForDay`**
 
 | | |

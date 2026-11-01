@@ -30,6 +30,63 @@ afterAll(async () => {
 });
 
 describeDatabase("migrations", () => {
+  it("commits every month slot atomically and rolls back a failing child insert", async () => {
+    const items = Array.from({ length: 30 }, (_, index) => ({
+      scheduled_date: `2028-11-${String(index + 1).padStart(2, "0")}`,
+      slot: 1,
+      platform: "instagram",
+      format: index % 2 ? "post" : "carousel",
+      pillar: "salesforce_tips",
+      idea: `Idea ${index}`,
+    }));
+    const invalid = items.map((item, index) => ({
+      ...item,
+      slot: index === 29 ? 3 : 1,
+    }));
+    await expectRejection(() =>
+      db.query("select public.commit_month_plan($1, $2::jsonb, $3, $4)", [
+        "2028-11-01",
+        JSON.stringify(invalid),
+        "mock-model",
+        "plan-v1",
+      ]),
+    );
+    const empty = await db.query(
+      "select id from public.content_plans where plan_month = '2028-11-01'",
+    );
+    expect(empty.rows).toHaveLength(0);
+    const result = await asRole(db, "authenticated", () =>
+      db.query(
+        "select public.commit_month_plan($1, $2::jsonb, $3, $4) as plan",
+        ["2028-11-01", JSON.stringify(items), "mock-model", "plan-v1"],
+      ),
+    );
+    expect(result.rows[0].plan.item_count).toBe(30);
+    const children = await db.query(
+      "select count(*)::integer as count from public.content_items where plan_id = $1",
+      [result.rows[0].plan.plan_id],
+    );
+    expect(children.rows[0].count).toBe(30);
+    await expectRejection(() =>
+      db.query("select public.commit_month_plan($1, $2::jsonb, $3, $4)", [
+        "2028-11-01",
+        JSON.stringify(items),
+        "mock-model",
+        "plan-v1",
+      ]),
+    );
+  });
+
+  it("does not expose atomic month planning to anonymous callers", async () => {
+    const result = await db.query(
+      `select has_function_privilege('anon', p.oid, 'execute') as anon_may,
+        has_function_privilege('authenticated', p.oid, 'execute') as authenticated_may
+      from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public' and p.proname = 'commit_month_plan'`,
+    );
+    expect(result.rows).toEqual([{ anon_may: false, authenticated_may: true }]);
+  });
+
   it("revokes explicit anonymous RPC grants while retaining authenticated access", async () => {
     const result = await db.query(
       `select p.proname,
