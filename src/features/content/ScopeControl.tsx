@@ -1,6 +1,10 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import {
+  navigateReadPage,
+  restoreReadFocus,
+} from "@/lib/utils/read-navigation";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import type { ReadParams } from "@/lib/schemas/read-params";
 export function ScopeControl({
@@ -10,7 +14,7 @@ export function ScopeControl({
   params: ReadParams;
   mode: "archive" | "create";
 }) {
-  const router = useRouter();
+  useEffect(() => restoreReadFocus(), []);
   const segments =
     mode === "archive"
       ? [
@@ -32,20 +36,28 @@ export function ScopeControl({
   )
     return null;
   return (
-    <SegmentedControl
-      label={mode === "archive" ? "Archive scope" : "Format scope"}
-      value={mode === "archive" ? params.scope : (params.format ?? "")}
-      segments={segments}
-      onChange={(value) => {
-        const search = new URLSearchParams();
-        if (params.platform) search.set("platform", params.platform);
-        if (mode === "archive") {
-          if (params.pillar) search.set("pillar", params.pillar);
-          if (params.format) search.set("format", params.format);
-          search.set("scope", value);
-        } else if (value) search.set("format", value);
-        router.push(`/${mode}?${search}`, { scroll: false });
-      }}
-    />
+    <div id={`${mode}-scope-control`}>
+      <SegmentedControl
+        label={mode === "archive" ? "Archive scope" : "Format scope"}
+        value={mode === "archive" ? params.scope : (params.format ?? "")}
+        segments={segments}
+        onChange={(value) => {
+          const search = new URLSearchParams();
+          if (params.platform) search.set("platform", params.platform);
+          if (mode === "archive") {
+            if (params.pillar) search.set("pillar", params.pillar);
+            if (params.format) search.set("format", params.format);
+            search.set("scope", value);
+          } else if (value) search.set("format", value);
+          navigateReadPage(
+            `/${mode}`,
+            search,
+            mode === "archive"
+              ? "archive-scope-control"
+              : "create-scope-control",
+          );
+        }}
+      />
+    </div>
   );
 }

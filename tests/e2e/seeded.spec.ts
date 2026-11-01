@@ -138,6 +138,9 @@ test.describe("isolated, genuinely authenticated content journeys", () => {
     await page.getByRole("button", { name: "Next month" }).click();
     await expect(page).toHaveURL(/month=/);
     await expect(
+      page.getByRole("button", { name: "Next month" }),
+    ).toBeFocused();
+    await expect(
       page.getByRole("button", { name: "Previous month" }),
     ).toBeVisible();
   });
@@ -162,6 +165,54 @@ test.describe("isolated, genuinely authenticated content journeys", () => {
     ).toBeVisible();
     await page.locator("summary", { hasText: "Filters" }).click();
     await expect(page.getByLabel("Format", { exact: true })).toHaveValue("");
+    await page.getByLabel("Format", { exact: true }).selectOption("post");
+    await page.getByRole("button", { name: "Apply filters" }).click();
+    await expect(page).toHaveURL(/format=post/);
+    await expect(
+      page.getByRole("button", { name: "Apply filters" }),
+    ).toBeFocused();
+  });
+
+  test("scope changes preserve keyboard focus after document navigation", async ({
+    page,
+  }) => {
+    await page.goto("/archive");
+    await page.getByRole("radio", { name: "All", exact: true }).click();
+    await expect(page).toHaveURL(/scope=all/);
+    await expect(
+      page.getByRole("radio", { name: "All", exact: true }),
+    ).toBeFocused();
+    await page.keyboard.press("ArrowLeft");
+    await expect(page).toHaveURL(/scope=last_month/);
+    await expect(
+      page.getByRole("radio", { name: "Last month", exact: true }),
+    ).toBeFocused();
+  });
+
+  test("tab scroll positions survive scope and cursor document reloads", async ({
+    page,
+  }) => {
+    await page.goto("/create");
+    await expect(page.locator("main li").first()).toBeVisible();
+    await page.evaluate(() =>
+      window.scrollTo({ top: 500, behavior: "instant" }),
+    );
+    await expect
+      .poll(() => page.evaluate(() => Math.abs(scrollY - 500)))
+      .toBeLessThanOrEqual(2);
+    const nav = page.getByRole("navigation", { name: "Main navigation" });
+    await nav.getByRole("link", { name: "Archive", exact: true }).click();
+    await page.getByRole("radio", { name: "All", exact: true }).click();
+    await expect(page.locator("main article")).toHaveCount(30);
+    await page.getByRole("link", { name: "Next 30 posts" }).click();
+    await expect(page).toHaveURL(/cursor=ey/);
+    await expect(page.locator("main article")).toHaveCount(30);
+    await expect.poll(() => page.evaluate(() => scrollY)).toBe(0);
+    await nav.getByRole("link", { name: "Create", exact: true }).click();
+    await expect(page).toHaveURL(/\/create$/);
+    await expect
+      .poll(() => page.evaluate(() => Math.abs(scrollY - 500)))
+      .toBeLessThanOrEqual(2);
   });
 
   test("unfinished ideas remain readable but cannot be skipped before generation", async ({

@@ -68,7 +68,11 @@ export function ReadFilters({
           ? ` · ${[params.platform, params.pillar, params.format, params.status].filter(Boolean).length} active`
           : ""}
       </summary>
-      <form action={path} className="mt-3 space-y-3">
+      <form
+        action={path}
+        data-read-focus={`${path.slice(1)}-filters-apply`}
+        className="mt-3 space-y-3"
+      >
         {path === "/calendar" ? (
           <input type="hidden" name="month" value={params.month} />
         ) : null}
@@ -102,7 +106,11 @@ export function ReadFilters({
           </div>
         ))}
         <div className="flex gap-3">
-          <Button type="submit" variant="secondary">
+          <Button
+            id={`${path.slice(1)}-filters-apply`}
+            type="submit"
+            variant="secondary"
+          >
             Apply filters
           </Button>
           <Link

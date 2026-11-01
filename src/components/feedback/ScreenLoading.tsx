@@ -20,7 +20,7 @@ export function ScreenLoading({
       <p role="status" className="sr-only">
         Loading {surface.toLowerCase()}
       </p>
-      <div className="mt-8 space-y-6">
+      <div data-screen-loading className="mt-8 space-y-6">
         {surface === "Today" ? (
           <>
             <Skeleton className="h-32 rounded-lg" />

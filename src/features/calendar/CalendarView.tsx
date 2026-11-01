@@ -1,8 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import {
+  navigateReadPage,
+  restoreReadFocus,
+} from "@/lib/utils/read-navigation";
 import type { ContentPreview } from "@/lib/schemas/content";
 import type { ReadParams } from "@/lib/schemas/read-params";
 import {
@@ -32,7 +35,7 @@ export function CalendarView({
   items: ContentPreview[];
   today: string;
 }) {
-  const router = useRouter();
+  useEffect(() => restoreReadFocus(), []);
   const [selected, setSelected] = useState<string | null>(null);
   const touch = useRef({ x: 0, y: 0 });
   const { start, end } = monthBounds(params.month);
@@ -49,7 +52,11 @@ export function CalendarView({
     if (params.platform) search.set("platform", params.platform);
     if (params.pillar) search.set("pillar", params.pillar);
     if (params.status) search.set("status", params.status);
-    router.push(`/calendar?${search}`, { scroll: false });
+    navigateReadPage(
+      "/calendar",
+      search,
+      offset > 0 ? "calendar-month-next" : "calendar-month-previous",
+    );
     setSelected(null);
   }
   function indicators(date: string) {
@@ -79,6 +86,7 @@ export function CalendarView({
         <Button
           variant="icon"
           aria-label="Previous month"
+          id="calendar-month-previous"
           onClick={() => navigate(-1)}
         >
           <Icon name="chevron-left" />
@@ -89,6 +97,7 @@ export function CalendarView({
         <Button
           variant="icon"
           aria-label="Next month"
+          id="calendar-month-next"
           onClick={() => navigate(1)}
         >
           <Icon name="chevron-right" />

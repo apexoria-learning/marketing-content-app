@@ -112,6 +112,7 @@ export default async function ArchivePage({
       {nextCursor ? (
         <a
           href={`/archive?${next}`}
+          data-reset-scroll
           className="mt-8 inline-flex min-h-11 items-center rounded-pill border border-border-strong bg-surface-2 px-5 text-sm font-semibold"
         >
           Next 30 posts

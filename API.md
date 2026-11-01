@@ -458,6 +458,8 @@ Activity history is fetched internally in 500-row keyset batches ordered by `cre
 
 Archive cursor links use full-document GET navigation, matching native filter submissions. This avoids aborted query-only RSC transitions and lets the existing authorized HTML/offline navigation policy handle every cursor page.
 
+**Approved navigation refinement:** month and segmented scope/format changes also use full-document GETs. Keyboard focus returns to the initiating month button or selected segment; native filter submissions reopen Filters and restore focus to Apply. Only the four tab paths and numeric scroll offsets are persisted in session storage, never item IDs or content. Cursor pages start at the top without losing other tabs' saved positions.
+
 `PRD` states nothing about pagination because at planned volume most screens do not need it (`DATABASE.md` §6.1):
 
 | Screen | Max rows | Paginated |
