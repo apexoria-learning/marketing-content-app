@@ -83,6 +83,17 @@ try {
     "update public.content_items set caption = $1 where scheduled_date = (now() at time zone 'Asia/Kolkata')::date and status = 'ready' and slot = 1",
     ["First line\n\nSecond line 🚀"],
   );
+  const fixtures = await db.query(
+    "select distinct on (format) id, format from public.content_items where body is not null and status in ('ready','posted') order by format, scheduled_date desc",
+  );
+  if (fixtures.rows.length !== 6)
+    throw new Error(
+      "Isolated browser fixtures must cover all six hydrated formats.",
+    );
+  await writeFile(
+    "test-results/content-fixtures.json",
+    JSON.stringify(fixtures.rows),
+  );
 } finally {
   await db.end();
 }

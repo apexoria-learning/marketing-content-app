@@ -1,7 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "./tests/e2e",
-  testMatch: "seeded.spec.ts",
+  testMatch: ["seeded.spec.ts", "offline.spec.ts"],
+  outputDir: "test-results/seeded-output",
   workers: 1,
   fullyParallel: false,
   reporter: "list",

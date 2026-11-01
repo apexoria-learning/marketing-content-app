@@ -1,11 +1,55 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
+import { readFileSync } from "node:fs";
+import { z } from "zod";
+import { FormatSchema } from "../../src/lib/schemas/content";
+
+const formatFixtures =
+  process.env.RUN_SEEDED_E2E === "true"
+    ? z
+        .array(z.object({ id: z.uuid(), format: FormatSchema }))
+        .parse(
+          JSON.parse(
+            readFileSync("test-results/content-fixtures.json", "utf8"),
+          ),
+        )
+    : [];
 
 test.describe("isolated, genuinely authenticated content journeys", () => {
   test.skip(
     process.env.RUN_SEEDED_E2E !== "true",
     "Requires isolated Supabase CI; never runs against hosted data.",
   );
+  for (const fixture of formatFixtures) {
+    test(`${fixture.format} detail renders real body data with readable, verbatim text`, async ({
+      page,
+    }) => {
+      await page.goto(`/item/${fixture.id}`);
+      const labels = {
+        carousel: "All slides",
+        reel: /Script ·/,
+        post: "Visual concept",
+        story: "Story frame",
+        meme: "Meme text",
+        poll: "Poll",
+      };
+      const body = page
+        .getByRole("region", {
+          name: labels[fixture.format],
+          exact: fixture.format !== "reel",
+        })
+        .locator("p")
+        .first();
+      await expect(body).toBeVisible();
+      expect(
+        await body.evaluate((element) =>
+          Number.parseFloat(getComputedStyle(element).fontSize),
+        ),
+      ).toBeGreaterThanOrEqual(16);
+      await expect(body).toHaveCSS("white-space", "pre-wrap");
+      expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+    });
+  }
 
   for (const path of ["/", "/calendar", "/create", "/archive"]) {
     test(`${path} renders real content accessibly at 320px, in both themes`, async ({

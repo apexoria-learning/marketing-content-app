@@ -43,8 +43,11 @@ jobs:
           version: 2.122.0
       - name: Start isolated Supabase and apply development seed
         run: |
-          supabase start -x studio,imgproxy,storage-api,realtime,edge-runtime,logflare,vector,supavisor
-          supabase db reset --local
+          setup_log="$RUNNER_TEMP/supabase-setup.log"
+          if ! { supabase start -x studio,imgproxy,storage-api,realtime,edge-runtime,logflare,vector,supavisor && supabase db reset --local; } >"$setup_log" 2>&1; then
+            sed -E 's/eyJ[A-Za-z0-9_.-]+/[REDACTED]/g; s/sb_(secret|publishable)_[A-Za-z0-9_-]+/[REDACTED]/g; s#postgres(ql)?://[^@[:space:]]+@#postgres://[REDACTED]@#g' "$setup_log" | tail -n 60
+            exit 1
+          fi
           node --input-type=module <<'NODE'
           import { execFileSync } from "node:child_process";
           import { appendFileSync } from "node:fs";
@@ -71,3 +74,6 @@ jobs:
       - name: Stop isolated Supabase
         if: always()
         run: supabase stop --no-backup
+      - name: Remove disposable browser credentials
+        if: always()
+        run: rm -f test-results/seeded-auth.json test-results/content-fixtures.json

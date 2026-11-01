@@ -30,7 +30,7 @@ describe.skipIf(!canRun)(
     });
     it("validates tips and month skeletons", async () => {
       const tips = await db.query(
-        "select to_jsonb(tip) as value from public.daily_tips tip",
+        "select to_jsonb(tip_row) as value from public.daily_tips tip_row",
       );
       const plans = await db.query(
         "select to_jsonb(plan) as value from public.content_plans plan",
