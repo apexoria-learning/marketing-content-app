@@ -10,10 +10,59 @@ vi.mock("server-only", () => ({}));
 vi.mock("../../src/server/db/client", () => ({
   createUserDatabaseClient: mocks.create,
 }));
-import { decodeArchiveCursor, getArchive } from "../../src/server/db/queries";
+import {
+  decodeArchiveCursor,
+  getActivity,
+  getArchive,
+} from "../../src/server/db/queries";
 
 beforeEach(() => vi.clearAllMocks());
 describe("archive query contracts", () => {
+  it("reads complete activity history beyond the PostgREST cap with stable keysets", async () => {
+    const itemId = "c862f630-7968-4b35-b048-9b7e9183fef1";
+    const rows = Array.from({ length: 1001 }, (_, index) => ({
+      id: 1001 - index,
+      content_item_id: itemId,
+      action: "note_added",
+      from_value: null,
+      to_value: null,
+      actor_email: "browser-test@example.test",
+      note: `Note ${index}`,
+      created_at: "2026-11-01T07:00:00.123456+00:00",
+    }));
+    const filters: string[] = [];
+    const limits: number[] = [];
+    let pageIndex = 0;
+    mocks.create.mockResolvedValue({
+      from: () => {
+        const page = rows.slice(pageIndex * 500, ++pageIndex * 500);
+        const builder = {
+          select: () => builder,
+          in: () => builder,
+          order: () => builder,
+          limit: (limit: number) => {
+            limits.push(limit);
+            return builder;
+          },
+          or: (filter: string) => {
+            filters.push(filter);
+            return builder;
+          },
+          then: (resolve: (value: unknown) => unknown) =>
+            Promise.resolve({ data: page, error: null }).then(resolve),
+        };
+        return builder;
+      },
+    });
+    const activity = await getActivity([itemId]);
+    expect(activity).toHaveLength(1001);
+    expect(new Set(activity.map((event) => event.id)).size).toBe(1001);
+    expect(limits).toEqual([500, 500, 500]);
+    expect(filters).toEqual([
+      "created_at.lt.2026-11-01T07:00:00.123456+00:00,and(created_at.eq.2026-11-01T07:00:00.123456+00:00,id.lt.502)",
+      "created_at.lt.2026-11-01T07:00:00.123456+00:00,and(created_at.eq.2026-11-01T07:00:00.123456+00:00,id.lt.2)",
+    ]);
+  });
   it.each([
     undefined,
     null,

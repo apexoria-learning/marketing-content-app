@@ -7,6 +7,7 @@ import {
   MonthSkeletonSchema,
   PlatformSchema,
   PillarSchema,
+  type Activity,
 } from "../../lib/schemas/content";
 import {
   ArchiveCursorSchema,
@@ -112,14 +113,27 @@ export async function getDailyTip(date: string) {
 export async function getActivity(itemIds: string[]) {
   if (!itemIds.length) return [];
   const client = await createUserDatabaseClient();
-  const { data, error } = await client
-    .from("activity_log")
-    .select("*")
-    .in("content_item_id", itemIds)
-    .order("created_at", { ascending: false })
-    .order("id", { ascending: false });
-  if (error) throw error;
-  return z.array(ActivitySchema).parse(data);
+  const activity: Activity[] = [];
+  let cursor: Activity | undefined;
+  while (true) {
+    let query = client
+      .from("activity_log")
+      .select("*")
+      .in("content_item_id", itemIds)
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
+      .limit(500);
+    if (cursor)
+      query = query.or(
+        `created_at.lt.${cursor.created_at},and(created_at.eq.${cursor.created_at},id.lt.${cursor.id})`,
+      );
+    const { data, error } = await query;
+    if (error) throw error;
+    const page = z.array(ActivitySchema).parse(data);
+    activity.push(...page);
+    if (page.length < 500) return activity;
+    cursor = page.at(-1);
+  }
 }
 
 export async function getArchive(params: ReadParams, rawCursor: unknown) {

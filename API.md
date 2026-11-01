@@ -454,6 +454,8 @@ Every value is parsed against an enum allowlist. **Invalid input is silently rep
 
 ### 6.2 Pagination — exactly one place
 
+Activity history is fetched internally in 500-row keyset batches ordered by `created_at DESC, id DESC`, so item detail and Archive do not silently truncate notes at the PostgREST response cap. This does not introduce a second user-facing pagination control.
+
 `PRD` states nothing about pagination because at planned volume most screens do not need it (`DATABASE.md` §6.1):
 
 | Screen | Max rows | Paginated |

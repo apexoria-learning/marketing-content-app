@@ -182,9 +182,40 @@ test.describe("isolated, genuinely authenticated content journeys", () => {
     ).toBeVisible();
   });
 
+  test("holding authored text copies it verbatim without pressing the Copy button", async ({
+    page,
+    context,
+  }) => {
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+    const fixture = formatFixtures.find((item) => item.format === "post");
+    if (!fixture) throw new Error("Expected hydrated post fixture.");
+    await page.goto(`/item/${fixture.id}`);
+    const caption = page
+      .getByRole("region", { name: "Caption", exact: true })
+      .locator("p")
+      .first();
+    const authored = await caption.textContent();
+    await caption.hover();
+    await page.mouse.down();
+    await expect(
+      page.getByRole("button", { name: "Copied Caption", exact: true }),
+    ).toBeVisible();
+    await page.mouse.up();
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
+      authored,
+    );
+  });
+
   test("Archive all-scope pages contain exactly 30 unique rows and malformed cursors restart", async ({
     page,
   }) => {
+    const browserErrors: string[] = [];
+    page.on("pageerror", (error) => browserErrors.push(error.message));
+    page.on("requestfailed", (request) =>
+      browserErrors.push(
+        `${new URL(request.url()).pathname}: ${request.failure()?.errorText}`,
+      ),
+    );
     await page.goto("/archive?scope=all&cursor=invalid!");
     await expect(page.locator("main article")).toHaveCount(30);
     const first = await page
@@ -203,7 +234,12 @@ test.describe("isolated, genuinely authenticated content journeys", () => {
       ).success,
     ).toBe(true);
     await page.getByRole("link", { name: "Next 30 posts" }).click();
-    await expect(page).toHaveURL(nextUrl.href);
+    try {
+      await expect(page).toHaveURL(nextUrl.href);
+    } catch (error) {
+      console.error("Archive navigation errors:", browserErrors);
+      throw error;
+    }
     await expect(page.locator("main article a").first()).not.toHaveAttribute(
       "href",
       first[0] ?? "",
