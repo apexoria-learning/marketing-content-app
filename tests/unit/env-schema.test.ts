@@ -21,7 +21,9 @@ describe("parseEnv", () => {
     expect(env.GLOBAL_DAILY_AI_LIMIT).toBe(100);
     expect(env.PLANNING_HORIZON_MONTHS).toBe(2);
     expect(env.ALLOWED_EMAILS).toBe("");
-    expect(env.NEWS_FEED_URLS).toBe("");
+    expect(env.NEWS_FEED_URLS).toBe(
+      "https://www.salesforce.com/news/feed/,https://www.salesforceben.com/feed/",
+    );
     expect(env.NEWS_RETENTION_DAYS).toBe(30);
     expect(env.PORTKEY_BASE_URL).toBe(
       "https://portkeygateway.perficient.com/v1",

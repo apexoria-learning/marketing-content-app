@@ -106,10 +106,12 @@ Verified public RSS candidates are Salesforce News
 (`https://www.salesforce.com/news/feed/`) and Salesforce Ben
 (`https://www.salesforceben.com/feed/`); both returned RSS during public research.
 The suggested Salesforce Developers `/blogs/rss.xml` returned 404 and is not
-recommended. Owner selection is still required before setting the feed list.
+recommended. The owner approved both verified feeds; they are now the defaults
+when `NEWS_FEED_URLS` is unset. An explicitly empty value still disables feeds.
 Portkey's cost-management documentation confirms model-catalog pricing and
 existing per-request log/analytics cost visibility; it does not verify this
-custom gateway's active rates. Inspect existing InterviewPrep logs/catalog or
+custom gateway's active rates. Pricing/retry confirmation is pending with the
+authorized gateway administrator. Inspect existing InterviewPrep logs/catalog or
 ask the authorized gateway administrator, without making a new AI request.
 Mocked tests only remain authorized;
 real calls require explicit approval, real credentials remain outside the

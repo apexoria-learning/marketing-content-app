@@ -686,7 +686,7 @@ Canonical list (`ARCHITECTURE.md` §11), annotated with the integration each ser
 | `AI_MODEL` | Server | No | `server/ai/client` | Model identifier |
 | `CRON_SECRET` | Server | **Yes** | `/api/cron/daily` | Bearer authentication |
 | `ALLOWED_EMAILS` | Server | No | `/auth/callback`, action wrapper | Allowlist; empty disables layer 2 |
-| `NEWS_FEED_URLS` | Server | No | `server/news` | Comma-separated feed list |
+| `NEWS_FEED_URLS` | Server | No | `server/news` | Comma-separated feed list; defaults to owner-approved Salesforce News and Salesforce Ben when unset; explicit empty disables feeds |
 | `NEWS_RETENTION_DAYS` | Server | No | News ingestion service | Default `30`, owner-approved; pruning by fetched_at |
 | `PLAN_DAY_OF_MONTH` | Server | No | Cron stage 3 | Default `25` (`DR-4`) |
 | `REGEN_DAILY_LIMIT` | Server | No | Rate limiter | Default `20` (`DR-5`) |

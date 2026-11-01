@@ -725,7 +725,7 @@ apexoria-content-copilot/
 | `AI_MODEL` | Server | No | `ai/client` | Model identifier — config, not code |
 | `CRON_SECRET` | Server | **Yes** | Cron route | Bearer authentication |
 | `ALLOWED_EMAILS` | Server | No | `auth/allowlist` | Comma-separated; empty disables layer 2 |
-| `NEWS_FEED_URLS` | Server | No | `news/` | Comma-separated feed list |
+| `NEWS_FEED_URLS` | Server | No | `news/` | Comma-separated feed list; approved Salesforce News/Ben defaults when unset; explicit empty disables feeds |
 | `NEWS_RETENTION_DAYS` | Server | No | News ingestion service | Default `30` days from fetched_at, owner-approved |
 | `PLAN_DAY_OF_MONTH` | Server | No | Cron | Default `25` (`DR-4`) |
 | `REGEN_DAILY_LIMIT` | Server | No | `security/` | Default `20` (`DR-5`) |

@@ -23,7 +23,11 @@ export const envSchema = z.object({
   AI_MODEL: z.string().min(1),
   CRON_SECRET: z.string().min(32),
   ALLOWED_EMAILS: z.string().default(""),
-  NEWS_FEED_URLS: z.string().default(""),
+  NEWS_FEED_URLS: z
+    .string()
+    .default(
+      "https://www.salesforce.com/news/feed/,https://www.salesforceben.com/feed/",
+    ),
   NEWS_RETENTION_DAYS: z.coerce.number().int().min(1).max(365).default(30),
   PLAN_DAY_OF_MONTH: z.coerce.number().int().min(1).max(31).default(25),
   REGEN_DAILY_LIMIT: z.coerce.number().int().positive().default(20),
