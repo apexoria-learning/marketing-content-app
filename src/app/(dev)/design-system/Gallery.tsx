@@ -13,6 +13,7 @@ import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { StatusTick } from "@/components/ui/StatusTick";
 import { useToast } from "@/components/ui/Toast";
+import { GenerationControl } from "@/features/content/GenerationControl";
 
 const VARIANTS: ButtonVariant[] = ["primary", "secondary", "ghost", "danger"];
 
@@ -27,7 +28,13 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-export function Gallery({ theme }: { theme: "dark" | "light" }) {
+export function Gallery({
+  theme,
+  generation,
+}: {
+  theme: "dark" | "light";
+  generation?: "auto" | "manual";
+}) {
   const toast = useToast();
   const [chips, setChips] = useState<string[]>(["Instagram"]);
   const [scope, setScope] = useState<"month" | "quarter" | "all">("month");
@@ -66,6 +73,26 @@ export function Gallery({ theme }: { theme: "dark" | "light" }) {
             Mark as posted
           </Button>
         </Section>
+
+        {generation ? (
+          <Section title="Generation examples">
+            <GenerationControl
+              enabled
+              auto={generation === "auto"}
+              target={{
+                kind: "hydrate",
+                itemId: "00000000-0000-4000-8000-000000000001",
+              }}
+            />
+            <GenerationControl
+              enabled
+              target={{
+                kind: "regenerate",
+                itemId: "00000000-0000-4000-8000-000000000001",
+              }}
+            />
+          </Section>
+        ) : null}
 
         <Section title="Chips">
           <div className="flex flex-wrap gap-3">

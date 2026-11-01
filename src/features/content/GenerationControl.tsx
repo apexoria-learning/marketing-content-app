@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { BottomSheet } from "@/components/ui/BottomSheet";
@@ -42,6 +49,7 @@ export function GenerationControl({
   const router = useRouter();
   const toast = useToast();
   const autoStarted = useRef(false);
+  const steerId = useId();
   const stages = ["Researching…", "Writing…", "Briefing…"];
   useEffect(() => {
     if (!pending) {
@@ -164,14 +172,11 @@ export function GenerationControl({
             execute();
           }}
         >
-          <label
-            htmlFor="generation-steer"
-            className="block text-sm font-medium"
-          >
+          <label htmlFor={steerId} className="block text-sm font-medium">
             What should change? (optional)
           </label>
           <textarea
-            id="generation-steer"
+            id={steerId}
             value={steer}
             onChange={(event) => setSteer(event.target.value)}
             maxLength={500}

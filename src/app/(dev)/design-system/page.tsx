@@ -8,12 +8,23 @@ export const metadata = { title: "Design system", robots: { index: false } };
 export default async function DesignSystemPage({
   searchParams,
 }: {
-  searchParams: Promise<{ theme?: string }>;
+  searchParams: Promise<{ theme?: string; generation?: string }>;
 }) {
   if (process.env.NODE_ENV === "production") {
     notFound();
   }
 
-  const { theme } = await searchParams;
-  return <Gallery theme={theme === "light" ? "light" : "dark"} />;
+  const { theme, generation } = await searchParams;
+  return (
+    <Gallery
+      theme={theme === "light" ? "light" : "dark"}
+      generation={
+        generation === "auto"
+          ? "auto"
+          : generation === "true"
+            ? "manual"
+            : undefined
+      }
+    />
+  );
 }

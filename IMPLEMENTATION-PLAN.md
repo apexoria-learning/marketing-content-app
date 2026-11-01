@@ -164,14 +164,29 @@ generation, drains oldest unfinished items within the existing 240s/30-item
 bounds, and stops immediately on infrastructure/run-telemetry failures rather
 than continuing unlogged calls.
 Latest local feature gates: 69 mocked tests, typecheck and focused lint pass.
+Four targeted browser checks pass using intercepted Server Action responses
+and dummy local configuration: single automatic hydration with staged loading
+and Updated confirmation, regeneration guidance/error preservation, quota reset
+sheet and reload-required transport failure. The development-only gallery hosts
+these opt-in examples; production still returns 404. The browser checks caught
+and fixed duplicate guidance-field IDs when multiple generation controls mount.
 New SQL persistence regression coverage is written but has not run locally;
-this laptop has no isolated PostgreSQL. Additional UI journey checks and Group B
-signoff remain open; cron routes are not yet wired or activated. Hosted migrations have not been run by the agent.
+this laptop has no isolated PostgreSQL. Isolated SQL validation and reviewed
+hosted migrations remain open before Group B signoff/activation; cron routes are
+not yet wired or activated. Hosted migrations have not been run by the agent.
 
 **Group C scope change requested:** move automation/brand settings into the
 existing admin panel at `C:\Apex\apexoria\src\admin`. Review its auth, deployment,
 database and server boundaries before implementing that integration; do not
 assume its authorization can replace this app's independent safeguards.
+The initial review confirmed Firebase authentication in the admin frontend and
+Firebase-token/server email-allowlist checks in its Vercel API, versus Supabase
+sessions in Content Co-pilot. The owner approved a server-to-server bridge:
+the admin backend verifies Firebase admin access, then calls a separately
+protected Content Co-pilot API. Privileged database/AI credentials stay on the
+Content Co-pilot server; no browser-held integration secret and no implicit
+trust in the frontend's admin flag. Bridge implementation and activation remain
+pending.
 Groups C/D are not started and real-smoke/backup/live cron gates remain.
 
 ## 2. Phase map
