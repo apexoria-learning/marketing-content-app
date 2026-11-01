@@ -146,6 +146,7 @@ test.describe("isolated, genuinely authenticated content journeys", () => {
     page,
   }) => {
     await page.goto("/create");
+    await expect(page.getByRole("heading", { name: /Overdue/ })).toBeVisible();
     const headings = await page.locator("main section > h2").allTextContents();
     expect(headings[0]).toContain("Overdue");
     const order = ["Carousels", "Reels", "Posts", "Stories", "Memes", "Polls"];
@@ -210,6 +211,21 @@ test.describe("isolated, genuinely authenticated content journeys", () => {
     page,
   }) => {
     const browserErrors: string[] = [];
+    const archiveRequests: string[] = [];
+    page.on("request", (request) => {
+      const url = new URL(request.url());
+      if (url.pathname === "/archive")
+        archiveRequests.push(
+          `${request.resourceType()} ${url.pathname}${url.search}`,
+        );
+    });
+    page.on("response", (response) => {
+      const url = new URL(response.url());
+      if (url.pathname === "/archive")
+        archiveRequests.push(
+          `${response.status()} ${url.pathname}${url.search}`,
+        );
+    });
     page.on("pageerror", (error) => browserErrors.push(error.message));
     page.on("requestfailed", (request) =>
       browserErrors.push(
@@ -233,11 +249,41 @@ test.describe("isolated, genuinely authenticated content journeys", () => {
         JSON.parse(Buffer.from(cursor ?? "", "base64url").toString("utf8")),
       ).success,
     ).toBe(true);
+    await page.evaluate(() => {
+      document.addEventListener(
+        "click",
+        (event) => {
+          const link =
+            event.target instanceof Element ? event.target.closest("a") : null;
+          if (
+            !(link instanceof HTMLAnchorElement) ||
+            link.textContent?.trim() !== "Next 30 posts"
+          )
+            return;
+          queueMicrotask(() =>
+            sessionStorage.setItem(
+              "archive-click",
+              JSON.stringify({
+                href: link.href,
+                prevented: event.defaultPrevented,
+                online: navigator.onLine,
+              }),
+            ),
+          );
+        },
+        true,
+      );
+    });
     await page.getByRole("link", { name: "Next 30 posts" }).click();
     try {
       await expect(page).toHaveURL(nextUrl.href);
     } catch (error) {
       console.error("Archive navigation errors:", browserErrors);
+      console.error("Archive requests:", archiveRequests.slice(-12));
+      console.error(
+        "Archive click:",
+        await page.evaluate(() => sessionStorage.getItem("archive-click")),
+      );
       throw error;
     }
     await expect(page.locator("main article a").first()).not.toHaveAttribute(
