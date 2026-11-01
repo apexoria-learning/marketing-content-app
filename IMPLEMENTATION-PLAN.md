@@ -94,11 +94,23 @@ isolation, conditional validators and caller-supplied retention. The fetcher
 uses IPv4 DNS only; IPv6-only feeds fail explicitly instead of bypassing address
 validation. Conditional validators are caller-owned state, not a new database
 table. Live activation and persistent state wiring remain deferred to Phase 12.
-Latest local gates: 328 tests pass; 84 database tests intentionally skipped;
+Latest local gates: 329 tests pass; 84 database tests intentionally skipped;
 typecheck, lint, production build and 59-file secret scan pass.
 Group A cannot be signed off until feed URLs/retention and verified pricing or
 gateway cost accounting are confirmed, and an explicitly approved real smoke
 call passes. No new action or cron route calls these modules yet.
+The owner confirmed 30-day news retention and continued mock-only testing.
+`NEWS_RETENTION_DAYS` now exposes that approved default. Feed selection and
+verified gateway pricing remain pending; no paid smoke test is authorized.
+Verified public RSS candidates are Salesforce News
+(`https://www.salesforce.com/news/feed/`) and Salesforce Ben
+(`https://www.salesforceben.com/feed/`); both returned RSS during public research.
+The suggested Salesforce Developers `/blogs/rss.xml` returned 404 and is not
+recommended. Owner selection is still required before setting the feed list.
+Portkey's cost-management documentation confirms model-catalog pricing and
+existing per-request log/analytics cost visibility; it does not verify this
+custom gateway's active rates. Inspect existing InterviewPrep logs/catalog or
+ask the authorized gateway administrator, without making a new AI request.
 Mocked tests only remain authorized;
 real calls require explicit approval, real credentials remain outside the
 repository, and cost metadata/retry behavior still require verification.

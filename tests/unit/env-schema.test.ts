@@ -22,6 +22,7 @@ describe("parseEnv", () => {
     expect(env.PLANNING_HORIZON_MONTHS).toBe(2);
     expect(env.ALLOWED_EMAILS).toBe("");
     expect(env.NEWS_FEED_URLS).toBe("");
+    expect(env.NEWS_RETENTION_DAYS).toBe(30);
     expect(env.PORTKEY_BASE_URL).toBe(
       "https://portkeygateway.perficient.com/v1",
     );
@@ -74,6 +75,12 @@ describe("parseEnv", () => {
     expect(() =>
       parseEnv({ ...VALID_ENV, PLAN_DAY_OF_MONTH: "32" }),
     ).toThrowError(/PLAN_DAY_OF_MONTH/);
+  });
+
+  it("rejects an invalid retention period before ingestion can prune", () => {
+    expect(() =>
+      parseEnv({ ...VALID_ENV, NEWS_RETENTION_DAYS: "0" }),
+    ).toThrowError(/NEWS_RETENTION_DAYS/);
   });
 
   it("coerces numeric configuration supplied as strings", () => {

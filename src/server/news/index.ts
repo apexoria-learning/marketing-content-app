@@ -12,6 +12,7 @@ export async function ingestNews(
       status: "success" | "failed";
       items_processed: number;
       error: string | null;
+      started_at: string;
     }) => Promise<void>;
   },
   options: {
@@ -32,6 +33,7 @@ export async function ingestNews(
   const results: { status: "success" | "failed"; items_processed: number }[] =
     [];
   for (const feed of feeds) {
+    const startedAt = new Date().toISOString();
     let count = 0;
     let failure = false;
     try {
@@ -55,6 +57,7 @@ export async function ingestNews(
       status: failure ? "failed" : "success",
       items_processed: count,
       error: failure ? "News feed ingestion failed." : null,
+      started_at: startedAt,
     });
     results.push({
       status: failure ? "failed" : "success",

@@ -51,6 +51,8 @@ function nodes(value: unknown) {
 }
 
 export function parseFeed(xml: string, feedUrl: string): NewsArticle[] {
+  if (Buffer.byteLength(xml, "utf8") > 2 * 1024 * 1024)
+    throw new Error("News feed exceeds the body limit.");
   if (/<!DOCTYPE|<!ENTITY/i.test(xml))
     throw new Error("Feed document declarations are not permitted.");
   if (XMLValidator.validate(xml) !== true)

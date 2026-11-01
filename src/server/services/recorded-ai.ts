@@ -29,7 +29,7 @@ export function createRecordedAiClient(
   return async (input: AiRequest, signal?: AbortSignal) => {
     const { data, error } = await database
       .from("generation_runs")
-      .insert(metadata)
+      .insert({ ...metadata, started_at: new Date().toISOString() })
       .select("id")
       .single();
     if (error) throw error;

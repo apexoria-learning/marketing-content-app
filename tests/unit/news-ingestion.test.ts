@@ -57,6 +57,9 @@ describe("news ingestion", () => {
   });
 
   it("rejects malformed XML, external entities and executable article URLs", () => {
+    expect(() =>
+      parseFeed("a".repeat(2 * 1024 * 1024 + 1), "https://example.com"),
+    ).toThrow(/body limit/);
     expect(() => parseFeed("<rss>", "https://example.com")).toThrow();
     expect(() =>
       parseFeed(
@@ -126,6 +129,9 @@ describe("news ingestion", () => {
     ]);
     expect(repository.upsert).toHaveBeenCalledTimes(1);
     expect(repository.record).toHaveBeenCalledTimes(3);
+    expect(repository.record.mock.calls[0]?.[0].started_at).toEqual(
+      expect.any(String),
+    );
     expect(validators.get("https://working.example.com")).toEqual({
       etag: "v1",
     });

@@ -27,6 +27,7 @@ export function createNewsRepository(database: SupabaseClient<Database>) {
       status: "success" | "failed";
       items_processed: number;
       error: string | null;
+      started_at: string;
     }) {
       const { error } = await database.from("generation_runs").insert({
         kind: "news_ingest",
