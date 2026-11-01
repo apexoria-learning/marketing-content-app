@@ -36,7 +36,7 @@
     "zod": "4.6.7"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "^0.5.14",
+    "@axe-core/playwright": "4.14.0",
     "@eslint/eslintrc": "3.3.7",
     "@playwright/test": "1.64.1",
     "@types/node": "24.19.2",
@@ -44,6 +44,7 @@
     "@types/react-dom": "19.3.0",
     "eslint": "9.39.5",
     "eslint-config-next": "15.5.28",
+    "pg": "^8.16.3",
     "prettier": "3.9.10",
     "serwist": "9.5.13",
     "typescript": "5.9.3",

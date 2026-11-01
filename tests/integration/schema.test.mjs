@@ -1,26 +1,35 @@
-// DATABASE.md ??11 ??? release gates for the data layer.
+// DATABASE.md §11 — release gates for the data layer.
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   APPLICATION_TABLES,
   asRole,
   createTestDatabase,
+  dropTestDatabase,
   expectRejection,
   hydratedFields,
   insertContentItem,
+  isDatabaseReachable,
 } from "./support/database.mjs";
+
+// Requires a real Postgres — `supabase start`, or DATABASE_URL pointing at the
+// dev project. Skips cleanly when neither is available.
+const canRun = await isDatabaseReachable();
+const describeDatabase = describe.skipIf(!canRun);
 
 let db;
 
 beforeAll(async () => {
-  db = await createTestDatabase();
+  if (canRun) {
+    db = await createTestDatabase();
+  }
 }, 120_000);
 
 afterAll(async () => {
-  await db?.close();
+  await dropTestDatabase(db);
 });
 
-describe("migrations", () => {
+describeDatabase("migrations", () => {
   it("apply cleanly to an empty database and create all eight tables", async () => {
     const result = await db.query(
       `select table_name from information_schema.tables
@@ -53,7 +62,7 @@ describe("migrations", () => {
     ]);
   });
 
-  it("creates exactly the seven indexes in ??6.3 and no others", async () => {
+  it("creates exactly the seven indexes in §6.3 and no others", async () => {
     const result = await db.query(
       `select indexname from pg_indexes
        where schemaname = 'public' and indexname like 'idx_%'
@@ -72,7 +81,7 @@ describe("migrations", () => {
   });
 });
 
-describe("row level security", () => {
+describeDatabase("row level security", () => {
   it("is enabled on all eight tables (L4)", async () => {
     const result = await db.query(
       `select c.relname from pg_class c
@@ -85,7 +94,7 @@ describe("row level security", () => {
   });
 
   it("returns zero rows to anon from every table", async () => {
-    await db.exec(
+    await db.query(
       `insert into public.content_plans (plan_month) values ('2026-06-01');
        insert into public.daily_tips (tip_date, tip) values ('2026-06-01', 'A tip');
        insert into public.news_items (source, title, url, url_hash)
@@ -137,7 +146,7 @@ describe("row level security", () => {
   });
 });
 
-describe("consume_rate_limit", () => {
+describeDatabase("consume_rate_limit", () => {
   it("is SECURITY DEFINER with an empty search_path", async () => {
     const result = await db.query(
       `select p.prosecdef, p.proconfig
@@ -198,7 +207,96 @@ describe("consume_rate_limit", () => {
   });
 });
 
-describe("content_items constraints", () => {
+describeDatabase("atomic content status changes", () => {
+  it("allows execution only to authenticated users", async () => {
+    const result = await db.query(
+      `select
+         has_function_privilege('anon', p.oid, 'execute') as anon_may,
+         has_function_privilege('authenticated', p.oid, 'execute') as authenticated_may
+       from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+       where n.nspname = 'public' and p.proname = 'change_content_status'`,
+    );
+
+    expect(result.rows[0].anon_may).toBe(false);
+    expect(result.rows[0].authenticated_may).toBe(true);
+  });
+
+  it("updates status and appends the audit event in one call", async () => {
+    const itemId = await insertContentItem(db, {
+      scheduled_date: "2026-07-10",
+    });
+
+    await db.query(
+      "select set_config('request.jwt.claims', $1, false)",
+      [JSON.stringify({ email: "member@apexoria.test" })],
+    );
+
+    const result = await asRole(db, "authenticated", () =>
+      db.query(
+        `select public.change_content_status(
+           $1, 'skipped', 'Not approved', 'Reviewed with the team'
+         ) as changed`,
+        [itemId],
+      ),
+    );
+
+    expect(result.rows[0].changed.item.status).toBe("skipped");
+
+    const events = await db.query(
+      `select action, from_value, to_value, actor_email, note
+       from public.activity_log where content_item_id = $1 order by id`,
+      [itemId],
+    );
+
+    expect(events.rows).toEqual([
+      expect.objectContaining({
+        action: "status_changed",
+        from_value: "idea",
+        to_value: "skipped",
+        actor_email: "member@apexoria.test",
+      }),
+      expect.objectContaining({
+        action: "note_added",
+        actor_email: "member@apexoria.test",
+        note: "Reviewed with the team",
+      }),
+    ]);
+  });
+
+  it("rolls back both status and audit changes when a transition is illegal", async () => {
+    const itemId = await insertContentItem(db, {
+      scheduled_date: "2026-07-11",
+    });
+
+    await db.query(
+      "select set_config('request.jwt.claims', $1, false)",
+      [JSON.stringify({ email: "member@apexoria.test" })],
+    );
+
+    await expectRejection(() =>
+      db.query(
+        `select public.change_content_status(
+           $1, 'posted', null, null
+         )`,
+        [itemId],
+      ),
+    );
+
+    const item = await db.query(
+      "select status from public.content_items where id = $1",
+      [itemId],
+    );
+    const events = await db.query(
+      "select id from public.activity_log where content_item_id = $1",
+      [itemId],
+    );
+
+    expect(item.rows[0].status).toBe("idea");
+    expect(events.rows).toHaveLength(0);
+  });
+});
+
+describeDatabase("content_items constraints", () => {
   it("rejects a third item on one scheduled_date", async () => {
     await insertContentItem(db, { scheduled_date: "2026-07-01", slot: 1 });
     await insertContentItem(db, { scheduled_date: "2026-07-01", slot: 2 });
@@ -391,7 +489,7 @@ describe("content_items constraints", () => {
   });
 });
 
-describe("status transitions", () => {
+describeDatabase("status transitions", () => {
   it.each([
     ["idea", "ready", "2026-10-01", true],
     ["idea", "skipped", "2026-10-02", true],
@@ -508,7 +606,7 @@ describe("status transitions", () => {
   });
 });
 
-describe("activity_log append-only", () => {
+describeDatabase("activity_log append-only", () => {
   let itemId;
 
   beforeAll(async () => {
@@ -547,7 +645,7 @@ describe("activity_log append-only", () => {
   });
 });
 
-describe("idempotency (FR-5.3)", () => {
+describeDatabase("idempotency (FR-5.3)", () => {
   it("rejects a duplicate plan_month", async () => {
     await db.query(
       "insert into public.content_plans (plan_month) values ('2027-01-01')",

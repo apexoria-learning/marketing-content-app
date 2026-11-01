@@ -115,7 +115,7 @@ OAuth redirect target. Completes Google sign-in and enforces the allowlist.
 2. Exchange `code` for a session using the PKCE verifier held in an `httpOnly` cookie. Failure → `/sign-in?error=exchange`.
 3. Read the email from the established session.
 4. **Allowlist check** (`FR-1.3`): if `ALLOWED_EMAILS` is non-empty and the email is absent from it → sign out server-side, clear cookies, redirect to `/no-access`. The session must be destroyed, not merely redirected away from.
-5. Set session cookies: `httpOnly`, `secure`, `sameSite=lax`, host-only.
+5. Set session cookies: `httpOnly`, `secure` in production, `sameSite=lax`, host-only, with a seven-day lifetime. Middleware refreshes the session and cookie as needed; Supabase Auth's refresh-token lifetime remains the upper bound.
 6. Redirect to the validated `next` destination, else `/`.
 
 **Responses**
@@ -297,7 +297,7 @@ Nine actions. Eight carried over from `ARCHITECTURE.md` §7.2, plus `addNote`, w
 | Input | `item_id` (uuid), `posted` (boolean), `note` (string ≤280, optional) |
 | Returns | `{ posted_at, month_progress: { posted, planned } }` |
 | Rate limited | No — zero AI cost, and friction here directly harms metric `M1` |
-| Side effects | Sets `status`, `posted_at`, `posted_by`; appends `activity_log` |
+| Side effects | Sets `status`, `posted_at`, `posted_by`; appends `activity_log` atomically |
 
 Business rules: the status transition must be legal (`idea|ready → posted`, `posted → ready`); illegal transitions are rejected by trigger and mapped to `VALIDATION`. `posted_by` is taken **from the session**, never from input. The action returns updated month progress so the ring in `DESIGN.md §6.4` advances without a second round trip.
 
@@ -322,6 +322,10 @@ Business rules: the status transition must be legal (`idea|ready → posted`, `p
 > **Addition to `ARCHITECTURE.md` §7.2.** `US-13 AC4` and `US-14 AC2` require notes to be attachable and readable in the archive, but no action carried that capability. Folding it into `markPosted` alone would make it impossible to annotate an item after posting.
 
 Appends a `note_added` row to `activity_log`. Notes are **never written onto `content_items`** — posted items are content-immutable (`DATABASE.md` §7.7), and the archive reads notes from the log (`US-14 AC2`).
+
+`markPosted` and `skipItem` use the atomic `change_content_status` database
+function; a failed audit insert rolls back the status change. The optional
+`markPosted` note is included in that same transaction.
 
 ### 5.2 Generation
 

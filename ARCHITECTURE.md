@@ -441,7 +441,7 @@ Plain SQL files in `supabase/migrations/`, forward-only, applied through the Sup
        not allowed → sign out server-side, redirect to /no-access
 ```
 
-The session lives in `httpOnly`, `secure`, `sameSite=lax` cookies managed by `@supabase/ssr`. No token is readable by JavaScript. Middleware refreshes the session on each request so long-lived installed-PWA sessions do not expire mid-use.
+The session lives in host-only `httpOnly`, `sameSite=lax` cookies managed by `@supabase/ssr` (also `secure` in production), with a seven-day cookie lifetime. No token is readable by JavaScript. Middleware refreshes the session on each request so active installed-PWA sessions do not expire mid-use; Supabase Auth's refresh-token lifetime remains the upper bound.
 
 ### 6.2 Three layers of enforcement
 
@@ -887,6 +887,14 @@ push → Vercel build
 ```
 
 Database migrations are applied through the Supabase CLI as an explicit step before the deployment that depends on them. Migrations are forward-only and backward-compatible within a release, so a rollback of application code never leaves the schema ahead in a breaking way.
+
+For hosted development, the
+[manual migration workflow](./.github/workflows/migrate-development.yml) runs
+the CLI on GitHub's runner; developers do not need a local database. It is
+restricted to the default branch and the `supabase-development` environment,
+previews changes by default, and applies only when explicitly selected.
+See [DATABASE.md §9.2](./DATABASE.md) for secret setup and verification.
+Production migration automation remains unconfigured.
 
 ### 15.3 Release checklist
 

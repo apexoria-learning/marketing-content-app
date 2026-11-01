@@ -1,17 +1,36 @@
-import { PGlite } from "@electric-sql/pglite";
-import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
+import { randomUUID } from "node:crypto";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
+import pg from "pg";
 
 const MIGRATIONS_DIRECTORY = path.resolve("supabase", "migrations");
 const SEED_FILE = path.resolve("supabase", "seed.sql");
 
-// The Supabase platform provides these roles and default table grants; the
-// numbered migrations deliberately assume they already exist (DATABASE.md §7.2).
+// `supabase start` exposes Postgres here (supabase/config.toml [db] port).
+// Set DATABASE_URL to override. The target must grant CREATE DATABASE, since
+// each suite runs in a throwaway database — so this targets a *local*
+// instance, not the hosted project (ARCHITECTURE.md §14.2).
+const DEFAULT_DATABASE_URL =
+  "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
+
+export const databaseUrl = process.env.DATABASE_URL ?? DEFAULT_DATABASE_URL;
+
+// Supabase provisions these cluster-wide, so create them only when absent —
+// a scratch database on the same cluster shares them (DATABASE.md §7.2).
 const SUPABASE_BOOTSTRAP = `
-  create role anon nologin;
-  create role authenticated nologin;
-  create role service_role nologin bypassrls;
+  do $$
+  begin
+    if not exists (select 1 from pg_roles where rolname = 'anon') then
+      create role anon nologin;
+    end if;
+    if not exists (select 1 from pg_roles where rolname = 'authenticated') then
+      create role authenticated nologin;
+    end if;
+    if not exists (select 1 from pg_roles where rolname = 'service_role') then
+      create role service_role nologin bypassrls;
+    end if;
+  end
+  $$;
 
   grant usage on schema public to anon, authenticated, service_role;
 
@@ -32,6 +51,26 @@ export const APPLICATION_TABLES = [
   "rate_limits",
 ];
 
+/**
+ * Integration tests need a real Postgres (ARCHITECTURE.md §14.2). When none is
+ * reachable the suite skips rather than failing, so `npm test` stays usable
+ * without the local Supabase stack running.
+ */
+export async function isDatabaseReachable() {
+  const client = new pg.Client({
+    connectionString: databaseUrl,
+    connectionTimeoutMillis: 3000,
+  });
+
+  try {
+    await client.connect();
+    await client.end();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function readMigrations() {
   const entries = await readdir(MIGRATIONS_DIRECTORY);
 
@@ -41,30 +80,82 @@ export async function readMigrations() {
     .map((entry) => path.join(MIGRATIONS_DIRECTORY, entry));
 }
 
-export async function createTestDatabase({ seed = false } = {}) {
-  const db = await PGlite.create({ extensions: { pgcrypto } });
+async function connectTo(database) {
+  const url = new URL(databaseUrl);
 
-  await db.exec(SUPABASE_BOOTSTRAP);
+  url.pathname = `/${database}`;
+
+  const client = new pg.Client({ connectionString: url.toString() });
+
+  await client.connect();
+
+  return client;
+}
+
+/**
+ * Provisions a throwaway database, applies every migration in order, and
+ * optionally the development seed. Isolated per suite so mutating assertions
+ * never touch the developer's own data.
+ */
+export async function createTestDatabase({ seed = false } = {}) {
+  const name = `apexoria_test_${randomUUID().replaceAll("-", "")}`;
+  const admin = new pg.Client({ connectionString: databaseUrl });
+
+  await admin.connect();
+  await admin.query(`create database ${name}`);
+  await admin.end();
+
+  const client = await connectTo(name);
+
+  client.scratchDatabaseName = name;
+
+  await client.query(SUPABASE_BOOTSTRAP);
 
   for (const migration of await readMigrations()) {
-    await db.exec(await readFile(migration, "utf8"));
+    await client.query(await readFile(migration, "utf8"));
   }
 
   if (seed) {
-    await db.exec(await readFile(SEED_FILE, "utf8"));
+    await client.query(await readFile(SEED_FILE, "utf8"));
   }
 
-  return db;
+  return client;
+}
+
+export async function applySeed(client) {
+  await client.query(await readFile(SEED_FILE, "utf8"));
+}
+
+export async function applyMigration(client, fileName) {
+  await client.query(
+    await readFile(path.join(MIGRATIONS_DIRECTORY, fileName), "utf8"),
+  );
+}
+
+export async function dropTestDatabase(client) {
+  if (!client) {
+    return;
+  }
+
+  const name = client.scratchDatabaseName;
+
+  await client.end();
+
+  const admin = new pg.Client({ connectionString: databaseUrl });
+
+  await admin.connect();
+  await admin.query(`drop database if exists ${name} with (force)`);
+  await admin.end();
 }
 
 /** Runs `operation` as a Postgres role, always restoring the superuser after. */
 export async function asRole(db, role, operation) {
-  await db.exec(`set role ${role};`);
+  await db.query(`set role ${role};`);
 
   try {
     return await operation();
   } finally {
-    await db.exec("reset role;");
+    await db.query("reset role;");
   }
 }
 

@@ -52,6 +52,7 @@ npm run dev           # local dev server
 npm run typecheck     # tsc --noEmit, strict
 npm run lint          # ESLint
 npm run test          # Vitest unit + integration
+npm run test:integration  # integration only; needs a local Postgres, else skips
 npm run test:e2e      # Playwright
 npm run build         # production build + client bundle secret scan
 npx supabase db reset # apply migrations + seed locally

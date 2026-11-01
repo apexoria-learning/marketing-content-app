@@ -13,9 +13,11 @@
   --color-accent-hover: var(--accent-hover);
   --color-accent-muted: var(--accent-muted);
   --color-accent-on: var(--accent-on);
+  --color-success: var(--accent);
   --color-danger: var(--danger);
   --color-danger-muted: var(--danger-muted);
   --color-skeleton: var(--skeleton);
+  --color-scrim: var(--scrim);
   --color-platform-instagram: var(--platform-instagram);
   --color-platform-instagram-muted: var(--platform-instagram-muted);
   --color-platform-instagram-dim: var(--platform-instagram-dim);
@@ -47,6 +49,8 @@
   --text-mono: 0.8125rem;
   --text-mono--line-height: 1.25rem;
   --tracking-display: -0.02em;
+  --tracking-h1: -0.015em;
+  --tracking-h2: -0.01em;
   --tracking-eyebrow: 0.09em;
   --spacing: 0.25rem;
   --spacing-page: 1.25rem;
@@ -59,6 +63,60 @@
   --radius-pill: 9999px;
   --shadow-float: 0 0.5rem 1.5rem rgb(0 0 0 / 45%);
   --shadow-overlay: 0 -0.75rem 3rem rgb(0 0 0 / 60%);
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --animate-shimmer: shimmer 1.4s linear infinite;
+  --animate-indeterminate: indeterminate 1.4s var(--ease-standard) infinite;
+
+  @keyframes shimmer {
+    from {
+      background-position: 100% 0;
+    }
+    to {
+      background-position: -100% 0;
+    }
+  }
+
+  @keyframes indeterminate {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(250%);
+    }
+  }
+}
+
+/* Motion tokens (DESIGN.md §10.1). Mirrored for JS in lib/constants/motion.ts. */
+:root {
+  --motion-instant: 100ms;
+  --motion-fast: 160ms;
+  --motion-base: 240ms;
+  --motion-slow: 320ms;
+  --scrim: rgb(0 0 0 / 60%);
+  --scrim-blur: 4px;
+  --skeleton-highlight: rgb(255 255 255 / 4%);
+}
+
+/* Elevation levels (DESIGN.md §5.4). */
+@utility e1 {
+  background-color: var(--surface-1);
+  border: 1px solid var(--border);
+}
+
+@utility e2 {
+  background-color: var(--surface-2);
+  border: 1px solid var(--border);
+}
+
+@utility e3 {
+  background-color: var(--surface-1);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-float);
+}
+
+@utility e4 {
+  background-color: var(--surface-1);
+  box-shadow: var(--shadow-overlay);
 }
 
 :root {
@@ -103,9 +161,9 @@
   --text-primary: #16150f;
   --text-secondary: #5c584f;
   --text-tertiary: #8e897e;
-  --accent: #b47500;
-  --accent-hover: #9e6500;
-  --accent-muted: rgb(180 117 0 / 12%);
+  --accent: #9a6200;
+  --accent-hover: #875500;
+  --accent-muted: rgb(154 98 0 / 12%);
   --accent-on: #ffffff;
   --platform-instagram: #e0447c;
   --platform-instagram-muted: rgb(224 68 124 / 12%);
@@ -113,10 +171,11 @@
   --platform-linkedin: #3488e0;
   --platform-linkedin-muted: rgb(52 136 224 / 12%);
   --platform-linkedin-dim: #2868ac;
-  --platform-whatsapp: #25bf6d;
-  --platform-whatsapp-muted: rgb(37 191 109 / 12%);
+  --platform-whatsapp: #1a9453;
+  --platform-whatsapp-muted: rgb(26 148 83 / 12%);
   --platform-whatsapp-dim: #1c8b50;
   --danger: #b42318;
   --danger-muted: rgb(180 35 24 / 10%);
   --skeleton: rgb(16 15 13 / 6%);
+  --skeleton-highlight: rgb(255 255 255 / 60%);
 }

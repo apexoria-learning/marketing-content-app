@@ -129,9 +129,9 @@ Light mode is available from Settings but is **not** the default. It is a token 
 | `text-primary` | `#16150F` |
 | `text-secondary` | `#5C584F` |
 | `text-tertiary` | `#8E897E` |
-| `accent` | `#B47500` (darkened for contrast on light) |
+| `accent` | `#9A6200` (darkened for 4.5:1 with `accent-on`) |
 | `accent-on` | `#FFFFFF` |
-| Platform colours | darkened ~12% to hold 3:1 against white |
+| Platform colours | darkened ~12% to hold 3:1 against white (WhatsApp `#1A9453`, which needed more) |
 
 ### 3.4 Contrast requirements
 - Body and caption text: ≥ 4.5:1 against its surface.

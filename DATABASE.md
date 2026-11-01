@@ -715,6 +715,14 @@ $$;
 
 Together these make `US-11 AC3` ("regeneration is blocked on posted items") unbypassable: regeneration rewrites content fields, and the trigger refuses while `status = 'posted'`.
 
+**Atomic status changes.** `change_content_status` (migration `0010`) locks the
+target item, applies the requested status, and appends the corresponding
+`activity_log` event in one database transaction. It derives `posted_by` and
+the audit actor from the verified PostgREST JWT claims rather than accepting
+identity from user input. This is required because separate PostgREST update
+and insert requests cannot provide the transaction guarantee required by
+`API.md §5.1`.
+
 ---
 
 ## 8. Sensitive data
@@ -789,9 +797,43 @@ Forward-only SQL files in `supabase/migrations/`, applied via the Supabase CLI, 
 0007_rls.sql               enable RLS + every policy (§7.3)
 0008_grants.sql            function grants/revokes
 0009_seed_brand_profile.sql
+0010_change_content_status.sql
+                           atomically update status + append audit event
 ```
 
 Separating `0007_rls.sql` is deliberate: RLS gets its own reviewable diff, so "did this release change who can see what?" is answerable by looking at one file.
+
+#### Hosted development migrations through GitHub Actions
+
+No local database is required to deploy migrations. The manually dispatched
+[development migration workflow](./.github/workflows/migrate-development.yml)
+targets only `apexoria-marketing-dev` (`hkexglskvqaaeouvfdwm`).
+
+Create the GitHub environment `supabase-development` with these secrets:
+
+- `SUPABASE_ACCESS_TOKEN`: a Supabase personal access token belonging to an
+  authorized account with access to the development project.
+- `SUPABASE_DB_PASSWORD`: the development project's database password,
+  not its publishable key or service-role key.
+
+Restrict that environment to the repository default branch and configure
+required reviewers where the repository's GitHub plan supports them. The
+workflow also rejects other branches, has read-only repository permissions,
+pins its actions and CLI, and serializes runs without cancelling an active
+migration.
+
+Run it first with `apply_migrations` unchecked to inspect migration history
+and the dry-run output. Run again with the option checked to apply pending
+forward migrations. It never runs `db reset` or `--include-seed`; migration
+`0009` seeds the brand profile, but the synthetic development fixtures remain
+excluded.
+
+After applying, the workflow runs
+[read-only database checks](./scripts/verify-database.sql) over the development
+session pooler with TLS required. These check table/RLS presence, forbidden
+policies, function permissions, audit triggers, and the brand singleton.
+These deployment checks do not replace behavioral integration tests.
+No production target or automatic push/pull-request trigger is configured.
 
 ### 9.3 Rules
 

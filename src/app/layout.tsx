@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google";
 import type { ReactNode } from "react";
+import { MotionProvider } from "@/components/ui/MotionProvider";
+import { ToastProvider } from "@/components/ui/Toast";
 import "@/styles/globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -51,7 +53,9 @@ export default function RootLayout({
       <body
         className={`${spaceGrotesk.variable} ${inter.variable} ${jetBrainsMono.variable}`}
       >
-        {children}
+        <MotionProvider>
+          <ToastProvider>{children}</ToastProvider>
+        </MotionProvider>
       </body>
     </html>
   );

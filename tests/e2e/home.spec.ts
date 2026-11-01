@@ -1,15 +1,15 @@
 import { expect, test } from "@playwright/test";
 
-test("the base route renders the project landing screen", async ({ page }) => {
+test("the base route requires sign-in and offers Google OAuth", async ({
+  page,
+}) => {
   await page.goto("/");
 
+  await expect(page).toHaveURL(/\/sign-in\?next=%2F$/);
   await expect(
-    page.getByRole("heading", { name: "Morning Briefing" }),
+    page.getByRole("button", { name: "Continue with Google" }),
   ).toBeVisible();
-  await expect(page.locator("body")).toHaveCSS(
-    "background-image",
-    /linear-gradient/,
-  );
+  await expect(page.getByRole("button", { name: "Sign out" })).toHaveCount(0);
 });
 
 test("the health route exposes liveness only", async ({ request }) => {

@@ -1,26 +1,37 @@
 // IMPLEMENTATION-PLAN Task 2.10 — the dev seed must exercise every UI state
 // in DESIGN.md §9.2 before Phase 6 begins, plus the brand profile from 0009.
 
-import { readFile } from "node:fs/promises";
-import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createTestDatabase } from "./support/database.mjs";
+import {
+  applyMigration,
+  applySeed,
+  createTestDatabase,
+  dropTestDatabase,
+  isDatabaseReachable,
+} from "./support/database.mjs";
+
+// Requires a real Postgres — `supabase start`, or DATABASE_URL pointing at the
+// dev project. Skips cleanly when neither is available.
+const canRun = await isDatabaseReachable();
+const describeDatabase = describe.skipIf(!canRun);
 
 let db;
 
 beforeAll(async () => {
-  db = await createTestDatabase({ seed: true });
+  if (canRun) {
+    db = await createTestDatabase({ seed: true });
+  }
 }, 120_000);
 
 afterAll(async () => {
-  await db?.close();
+  await dropTestDatabase(db);
 });
 
 async function rows(sql, params) {
   return (await db.query(sql, params)).rows;
 }
 
-describe("brand profile (migration 0009)", () => {
+describeDatabase("brand profile (migration 0009)", () => {
   it("holds genuine Apexoria content", async () => {
     const [profile] = await rows("select * from public.brand_profile");
 
@@ -72,12 +83,7 @@ describe("brand profile (migration 0009)", () => {
       "update public.brand_profile set business_name = 'Edited In Settings' where id = 1",
     );
 
-    const migration = await readFile(
-      path.resolve("supabase", "migrations", "0009_seed_brand_profile.sql"),
-      "utf8",
-    );
-
-    await db.exec(migration);
+    await applyMigration(db, "0009_seed_brand_profile.sql");
 
     const [profile] = await rows(
       "select business_name from public.brand_profile",
@@ -91,7 +97,7 @@ describe("brand profile (migration 0009)", () => {
   });
 });
 
-describe("content coverage", () => {
+describeDatabase("content coverage", () => {
   it("covers all three platforms", async () => {
     const result = await rows(
       "select distinct platform from public.content_items order by platform",
@@ -141,7 +147,7 @@ describe("content coverage", () => {
   });
 });
 
-describe("edge cases the UI must handle (DESIGN.md §9.2)", () => {
+describeDatabase("edge cases the UI must handle (DESIGN.md §9.2)", () => {
   it("includes an overdue unposted item", async () => {
     const result = await rows(
       `select id from public.content_items
@@ -224,7 +230,7 @@ describe("edge cases the UI must handle (DESIGN.md §9.2)", () => {
   });
 });
 
-describe("payload integrity", () => {
+describeDatabase("payload integrity", () => {
   it("fully hydrates every ready and posted item", async () => {
     const result = await rows(
       `select id from public.content_items
@@ -313,7 +319,7 @@ describe("payload integrity", () => {
   });
 });
 
-describe("supporting fixtures", () => {
+describeDatabase("supporting fixtures", () => {
   it("seeds about twenty news items with valid SHA-256 hashes", async () => {
     const result = await rows(`select url, url_hash from public.news_items`);
 
@@ -369,7 +375,7 @@ describe("supporting fixtures", () => {
   });
 });
 
-describe("re-running the seed", () => {
+describeDatabase("re-running the seed", () => {
   it("duplicates nothing", async () => {
     const before = await rows(
       `select
@@ -381,7 +387,7 @@ describe("re-running the seed", () => {
          (select count(*) from public.generation_runs) as runs`,
     );
 
-    await db.exec(await readFile(path.resolve("supabase", "seed.sql"), "utf8"));
+    await applySeed(db);
 
     const after = await rows(
       `select

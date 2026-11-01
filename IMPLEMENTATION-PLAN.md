@@ -90,7 +90,9 @@ Phases 8 and 9 may run in parallel with 6 and 7 if capacity allows — they shar
 | 0.8 | npm scripts per `AGENTS.md` §3; `.gitignore` covering `.env*`, build output, generated types |
 
 ### Files
-`package.json` · `next.config.ts` · `tsconfig.json` · `eslint.config.*` · `vitest.config.ts` · `playwright.config.ts` · `.env.example` · `.gitignore` · `scripts/check-client-bundle.mjs` · `src/lib/config/`
+`package.json` · `next.config.ts` · `tsconfig.json` · `eslint.config.*` · `vitest.config.ts` · `playwright.config.ts` · `.env.example` · `.gitignore` · `scripts/check-client-bundle.mjs` · `src/server/config/`
+
+> **Amended:** this originally read `src/lib/config/`. The config module reads secrets, and `ARCHITECTURE.md` §11 restricts those to `server/` while `ARCHITECTURE.md` §10 defines `lib/` as client-safe. The module therefore lives at `src/server/config/`, split into a pure `env-schema.ts` (testable, no `server-only` import) and `env.ts` (imports `server-only`, fails fast at boot).
 
 ### Database / API changes
 None.
