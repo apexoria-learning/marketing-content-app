@@ -7,6 +7,7 @@ import { todayInIst } from "../../lib/utils/dates";
 import { planMonth } from "./planning";
 import { loadGenerationContext } from "./generation-context";
 import { createRecordedAiClient } from "./recorded-ai";
+import { MONTH_PLAN_REQUEST_TIMEOUT_MS } from "../ai/generators/month-plan";
 
 export async function generateMonth(month: string) {
   const client = await createUserDatabaseClient();
@@ -39,7 +40,7 @@ export async function generateMonth(month: string) {
         ),
       generate: createRecordedAiClient(
         client,
-        createAiClient(env),
+        createAiClient(env, { timeoutMs: MONTH_PLAN_REQUEST_TIMEOUT_MS }),
         {
           kind: "month_skeleton",
           target_month: `${month}-01`,

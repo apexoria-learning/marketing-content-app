@@ -13,6 +13,8 @@ import { env } from "@/server/config/env";
 import { isMonthWithinHorizon } from "@/lib/utils/planning-rules";
 
 export const metadata: Metadata = { title: "Calendar" };
+// planMonth runs from this route: two 120s requests plus persistence.
+export const maxDuration = 300;
 
 export default async function CalendarPage({
   searchParams,

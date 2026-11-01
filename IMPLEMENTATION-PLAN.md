@@ -175,6 +175,16 @@ this laptop has no isolated PostgreSQL. Isolated SQL validation and reviewed
 hosted migrations remain open before Group B signoff/activation; cron routes are
 not yet wired or activated. Hosted migrations have not been run by the agent.
 
+**Live month-planning timeout fix (2026-11-01):** the first live Calendar
+attempt failed with gateway 408 "Request exceeded the timeout sent in this
+request: 60000 ms". The SDK's `requestTimeout` is forwarded as the gateway's
+per-request deadline, and a whole-month plan is one non-streamed response, far
+larger than an item. Month planning now uses a bounded 120s per-request deadline
+(initial + one repair ≤ 240s); Calendar declares `maxDuration = 300`. Items, days
+and tips keep 60s. A gateway 408 is now classified as a timeout. Actual
+month-plan latency/token counts were not recorded because the request was cut
+off; confirm them from the next gateway log.
+
 **Group C scope change requested:** move automation/brand settings into the
 existing admin panel at `C:\Apex\apexoria\src\admin`. Review its auth, deployment,
 database and server boundaries before implementing that integration; do not

@@ -43,20 +43,31 @@ export class AiTransportError extends Error {
   }
 }
 
+export const DEFAULT_AI_TIMEOUT_MS = 60000;
+
 export function createAiClient(
   configuration: Pick<Env, "PORTKEY_API_KEY" | "PORTKEY_BASE_URL" | "AI_MODEL">,
+  options: { timeoutMs?: number } = {},
 ) {
+  // The SDK forwards requestTimeout as the gateway's per-request deadline, so
+  // the gateway and the local abort share one bound below the 300s function cap.
+  const timeoutMs = z
+    .number()
+    .int()
+    .min(1000)
+    .max(240000)
+    .parse(options.timeoutMs ?? DEFAULT_AI_TIMEOUT_MS);
   const client = new Portkey({
     apiKey: configuration.PORTKEY_API_KEY,
     baseURL: configuration.PORTKEY_BASE_URL,
-    requestTimeout: 60000,
+    requestTimeout: timeoutMs,
   });
   // Gateway retries must not multiply with SDK retries (API.md §8.1).
   client.maxRetries = 0;
 
   return async (input: AiRequest, signal?: AbortSignal) => {
     const request = RequestSchema.parse(input);
-    const timeout = AbortSignal.timeout(60000);
+    const timeout = AbortSignal.timeout(timeoutMs);
     const requestSignal = signal ? AbortSignal.any([signal, timeout]) : timeout;
     const startedAt = performance.now();
     let response: unknown;
@@ -75,11 +86,12 @@ export function createAiClient(
     } catch (error) {
       const status =
         error instanceof Error && "status" in error ? error.status : undefined;
-      const reason = requestSignal.aborted
-        ? "TIMEOUT"
-        : status === 429
-          ? "RATE_LIMITED"
-          : "PROVIDER_ERROR";
+      const reason =
+        requestSignal.aborted || status === 408
+          ? "TIMEOUT"
+          : status === 429
+            ? "RATE_LIMITED"
+            : "PROVIDER_ERROR";
       console.error("AI request failed.", { reason, status });
       throw new AiTransportError(reason);
     }

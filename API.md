@@ -555,7 +555,7 @@ Four outbound integrations. None is in the critical path for reading content.
 | Credentials | `PORTKEY_API_KEY` — server-only (`NFR-2.2`) |
 | Endpoint/routing | `PORTKEY_BASE_URL`, HTTPS `/v1` endpoint; provider selected by the `AI_MODEL` alias, no virtual key or config ID |
 | Model | `AI_MODEL` — configuration, not code |
-| Timeout | 60s per request |
+| Timeout | 60s per request; whole-month planning 120s per request (initial + one repair within the 240s work budget). Sent to the gateway as its per-request deadline and enforced locally |
 | Retries | None in the current owner-confirmed gateway setup; SDK retries disabled |
 | Streaming | **No** — output must be validated whole before use |
 

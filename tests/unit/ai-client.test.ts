@@ -119,4 +119,41 @@ describe("AI gateway transport", () => {
       "sensitive provider response",
     );
   });
+
+  it("classifies the gateway's own 408 deadline as a timeout without retrying", async () => {
+    mocks.create.mockRejectedValue(
+      Object.assign(new Error("Request exceeded the timeout"), { status: 408 }),
+    );
+    await expect(createAiClient(configuration)(request)).rejects.toMatchObject({
+      reason: "TIMEOUT",
+    });
+    expect(mocks.create).toHaveBeenCalledTimes(1);
+  });
+
+  it("applies a longer caller deadline to both the gateway header and the local abort", async () => {
+    const timeout = vi.spyOn(AbortSignal, "timeout");
+    try {
+      await createAiClient(configuration, { timeoutMs: 120000 })(request);
+      expect(mocks.options).toHaveBeenCalledWith(
+        expect.objectContaining({ requestTimeout: 120000 }),
+      );
+      expect(timeout).toHaveBeenCalledWith(120000);
+      timeout.mockClear();
+      await createAiClient(configuration)(request);
+      expect(mocks.options).toHaveBeenLastCalledWith(
+        expect.objectContaining({ requestTimeout: 60000 }),
+      );
+      expect(timeout).toHaveBeenCalledWith(60000);
+    } finally {
+      timeout.mockRestore();
+    }
+  });
+
+  it.each([0, 999, 240001, 1.5])(
+    "rejects an unbounded or invalid deadline (%s ms) before any request",
+    (timeoutMs) => {
+      expect(() => createAiClient(configuration, { timeoutMs })).toThrow();
+      expect(mocks.options).not.toHaveBeenCalled();
+    },
+  );
 });

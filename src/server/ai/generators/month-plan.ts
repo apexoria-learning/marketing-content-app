@@ -11,6 +11,9 @@ import { monthBounds } from "../../../lib/utils/dates";
 import { AiOutputError } from "../validation";
 
 export const PLAN_PROMPT_VERSION = "month-plan-v1";
+// A whole month is one non-streamed response, far larger than a single item.
+// The initial request plus its one repair must fit the 240s work budget.
+export const MONTH_PLAN_REQUEST_TIMEOUT_MS = 120000;
 
 export async function generateMonthPlan(
   input: {
