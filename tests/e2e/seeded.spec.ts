@@ -262,31 +262,10 @@ test.describe("isolated, genuinely authenticated content journeys", () => {
     );
   });
 
-  test("Archive all-scope pages contain exactly 30 unique rows and malformed cursors restart", async ({
+  test("Archive keysets retain 30 unique rows while new posts arrive and malformed cursors restart", async ({
     page,
+    context,
   }) => {
-    const browserErrors: string[] = [];
-    const archiveRequests: string[] = [];
-    page.on("request", (request) => {
-      const url = new URL(request.url());
-      if (url.pathname === "/archive")
-        archiveRequests.push(
-          `${request.resourceType()} ${url.pathname}${url.search}`,
-        );
-    });
-    page.on("response", (response) => {
-      const url = new URL(response.url());
-      if (url.pathname === "/archive")
-        archiveRequests.push(
-          `${response.status()} ${url.pathname}${url.search}`,
-        );
-    });
-    page.on("pageerror", (error) => browserErrors.push(error.message));
-    page.on("requestfailed", (request) =>
-      browserErrors.push(
-        `${new URL(request.url()).pathname}: ${request.failure()?.errorText}`,
-      ),
-    );
     await page.goto("/archive?scope=all&cursor=invalid!");
     await expect(page.locator("main article")).toHaveCount(30);
     const first = await page
@@ -304,58 +283,54 @@ test.describe("isolated, genuinely authenticated content journeys", () => {
         JSON.parse(Buffer.from(cursor ?? "", "base64url").toString("utf8")),
       ).success,
     ).toBe(true);
-    await page.evaluate(() => {
-      document.addEventListener(
-        "click",
-        (event) => {
-          const link =
-            event.target instanceof Element ? event.target.closest("a") : null;
-          if (
-            !(link instanceof HTMLAnchorElement) ||
-            link.textContent?.trim() !== "Next 30 posts"
-          )
-            return;
-          queueMicrotask(() =>
-            sessionStorage.setItem(
-              "archive-click",
-              JSON.stringify({
-                href: link.href,
-                prevented: event.defaultPrevented,
-                online: navigator.onLine,
-              }),
-            ),
-          );
-        },
-        true,
-      );
-    });
-    await page.getByRole("link", { name: "Next 30 posts" }).click();
+    const total = Number.parseInt(
+      (await page
+        .getByRole("heading", { name: /posted in this scope/ })
+        .textContent()) ?? "",
+      10,
+    );
+    expect(Number.isInteger(total)).toBe(true);
+    const editor = await context.newPage();
+    await editor.goto("/create");
+    const editorHref = await editor
+      .locator("main li:has(input:not([disabled])) a")
+      .first()
+      .getAttribute("href");
+    if (!editorHref) throw new Error("Expected a hydrated pending item.");
+    await editor.goto(editorHref);
+    await editor.getByRole("checkbox").check();
+    await expect(
+      editor.getByText("Marked as posted.", { exact: true }),
+    ).toBeVisible();
     try {
+      await page.getByRole("link", { name: "Next 30 posts" }).click();
       await expect(page).toHaveURL(nextUrl.href);
-    } catch (error) {
-      console.error("Archive navigation errors:", browserErrors);
-      console.error("Archive requests:", archiveRequests.slice(-12));
-      console.error(
-        "Archive click:",
-        await page.evaluate(() => sessionStorage.getItem("archive-click")),
+      await expect(page.locator("main article a").first()).not.toHaveAttribute(
+        "href",
+        first[0] ?? "",
       );
-      throw error;
+      await expect(page.locator("main article")).toHaveCount(30);
+      await expect(
+        page.getByRole("heading", { name: /posted in this scope/ }),
+      ).toHaveText(`${total + 1} posted in this scope`);
+      const second = await page
+        .locator("main article a")
+        .evaluateAll((links) => links.map((link) => link.getAttribute("href")));
+      expect(second.some((href) => first.includes(href))).toBe(false);
+      expect(second).not.toContain(editorHref);
+      await page.getByRole("link", { name: "Next 30 posts" }).click();
+      await expect(page.locator("main article a").first()).not.toHaveAttribute(
+        "href",
+        second[0] ?? "",
+      );
+      await expect(page.locator("main article").first()).toBeVisible();
+    } finally {
+      await editor.getByRole("checkbox").uncheck();
+      await expect(
+        editor.getByText("Returned to ready.", { exact: true }),
+      ).toBeVisible();
+      await editor.close();
     }
-    await expect(page.locator("main article a").first()).not.toHaveAttribute(
-      "href",
-      first[0] ?? "",
-    );
-    await expect(page.locator("main article")).toHaveCount(30);
-    const second = await page
-      .locator("main article a")
-      .evaluateAll((links) => links.map((link) => link.getAttribute("href")));
-    expect(second.some((href) => first.includes(href))).toBe(false);
-    await page.getByRole("link", { name: "Next 30 posts" }).click();
-    await expect(page.locator("main article a").first()).not.toHaveAttribute(
-      "href",
-      second[0] ?? "",
-    );
-    await expect(page.locator("main article").first()).toBeVisible();
   });
 
   test("J1: read, copy, post, progress, reload, history and undo", async ({
