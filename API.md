@@ -537,13 +537,23 @@ Four outbound integrations. None is in the critical path for reading content.
 |---|---|
 | Direction | Outbound only |
 | Caller | `server/ai/client` — **the only module that knows Portkey exists** |
-| Credentials | `PORTKEY_API_KEY`, `PORTKEY_VIRTUAL_KEY` — server-only (`NFR-2.2`) |
+| Credentials | `PORTKEY_API_KEY` — server-only (`NFR-2.2`) |
+| Endpoint/routing | `PORTKEY_BASE_URL`, HTTPS `/v1` endpoint; provider selected by the `AI_MODEL` alias, no virtual key or config ID |
 | Model | `AI_MODEL` — configuration, not code |
 | Timeout | 60s per request |
 | Retries | 2, exponential backoff, at the gateway |
 | Streaming | **No** — output must be validated whole before use |
 
 **Why a gateway rather than calling the provider directly:** retries, timeouts, fallbacks and per-request token/cost accounting live at the gateway instead of in application code, and the provider credential is held by Portkey rather than in the application's environment. Switching models becomes a configuration change.
+
+**Owner-approved routing refinement (2026-11-01):** the owner confirmed that
+the custom Perficient gateway is authorized for Apexoria's application/data.
+Use `https://portkeygateway.perficient.com/v1` with model alias
+`@dsvertex/anthropic.claude-sonnet-5-5`. This supersedes the initial virtual-key
+setup and the interim config-ID proposal. Paid calls still require separate
+approval; gateway retry and cost-metadata behavior must be verified before
+declaring Phase 8 complete. SDK token limits use lowercase `max_tokens`,
+not the example's uppercase `MAX_TOKENS`.
 
 **Request composition** (`ARCHITECTURE.md` §9.2): system layer (role, brand profile, tone rules, hard constraints) → context layer (recent `news_items`, pillar history, 60-day posted ideas) → task layer (instruction plus output schema) → optional steer layer. Structured output is requested via JSON/tool schema.
 
@@ -656,7 +666,7 @@ Canonical list (`ARCHITECTURE.md` §11), annotated with the integration each ser
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Client + server | No | Supabase clients | RLS-constrained access |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server | **Yes** | `/api/cron/daily` only | Bypasses RLS |
 | `PORTKEY_API_KEY` | Server | **Yes** | `server/ai/client` | Gateway auth |
-| `PORTKEY_VIRTUAL_KEY` | Server | **Yes** | `server/ai/client` | Provider credential held at Portkey |
+| `PORTKEY_BASE_URL` | Server | No | `server/ai/client` | Owner-authorized HTTPS gateway `/v1` endpoint |
 | `AI_MODEL` | Server | No | `server/ai/client` | Model identifier |
 | `CRON_SECRET` | Server | **Yes** | `/api/cron/daily` | Bearer authentication |
 | `ALLOWED_EMAILS` | Server | No | `/auth/callback`, action wrapper | Allowlist; empty disables layer 2 |

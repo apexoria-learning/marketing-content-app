@@ -721,7 +721,7 @@ apexoria-content-copilot/
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Client + server | No | Both | RLS-constrained access |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server | **Yes** | Cron only | Bypasses RLS — the highest-value secret |
 | `PORTKEY_API_KEY` | Server | **Yes** | `ai/client` | Gateway authentication |
-| `PORTKEY_VIRTUAL_KEY` | Server | **Yes** | `ai/client` | Provider credential held at Portkey |
+| `PORTKEY_BASE_URL` | Server | No | `ai/client` | Owner-authorized HTTPS `/v1` endpoint; model-alias routing per API.md §8.1 |
 | `AI_MODEL` | Server | No | `ai/client` | Model identifier — config, not code |
 | `CRON_SECRET` | Server | **Yes** | Cron route | Bearer authentication |
 | `ALLOWED_EMAILS` | Server | No | `auth/allowlist` | Comma-separated; empty disables layer 2 |

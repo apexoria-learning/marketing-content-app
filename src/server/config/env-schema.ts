@@ -6,7 +6,20 @@ export const envSchema = z.object({
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
   PORTKEY_API_KEY: z.string().min(1),
-  PORTKEY_VIRTUAL_KEY: z.string().min(1),
+  PORTKEY_BASE_URL: z
+    .url()
+    .refine((value) => {
+      const url = new URL(value);
+      return (
+        url.protocol === "https:" &&
+        !url.username &&
+        !url.password &&
+        !url.search &&
+        !url.hash &&
+        /\/v1\/?$/.test(url.pathname)
+      );
+    }, "Must be an HTTPS v1 endpoint without credentials, query or fragment")
+    .default("https://portkeygateway.perficient.com/v1"),
   AI_MODEL: z.string().min(1),
   CRON_SECRET: z.string().min(32),
   ALLOWED_EMAILS: z.string().default(""),

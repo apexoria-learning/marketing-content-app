@@ -22,7 +22,7 @@ jobs:
       NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
       ALLOWED_EMAILS: browser-test@example.test
       PORTKEY_API_KEY: unused-isolated-browser-test-key
-      PORTKEY_VIRTUAL_KEY: unused-isolated-browser-test-virtual-key
+      PORTKEY_BASE_URL: https://gateway.example.test/v1
       AI_MODEL: unused-isolated-browser-test-model
       CRON_SECRET: unused-isolated-browser-test-cron-secret
     steps:

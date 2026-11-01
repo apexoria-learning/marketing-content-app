@@ -46,6 +46,48 @@ These have external lead time and block later phases. Begin on day one, independ
 
 ---
 
+### 1.4 Remaining delivery groups (initialized 2026-11-01)
+
+The user approved continuing the remaining phases in groups. Existing phase
+requirements and completion gates remain authoritative; grouping does not
+waive the risk checkpoints in section 3.
+
+| Group | Phases | Deliverable | Hard stop before completion |
+|---|---|---|---|
+| A — Grounded AI foundation | 8–9 | Portkey client, versioned prompts, output repair/source validation, per-call accounting, safe news ingestion | Confirm Portkey routing/model and accounting configuration; owner-approved real smoke call must return valid output |
+| B — Generation workflows | 10–11 | Atomic month planning, deterministic planning rules, bounded hydration/tips, capped generation actions and complete UI states | Planning validator and rollback/concurrency tests pass; J3 passes before release |
+| C — Automation and owner controls | 12–13 | Failure-isolated daily job, settings/brand editing, planning trigger and readable run log | Owner approves live cron activation and real generation spend; repeat runs prove idempotent |
+| D — Release hardening and recovery | 14–16 | Security/accessibility gates, deployment verification, encrypted backups and scratch restore rehearsal | Backup destination/encryption and scratch target approved; manual production/device checks and restore verification pass |
+
+Start with Group A; proceed to later groups only after each group's gates pass.
+Tests use mocked AI and isolated databases. Hosted schema changes remain
+reviewed, forward-only manual migrations; no hosted resets or development seeds.
+Real AI calls, live content generation, cron activation and restoration are not
+implicitly authorized by initializing this plan.
+
+Portkey reference inspected read-only: the user's InterviewPrep application uses
+an OpenAI-compatible transport, config-ID routing and no SDK retries. This app
+already specifies the installed Portkey SDK, virtual-key routing and gateway-owned
+retries. Reuse the compatible boundary/error-handling patterns, not the other
+app's dependencies, credentials or user metadata.
+
+**Current gate:** the user subsequently provided the gateway integration example
+and confirmed authorization to use it for Apexoria's application/data.
+Model-alias routing supersedes the interim config-ID proposal: use the custom
+HTTPS endpoint and `@dsvertex/anthropic.claude-sonnet-5-5` per API.md §8.1,
+without a virtual key or config ID. Environment validation and isolated browser
+configuration are updated for that setup. The server-only SDK transport now
+requests non-streamed JSON, uses lowercase token limits, enforces a 60s abort
+deadline, disables SDK retries, rejects incomplete/refused responses and requires
+token usage instead of silently defaulting missing counts to zero. Local
+validation passes: 296 tests, typecheck, lint, production build and the 59-file
+client-secret scan; 84 database tests are intentionally skipped on the laptop.
+Prompt/output repair, accounting persistence and news ingestion remain unfinished.
+Mocked tests only remain authorized;
+real calls require explicit approval, real credentials remain outside the
+repository, and cost metadata/retry behavior still require verification.
+No remaining phase is marked complete.
+
 ## 2. Phase map
 
 | # | Phase | Depends on | Outcome |

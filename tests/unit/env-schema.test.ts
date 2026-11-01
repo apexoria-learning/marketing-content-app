@@ -6,7 +6,6 @@ const VALID_ENV = {
   NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon-key",
   SUPABASE_SERVICE_ROLE_KEY: "service-role-key",
   PORTKEY_API_KEY: "portkey-key",
-  PORTKEY_VIRTUAL_KEY: "portkey-virtual-key",
   AI_MODEL: "claude-sonnet",
   CRON_SECRET: "x".repeat(32),
   NEXT_PUBLIC_APP_URL: "https://app.example.com",
@@ -23,6 +22,9 @@ describe("parseEnv", () => {
     expect(env.PLANNING_HORIZON_MONTHS).toBe(2);
     expect(env.ALLOWED_EMAILS).toBe("");
     expect(env.NEWS_FEED_URLS).toBe("");
+    expect(env.PORTKEY_BASE_URL).toBe(
+      "https://portkeygateway.perficient.com/v1",
+    );
   });
 
   it("rejects a missing required variable and names it", () => {
@@ -31,6 +33,29 @@ describe("parseEnv", () => {
     delete withoutCronSecret.CRON_SECRET;
 
     expect(() => parseEnv(withoutCronSecret)).toThrowError(/CRON_SECRET/);
+  });
+
+  it("accepts model-alias routing without a virtual key or config ID", () => {
+    const env = parseEnv({
+      ...VALID_ENV,
+      PORTKEY_BASE_URL: "https://gateway.example.com/v1",
+      AI_MODEL: "@dsvertex/anthropic.claude-sonnet-5-5",
+    });
+
+    expect(env.PORTKEY_BASE_URL).toBe("https://gateway.example.com/v1");
+    expect(env.AI_MODEL).toBe("@dsvertex/anthropic.claude-sonnet-5-5");
+  });
+
+  it.each([
+    "http://gateway.example.com/v1",
+    "https://user:password@gateway.example.com/v1",
+    "https://gateway.example.com/v1?key=secret",
+    "https://gateway.example.com/v1#fragment",
+    "https://gateway.example.com",
+  ])("rejects an unsafe or incomplete gateway endpoint: %s", (baseURL) => {
+    expect(() =>
+      parseEnv({ ...VALID_ENV, PORTKEY_BASE_URL: baseURL }),
+    ).toThrowError(/PORTKEY_BASE_URL/);
   });
 
   it("rejects a malformed URL", () => {
