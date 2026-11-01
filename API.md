@@ -541,7 +541,7 @@ Four outbound integrations. None is in the critical path for reading content.
 | Endpoint/routing | `PORTKEY_BASE_URL`, HTTPS `/v1` endpoint; provider selected by the `AI_MODEL` alias, no virtual key or config ID |
 | Model | `AI_MODEL` — configuration, not code |
 | Timeout | 60s per request |
-| Retries | 2, exponential backoff, at the gateway |
+| Retries | None in the current owner-confirmed gateway setup; SDK retries disabled |
 | Streaming | **No** — output must be validated whole before use |
 
 **Why a gateway rather than calling the provider directly:** retries, timeouts, fallbacks and per-request token/cost accounting live at the gateway instead of in application code, and the provider credential is held by Portkey rather than in the application's environment. Switching models becomes a configuration change.
@@ -570,8 +570,15 @@ Invariants: nothing partial is ever written; a failed item remains `idea` with `
 
 **Cost accounting:** `input_tokens`, `output_tokens` and `estimated_cost_usd` are written to `generation_runs` per call (`NFR-6.4`).
 
-The preparation implementation requires explicitly supplied, verified input/
-output USD prices per million tokens before a recorded call can begin. Cost is
+**Owner-approved deferral (2026-11-01):** token/run logging remains required,
+but verified pricing is deferred. Callers must explicitly supply `null` pricing
+to record `estimated_cost_usd = NULL` (unknown), never zero. This does not
+authorize paid calls or provide a monetary spend cap. The owner confirmed no
+gateway retries are configured; failed transport requests surface immediately,
+with SDK retries disabled. Bounded output repair remains separate.
+
+When pricing is supplied, it must be verified input/output USD prices per
+million tokens. Cost is
 calculated using fixed-point integer arithmetic and rounded to six decimal
 places for the database's numeric column. No unknown price is substituted with
 zero. Each transport request, including repair requests, gets its own run;

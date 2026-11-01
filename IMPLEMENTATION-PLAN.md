@@ -118,6 +118,15 @@ real calls require explicit approval, real credentials remain outside the
 repository, and cost metadata/retry behavior still require verification.
 No remaining phase is marked complete.
 
+**Subsequent owner decision (2026-11-01):** verified pricing is deferred:
+record tokens and run outcomes with explicitly unknown (`NULL`) cost.
+The owner confirmed no gateway retries are configured; keep SDK retries
+disabled and surface transport failures without automatic retries. This
+supersedes the earlier pricing/retry configuration gates and original retry
+requirement. No paid call is authorized; the real smoke checkpoint remains.
+Unknown cost does not provide monetary spend enforcement. Fixed-point pricing
+support remains available when verified rates are supplied later.
+
 ## 2. Phase map
 
 | # | Phase | Depends on | Outcome |

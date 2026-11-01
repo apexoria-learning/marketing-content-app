@@ -612,10 +612,10 @@ Invariants:
 | Control | Mechanism |
 |---|---|
 | Timeouts | Configured at the Portkey gateway and again per request |
-| Retries | Bounded, exponential backoff, at the gateway |
+| Retries | Current owner-confirmed gateway has no retries; SDK retries disabled (API.md §8.1 refinement) |
 | Per-user cap | `rate_limits` table, daily window (`DR-5`) |
 | Global cap | Separate daily counter across all users |
-| Cost visibility | Token counts and estimated cost written to `generation_runs` per call (`NFR-6.4`) |
+| Cost visibility | Token counts recorded per call; owner-approved pricing deferral stores unknown estimated cost as NULL, not zero (API.md §8.1) |
 | Batch economy | Skeleton generation is one call for the whole month; hydration is one call per item |
 | No streaming | Responses must be validated whole before use — streaming would add complexity for no user benefit, since generation happens in the background |
 

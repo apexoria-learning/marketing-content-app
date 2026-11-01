@@ -24,6 +24,32 @@ function database(fetch: typeof globalThis.fetch) {
 }
 
 describe("per-call generation telemetry", () => {
+  it("records explicitly unknown cost as null while retaining token accounting", async () => {
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ id: 1 }), { status: 201 }),
+      )
+      .mockResolvedValueOnce(new Response(null, { status: 204 }));
+    const generate = vi.fn().mockResolvedValue({
+      content: "{}",
+      input_tokens: 100,
+      output_tokens: 50,
+      duration_ms: 10,
+    });
+    await createRecordedAiClient(
+      database(fetch),
+      generate,
+      metadata,
+      null,
+    )(request);
+    expect(JSON.parse(String(fetch.mock.calls[1]?.[1]?.body))).toMatchObject({
+      status: "success",
+      input_tokens: 100,
+      output_tokens: 50,
+      estimated_cost_usd: null,
+    });
+  });
   it("opens and closes a run with tokens and fixed-point estimated cost", async () => {
     const fetch = vi
       .fn<typeof globalThis.fetch>()

@@ -22,10 +22,10 @@ export function createRecordedAiClient(
     model: string;
     prompt_version: string;
   },
-  pricing: TokenPricing,
+  pricing: TokenPricing | null,
 ) {
   // Verify pricing before opening a run or making a paid call.
-  estimateCost(0, 0, pricing);
+  if (pricing !== null) estimateCost(0, 0, pricing);
   return async (input: AiRequest, signal?: AbortSignal) => {
     const { data, error } = await database
       .from("generation_runs")
@@ -35,10 +35,13 @@ export function createRecordedAiClient(
     if (error) throw error;
     const { id } = z.object({ id: z.number().int().positive() }).parse(data);
     let output: Awaited<ReturnType<typeof generate>>;
-    let cost: string;
+    let cost: string | null;
     try {
       output = await generate(input, signal);
-      cost = estimateCost(output.input_tokens, output.output_tokens, pricing);
+      cost =
+        pricing === null
+          ? null
+          : estimateCost(output.input_tokens, output.output_tokens, pricing);
     } catch (failure) {
       console.error("Recorded AI request failed.");
       const { error: loggingError } = await database
@@ -64,7 +67,7 @@ export function createRecordedAiClient(
         finished_at: new Date().toISOString(),
         input_tokens: output.input_tokens,
         output_tokens: output.output_tokens,
-        estimated_cost_usd: Number(cost),
+        estimated_cost_usd: cost === null ? null : Number(cost),
       })
       .eq("id", id);
     if (finishError) {
