@@ -1,21 +1,21 @@
-import { Button } from "../../../components/ui/Button";
+import { FormSubmitButton } from "../../../components/ui/FormSubmitButton";
+import { Icon } from "../../../components/ui/Icon";
 import { signOut } from "../../../server/auth/actions";
+import { NoAccessSearchSchema } from "../../../lib/schemas/auth-search";
 
 type NoAccessPageProps = {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
 export default async function NoAccessPage({
   searchParams,
 }: NoAccessPageProps) {
-  const { error } = await searchParams;
+  const { error } = NoAccessSearchSchema.parse(await searchParams);
 
   return (
     <main className="flex min-h-dvh items-center justify-center px-page py-12">
-      <section className="w-full max-w-content rounded-xl border border-border bg-surface-1 p-6 text-center shadow-float sm:p-10">
-        <span aria-hidden="true" className="text-3xl text-secondary">
-          &#128274;
-        </span>
+      <section className="w-full max-w-content text-center">
+        <Icon name="lock" size="empty" className="mx-auto text-secondary" />
         <h1 className="mt-5 font-display text-h1 font-bold tracking-display text-primary">
           This account doesn&apos;t have access yet.
         </h1>
@@ -28,9 +28,9 @@ export default async function NoAccessPage({
           </p>
         ) : null}
         <form action={signOut} className="mt-8">
-          <Button className="w-full" type="submit" variant="secondary">
+          <FormSubmitButton className="w-full" variant="secondary">
             Sign out and use another account
-          </Button>
+          </FormSubmitButton>
         </form>
       </section>
     </main>

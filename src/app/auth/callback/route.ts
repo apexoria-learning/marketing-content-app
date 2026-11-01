@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { isEmailAllowed } from "../../../lib/auth/allowlist";
 import { getSafeRedirectPath } from "../../../lib/auth/redirect";
 import { env } from "../../../server/config/env";
-import { createUserDatabaseClient } from "../../../server/db/client";
+import {
+  createUserDatabaseClient,
+  destroyUserSession,
+} from "../../../server/db/client";
 
 function signInRedirect(request: NextRequest, error: "oauth" | "exchange") {
   const destination = new URL("/sign-in", request.url);
@@ -21,6 +24,7 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get("code");
 
   if (!code) {
+    console.error("Google OAuth callback is missing its authorization code.");
     return signInRedirect(request, "exchange");
   }
 
@@ -30,19 +34,13 @@ export async function GET(request: NextRequest) {
   if (error || !data.user) {
     console.error("Google OAuth code exchange failed.", {
       code: error?.code,
-      message: error?.message ?? "No user returned from the code exchange.",
+      status: error?.status,
     });
     return signInRedirect(request, "exchange");
   }
 
   if (!isEmailAllowed(data.user.email, env.ALLOWED_EMAILS)) {
-    const { error: signOutError } = await supabase.auth.signOut({
-      scope: "local",
-    });
-
-    if (signOutError) {
-      console.error("Denied OAuth session sign-out failed.");
-    }
+    await destroyUserSession(supabase);
 
     return NextResponse.redirect(new URL("/no-access", request.url), {
       status: 302,

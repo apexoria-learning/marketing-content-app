@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { isEmailAllowed } from "../../src/lib/auth/allowlist";
 import { getSafeRedirectPath } from "../../src/lib/auth/redirect";
-import { getAuthCookieOptions } from "../../src/lib/auth/session-cookie";
+import {
+  getAuthCookieOptions,
+  getSessionCookieName,
+  isSessionCookie,
+} from "../../src/lib/auth/session-cookie";
+import { SignInSearchSchema } from "../../src/lib/schemas/auth-search";
 
 describe("email allowlist", () => {
   it("allows all signed-in users when the optional allowlist is empty", () => {
@@ -56,5 +61,32 @@ describe("authentication cookie options", () => {
 
   it("keeps local HTTP development usable without weakening production", () => {
     expect(getAuthCookieOptions(false).secure).toBe(false);
+  });
+});
+
+describe("auth search and cookie boundaries", () => {
+  it("ignores repeated or unknown sign-in parameters", () => {
+    expect(
+      SignInSearchSchema.parse({
+        next: ["/calendar", "//evil.test"],
+        error: "private-provider-error",
+        notice: "unknown",
+      }),
+    ).toEqual({ next: undefined, error: undefined, notice: undefined });
+  });
+
+  it("recognizes only the current project's tokens and verifier chunks", () => {
+    const name = getSessionCookieName("https://project.supabase.co");
+    expect(name).toBe("sb-project-auth-token");
+    for (const cookieName of [
+      name,
+      `${name}.0`,
+      `${name}-code-verifier`,
+      `${name}-code-verifier.0`,
+    ]) {
+      expect(isSessionCookie(cookieName, name)).toBe(true);
+    }
+    expect(isSessionCookie("sb-other-auth-token", name)).toBe(false);
+    expect(isSessionCookie("theme", name)).toBe(false);
   });
 });

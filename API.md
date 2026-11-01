@@ -111,12 +111,18 @@ OAuth redirect target. Completes Google sign-in and enforces the allowlist.
 
 **Behaviour**
 
-1. If `error` is present → redirect to `/sign-in?error=oauth`. The raw provider error is logged, never shown (`ARCHITECTURE.md` §12.2).
+1. If `error` is present → redirect to `/sign-in?error=oauth`. Log the failure without recording raw provider messages, codes from query strings, tokens, or credentials.
 2. Exchange `code` for a session using the PKCE verifier held in an `httpOnly` cookie. Failure → `/sign-in?error=exchange`.
 3. Read the email from the established session.
 4. **Allowlist check** (`FR-1.3`): if `ALLOWED_EMAILS` is non-empty and the email is absent from it → sign out server-side, clear cookies, redirect to `/no-access`. The session must be destroyed, not merely redirected away from.
 5. Set session cookies: `httpOnly`, `secure` in production, `sameSite=lax`, host-only, with a seven-day lifetime. Middleware refreshes the session and cookie as needed; Supabase Auth's refresh-token lifetime remains the upper bound.
 6. Redirect to the validated `next` destination, else `/`.
+
+Denied callbacks and authenticated actions clear the project's token chunks and
+PKCE verifier cookies even if remote sign-out returns an error. Middleware applies
+the same local-cookie cleanup to denied page requests. Layouts remain read-only
+and independently reject denied sessions. Missing or invalid sessions map to
+`UNAUTHENTICATED`; upstream auth outages map to `UNEXPECTED`.
 
 **Responses**
 
@@ -232,6 +238,19 @@ Every action, without exception, runs these six steps via a shared wrapper so no
 
 Steps 1 and 2 are repeated inside the action even though middleware and the layout already performed them (§2.3).
 
+The shared wrapper lives in `server/actions/run-action.ts`; the generic result
+contract is client-safe in `lib/schemas/action-result.ts`. Its optional quota step
+is supplied by AI actions when they land in Phase 11. Existing zero-cost actions
+omit that step (§7.5). If revalidation fails after the service succeeds, the
+failure message explicitly says the changes were saved and asks for a reload.
+
+OAuth initiation and sign-out are redirecting authentication operations, not
+authenticated business mutations: requiring a session or allowlist would prevent
+login or prevent a denied account from signing out. They use the documented
+sign-in/no-access redirects rather than the business-action result envelope.
+Sign-out always clears local auth cookies; an unsuccessful remote revocation is
+reported on sign-in without claiming the remote session was revoked.
+
 ### 4.3 Validation conventions
 
 | Rule | Detail |
@@ -299,7 +318,7 @@ Nine actions. Eight carried over from `ARCHITECTURE.md` §7.2, plus `addNote`, w
 | Rate limited | No — zero AI cost, and friction here directly harms metric `M1` |
 | Side effects | Sets `status`, `posted_at`, `posted_by`; appends `activity_log` atomically |
 
-Business rules: the status transition must be legal (`idea|ready → posted`, `posted → ready`); illegal transitions are rejected by trigger and mapped to `VALIDATION`. `posted_by` is taken **from the session**, never from input. The action returns updated month progress so the ring in `DESIGN.md §6.4` advances without a second round trip.
+Business rules: the status transition must be legal (`ready → posted`, `posted → ready`); an `idea` must first be hydrated to `ready` (`PRD §13`, `DATABASE.md §7.7`). Illegal transitions are rejected by trigger and mapped to `VALIDATION`. `posted_by` is taken **from the session**, never from input. The action returns updated month progress so the ring in `DESIGN.md §6.4` advances without a second round trip.
 
 **`skipItem`** — `US-15`
 

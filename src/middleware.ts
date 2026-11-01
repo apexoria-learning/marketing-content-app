@@ -1,6 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { isMiddlewareUserAllowed } from "./server/auth/middleware";
-import { createMiddlewareDatabaseClient } from "./server/db/middleware";
+import {
+  createMiddlewareDatabaseClient,
+  getExpiredSessionCookies,
+} from "./server/db/middleware";
+import { isUnauthenticatedError } from "./server/auth/session-error";
 
 function createContentSecurityPolicy(nonce: string): string {
   const scriptPolicy =
@@ -61,10 +65,10 @@ export async function middleware(request: NextRequest) {
   const { data, error } = await supabase.auth.getUser();
   const user = error ? null : data.user;
 
-  if (error && error.name !== "AuthSessionMissingError") {
+  if (error && !isUnauthenticatedError(error)) {
     console.error("Middleware session verification failed.", {
       code: error.code,
-      message: error.message,
+      status: error.status,
     });
   }
 
@@ -87,12 +91,27 @@ export async function middleware(request: NextRequest) {
     !pathname.startsWith("/api/");
 
   if (!isServerActionRequest && user && !isMiddlewareUserAllowed(user.email)) {
-    const { error: signOutError } = await supabase.auth.signOut({
-      scope: "local",
-    });
+    const expiredCookies = getExpiredSessionCookies(request);
+    try {
+      const { error: signOutError } = await supabase.auth.signOut({
+        scope: "local",
+      });
 
-    if (signOutError) {
-      console.error("Denied session sign-out failed.");
+      if (signOutError) {
+        console.error("Denied session sign-out failed.", {
+          code: signOutError.code,
+          status: signOutError.status,
+        });
+      }
+    } catch {
+      console.error(
+        "Denied session sign-out request failed; clearing local credentials.",
+      );
+    }
+
+    for (const cookie of expiredCookies) {
+      request.cookies.delete(cookie.name);
+      response.cookies.set(cookie.name, cookie.value, cookie.options);
     }
 
     if (pathname.startsWith("/api/")) {

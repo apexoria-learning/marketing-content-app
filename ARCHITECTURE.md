@@ -175,6 +175,7 @@ Four boxes. One deployable. No internal network to secure.
 | `ActionBar`, `PageHeader` | Scroll-direction response |
 | `RegenerateSheet`, brand profile fields | Form state |
 | `InstallPrompt`, `ThemeToggle` | Browser APIs |
+| `FormSubmitButton` | `useFormStatus` for pending authentication submissions; wraps the existing `Button`, with no client data access |
 
 Everything else — page shells, `ContentCard` content, `SlideList`, `ScriptList`, `BriefSection`, `CalendarGrid`, `QueueRow`, `TipCard`, archive lists — renders on the server.
 
@@ -442,6 +443,13 @@ Plain SQL files in `supabase/migrations/`, forward-only, applied through the Sup
 ```
 
 The session lives in host-only `httpOnly`, `sameSite=lax` cookies managed by `@supabase/ssr` (also `secure` in production), with a seven-day cookie lifetime. No token is readable by JavaScript. Middleware refreshes the session on each request so active installed-PWA sessions do not expire mid-use; Supabase Auth's refresh-token lifetime remains the upper bound.
+
+Supabase clients remain server-side: user and middleware factories are in
+`server/db/`, while `cron-client.ts` exposes the separately named
+`createCronServiceRoleClient` with session persistence and refresh disabled.
+The cron factory is not re-exported through the shared barrel and has no runtime
+caller until the cron phase. There is no browser client: HTTP-only cookies and
+server-rendered reads do not require one.
 
 ### 6.2 Three layers of enforcement
 

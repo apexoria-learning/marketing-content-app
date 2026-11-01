@@ -1,13 +1,14 @@
-import { Button } from "../../../components/ui/Button";
+import { FormSubmitButton } from "../../../components/ui/FormSubmitButton";
 import { getSafeRedirectPath } from "../../../lib/auth/redirect";
+import { SignInSearchSchema } from "../../../lib/schemas/auth-search";
 import { beginGoogleSignIn } from "./actions";
 
 type SignInPageProps = {
-  searchParams: Promise<{ error?: string; next?: string; notice?: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
 export default async function SignInPage({ searchParams }: SignInPageProps) {
-  const params = await searchParams;
+  const params = SignInSearchSchema.parse(await searchParams);
   const errorMessage =
     params.error === "oauth" || params.error === "exchange"
       ? "Google sign-in could not be completed. Please try again."
@@ -17,10 +18,10 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
 
   return (
     <main className="flex min-h-dvh items-center justify-center px-page py-12">
-      <section className="w-full max-w-content rounded-xl border border-border bg-surface-1 p-6 text-center shadow-float sm:p-10">
-        <p className="font-display text-h1 font-bold tracking-display text-primary">
+      <section className="w-full max-w-content text-center">
+        <h1 className="font-display text-display font-bold tracking-display text-primary">
           Apexoria
-        </p>
+        </h1>
         <p className="mt-3 text-sm text-secondary">
           Your daily content, already written.
         </p>
@@ -30,16 +31,23 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
             name="next"
             value={getSafeRedirectPath(params.next)}
           />
-          <Button className="w-full" type="submit">
+          <FormSubmitButton className="w-full">
             Continue with Google
-          </Button>
+          </FormSubmitButton>
         </form>
         {errorMessage ? (
           <p className="mt-4 text-sm text-danger" role="alert">
             {errorMessage}
           </p>
         ) : null}
-        <p className="mt-5 text-caption text-tertiary">
+        {params.notice === "signed-out" || params.notice === "local-signout" ? (
+          <p className="mt-4 text-sm text-secondary" role="status">
+            {params.notice === "signed-out"
+              ? "You've signed out."
+              : "You've signed out on this device. The remote session could not be revoked."}
+          </p>
+        ) : null}
+        <p className="mt-5 text-caption text-secondary">
           Access is by invitation only.
         </p>
       </section>

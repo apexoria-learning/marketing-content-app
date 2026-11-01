@@ -2,6 +2,7 @@ import "server-only";
 import { env } from "../config/env";
 import { createUserDatabaseClient } from "../db/client";
 import { isEmailAllowed } from "../../lib/auth/allowlist";
+import { isUnauthenticatedError } from "./session-error";
 
 export type AuthorizedUser =
   | { ok: true; user: { id: string; email: string; role: "team_member" } }
@@ -15,7 +16,15 @@ export async function getAuthorizedUser(): Promise<AuthorizedUser> {
   const { data, error } = await supabase.auth.getUser();
 
   if (error) {
-    console.error("Session verification failed.", error);
+    if (isUnauthenticatedError(error)) {
+      return { ok: false, code: "UNAUTHENTICATED" };
+    }
+
+    console.error("Session verification failed.", {
+      name: error.name,
+      code: error.code,
+      status: error.status,
+    });
     return { ok: false, code: "UNEXPECTED" };
   }
 

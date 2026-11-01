@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
-import { Button } from "../../components/ui/Button";
+import { FormSubmitButton } from "../../components/ui/FormSubmitButton";
 import { getAuthorizedUser } from "../../server/auth";
 import { signOut } from "../../server/auth/actions";
 
@@ -28,9 +28,9 @@ export default async function AppLayout({
           {authorization.user.email}
         </p>
         <form action={signOut}>
-          <Button className="min-h-10 px-4" type="submit" variant="ghost">
+          <FormSubmitButton className="px-4" variant="ghost">
             Sign out
-          </Button>
+          </FormSubmitButton>
         </form>
       </header>
       {children}

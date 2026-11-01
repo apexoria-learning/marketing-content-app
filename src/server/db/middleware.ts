@@ -1,6 +1,10 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import type { NextRequest } from "next/server";
-import { getAuthCookieOptions } from "../../lib/auth/session-cookie";
+import {
+  getAuthCookieOptions,
+  getSessionCookieName,
+  isSessionCookie,
+} from "../../lib/auth/session-cookie";
 import type { Database } from "./database.types";
 
 type AuthCookie = { name: string; value: string; options: CookieOptions };
@@ -27,4 +31,26 @@ export function createMiddlewareDatabaseClient(
       },
     },
   });
+}
+
+export function getExpiredSessionCookies(request: NextRequest): AuthCookie[] {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+  if (!url) {
+    throw new Error("Supabase middleware configuration is missing.");
+  }
+
+  const sessionName = getSessionCookieName(url);
+
+  return request.cookies
+    .getAll()
+    .filter((cookie) => isSessionCookie(cookie.name, sessionName))
+    .map((cookie) => ({
+      name: cookie.name,
+      value: "",
+      options: {
+        ...getAuthCookieOptions(process.env.NODE_ENV === "production"),
+        maxAge: 0,
+      },
+    }));
 }

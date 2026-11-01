@@ -217,7 +217,7 @@ but do not claim to exercise a cron handler that does not yet exist.
 
 | # | Task |
 |---|---|
-| 3.1 | Supabase client factories in `server/db/` — browser, server, middleware, and a separately named service-role factory |
+| 3.1 | Supabase client factories in `server/db/` — server, middleware, and a separately named cron service-role factory; no browser client (approved correction: server-only access and HTTP-only sessions) |
 | 3.2 | `middleware.ts` — session refresh and redirect for protected routes |
 | 3.3 | `/auth/callback` — PKCE exchange, allowlist check, **session destruction on denial**, open-redirect defence on `next` |
 | 3.4 | `(app)/layout.tsx` — independent session + allowlist re-verification (the real gate) |
@@ -238,11 +238,16 @@ No schema change. Implements `API.md` §3.1.
 - An action without a session returns `UNAUTHENTICATED`, never throws.
 
 ### Completion criteria
-- [ ] Sign-in works end to end with a real Google account
-- [ ] Allowlist denial verified
-- [ ] No content visible pre-login
-- [ ] Wrapper enforces session and allowlist independently of middleware
-- [ ] Auth-related items in `API.md` §13 pass
+- [x] Sign-in works end to end with a real Google account (owner confirmed on 2026-11-01; recheck after deploying Phase 3 changes)
+- [x] Allowlist denial and local session destruction verified in callback, middleware and action tests
+- [x] No content visible pre-login; protected-route redirects and independent layout checks pass
+- [x] Wrapper enforces session and allowlist independently of middleware
+- [x] Implemented auth-related items in `API.md` §13 pass automated tests; future cron endpoints remain out of this phase
+
+**Manual deployment gate:** after these changes are deployed, verify login,
+sign-out, and a non-allowlisted Google account on the live domain. No second
+account or hosted allowlist is changed automatically. Do not consider the live
+denial check complete based only on mocked tests.
 
 ---
 

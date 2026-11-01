@@ -8,6 +8,7 @@ export default defineConfig({
     projects: [
       {
         resolve: { alias },
+        oxc: { jsx: { runtime: "automatic" } },
         test: {
           name: "unit",
           include: ["tests/unit/**/*.test.{ts,mjs}"],
