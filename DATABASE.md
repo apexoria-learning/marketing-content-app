@@ -856,6 +856,13 @@ by the planning service before submission. Anonymous execution is explicitly
 revoked. Generated types must be refreshed from isolated CI before callers
 wire the new RPC. The CI artifact is uploaded before the drift gate so a
 schema-changing release can retrieve generated types without a laptop database.
+Migration `0013` adds generation transactions: invoker/RLS-constrained item
+payload plus history updates with optimistic-version checks, atomic day-slot
+insertion, and a definer daily-budget wrapper that charges user/global counters
+and the five-plan cap together or rolls back all counters on denial. Caller
+email is derived from JWT claims; IST midnight is derived inside PostgreSQL.
+Anonymous execution is explicitly revoked. These routines require generated
+type refresh and manual hosted migration before generation actions activate.
 No other hosted target or automatic push/pull-request trigger is configured.
 
 #### Isolated behavioral tests and generated types

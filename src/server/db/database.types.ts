@@ -391,6 +391,15 @@ export type Database = {
         };
         Returns: Json;
       };
+      commit_month_plan: {
+        Args: {
+          p_items: Json;
+          p_model: string;
+          p_month: string;
+          p_prompt_version: string;
+        };
+        Returns: Json;
+      };
       consume_rate_limit: {
         Args: {
           p_action_key: string;

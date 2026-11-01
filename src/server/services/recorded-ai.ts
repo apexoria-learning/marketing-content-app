@@ -17,8 +17,9 @@ export function createRecordedAiClient(
     duration_ms: number;
   }>,
   metadata: {
-    kind: "item_hydration" | "item_regeneration";
-    content_item_id: string;
+    kind: Database["public"]["Enums"]["run_kind"];
+    content_item_id?: string;
+    target_month?: string;
     model: string;
     prompt_version: string;
   },

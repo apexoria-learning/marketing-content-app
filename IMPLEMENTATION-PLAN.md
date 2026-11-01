@@ -142,6 +142,12 @@ entry point is active. New migration `0012` requires isolated SQL validation and
 generated-type refresh before adapter wiring and manual hosted deployment.
 Simulated 240-second batch tests verify 30 items at 8s/item and 20 at 12s/item;
 these are not real-model throughput measurements.
+The `0012` generated types were retrieved from isolated CI; SQL feature checks
+passed there. The composed month service now loads safe brand/news/history
+context, records model calls with unknown cost and commits via the typed RPC.
+Migration `0013` prepares atomic payload/history writes, day slots and combined
+daily quotas. Generated-type refresh and adapter/action/UI wiring for `0013`
+remain pending. Hosted migrations have not been run by the agent.
 
 **Group C scope change requested:** move automation/brand settings into the
 existing admin panel at `C:\Apex\apexoria\src\admin`. Review its auth, deployment,

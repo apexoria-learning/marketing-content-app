@@ -30,6 +30,51 @@ afterAll(async () => {
 });
 
 describeDatabase("migrations", () => {
+  it("charges user and global AI budgets atomically without spending on a denied request", async () => {
+    await asRole(db, "authenticated", async () => {
+      await db.query(
+        `select set_config('request.jwt.claims', '{"email":"budget-test@example.test"}', false)`,
+      );
+      const first = await db.query(
+        "select public.consume_ai_budget(1, 100) as allowed",
+      );
+      const second = await db.query(
+        "select public.consume_ai_budget(1, 100) as allowed",
+      );
+      expect(first.rows[0].allowed).toBe(true);
+      expect(second.rows[0].allowed).toBe(false);
+    });
+    const result = await db.query(
+      "select count from public.rate_limits where actor_key = 'global' and action_key = 'ai_generate'",
+    );
+    expect(result.rows[0].count).toBe(1);
+  });
+
+  it("commits day items atomically and refuses a third slot", async () => {
+    const item = {
+      platform: "instagram",
+      format: "post",
+      pillar: "salesforce_tips",
+      idea: "Day idea",
+    };
+    const result = await db.query(
+      "select public.commit_day_items($1, $2::jsonb, $3) as result",
+      ["2028-12-01", JSON.stringify([item, item]), "day-v1"],
+    );
+    expect(result.rows[0].result.item_ids).toHaveLength(2);
+    await expectRejection(() =>
+      db.query("select public.commit_day_items($1, $2::jsonb, $3)", [
+        "2028-12-01",
+        JSON.stringify([item]),
+        "day-v1",
+      ]),
+    );
+    const count = await db.query(
+      "select count(*)::integer as count from public.content_items where scheduled_date='2028-12-01'",
+    );
+    expect(count.rows[0].count).toBe(2);
+  });
+
   it("commits every month slot atomically and rolls back a failing child insert", async () => {
     const items = Array.from({ length: 30 }, (_, index) => ({
       scheduled_date: `2028-11-${String(index + 1).padStart(2, "0")}`,
