@@ -5,6 +5,8 @@ import { getAuthorizedUser } from "../auth";
 import { destroyUserSession } from "../db/client";
 
 import { ActionFailure } from "../services/service-error";
+import { AiOutputError } from "../ai/validation";
+import { AiTransportError } from "../ai/client";
 export { ActionFailure } from "../services/service-error";
 
 function failure(
@@ -19,7 +21,10 @@ export async function runAuthorizedAction<Input, Output>(
   schema: z.ZodType<Input>,
   operation: (value: Input, email: string) => Promise<Output>,
   revalidate: (value: Input) => void,
-  consumeRateLimit?: (email: string) => Promise<ActionResult<void>>,
+  consumeRateLimit?: (
+    email: string,
+    value: Input,
+  ) => Promise<ActionResult<void>>,
 ): Promise<ActionResult<Output>> {
   let hasSaved = false;
 
@@ -63,7 +68,10 @@ export async function runAuthorizedAction<Input, Output>(
     }
 
     if (consumeRateLimit) {
-      const allowance = await consumeRateLimit(authorization.user.email);
+      const allowance = await consumeRateLimit(
+        authorization.user.email,
+        parsed.data,
+      );
 
       if (!allowance.ok) {
         return allowance;
@@ -102,6 +110,12 @@ export async function runAuthorizedAction<Input, Output>(
           : "This change is not allowed. Nothing was changed.",
       );
     }
+
+    if (error instanceof AiOutputError || error instanceof AiTransportError)
+      return failure(
+        "GENERATION_FAILED",
+        "Generation didn't complete. Nothing was changed.",
+      );
 
     return ["P0001", "23514", "23505"].includes(String(databaseCode))
       ? failure(

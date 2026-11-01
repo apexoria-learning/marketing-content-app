@@ -11,6 +11,8 @@ import {
   validatePlanningRules,
 } from "../../src/lib/utils/planning-rules";
 import { generateMonthPlan } from "../../src/server/ai/generators/month-plan";
+import { generateDayPlan } from "../../src/server/ai/generators/day-plan";
+import { AiOutputError } from "../../src/server/ai/validation";
 import { planMonth } from "../../src/server/services/planning";
 import type { GenerationContext } from "../../src/server/ai/schemas";
 
@@ -54,6 +56,63 @@ function validPlan(): { items: PlannedSlot[] } {
   };
 }
 const input = { month: "2026-11", today: "2026-11-01", horizonMonths: 2 };
+
+describe("day planning", () => {
+  const slot: PlannedSlot = {
+    scheduled_date: "2026-11-01",
+    slot: 1,
+    platform: "instagram",
+    format: "post",
+    pillar: "salesforce_tips",
+    idea: "Flow debugging walkthrough",
+  };
+  it("accepts one validated skeleton without transport retries", async () => {
+    const generate = vi
+      .fn()
+      .mockResolvedValue({ content: JSON.stringify({ items: [slot] }) });
+    expect(
+      await generateDayPlan(
+        { date: slot.scheduled_date, count: 1, context },
+        generate,
+      ),
+    ).toEqual({ items: [slot], prompt_version: "day-plan-v1" });
+    expect(generate).toHaveBeenCalledTimes(1);
+  });
+  it("repairs malformed output once and rejects persistent failures", async () => {
+    const generate = vi.fn().mockResolvedValue({ content: "not JSON" });
+    await expect(
+      generateDayPlan(
+        { date: slot.scheduled_date, count: 1, context },
+        generate,
+      ),
+    ).rejects.toThrow(AiOutputError);
+    expect(generate).toHaveBeenCalledTimes(2);
+  });
+  it("rejects invented news, repeated ideas, wrong dates and adjacent formats", async () => {
+    for (const invalid of [
+      { ...slot, pillar: "salesforce_news" },
+      { ...slot, scheduled_date: "2026-11-02" },
+      { ...slot, idea: "Already posted" },
+      slot,
+    ]) {
+      const generate = vi
+        .fn()
+        .mockResolvedValue({ content: JSON.stringify({ items: [invalid] }) });
+      await expect(
+        generateDayPlan(
+          {
+            date: slot.scheduled_date,
+            count: 1,
+            context: { ...context, news: [], recent_ideas: ["already posted"] },
+            adjacentSlots: [{ pillar: "career_guidance", format: "post" }],
+          },
+          generate,
+        ),
+      ).rejects.toThrow();
+      expect(generate).toHaveBeenCalledTimes(2);
+    }
+  });
+});
 
 describe("deterministic planning rules", () => {
   it("accepts complete valid months and returns chronological slots", () => {

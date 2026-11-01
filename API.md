@@ -375,6 +375,12 @@ Rules: **blocked when `status = 'posted'`** (`US-11 AC3`) — enforced in the se
 
 Just-in-time hydration (`ARCHITECTURE.md` §4.3) when a user opens an item still in `idea`. A no-op returning success if the item is already hydrated, so a double-tap or a race with the cron is harmless.
 
+Already hydrated, non-posted items pass the allowance check without charging
+another generation quota. A race after that check remains guarded by the
+row-locked save transaction. `AI_GENERATION_ENABLED` defaults to `false`; all
+new generation attempts are rejected before charging quota or calling AI until
+the owner completes the Group B activation gates.
+
 **`planMonth`** — `FR-5.5`
 
 | | |
@@ -708,6 +714,7 @@ Canonical list (`ARCHITECTURE.md` §11), annotated with the integration each ser
 | `REGEN_DAILY_LIMIT` | Server | No | Rate limiter | Default `20` (`DR-5`) |
 | `GLOBAL_DAILY_AI_LIMIT` | Server | No | Rate limiter | Default `100` |
 | `PLANNING_HORIZON_MONTHS` | Server | No | `planMonth` | Default `2` (`DR-6`) |
+| `AI_GENERATION_ENABLED` | Server | No | Generation actions and controls | Default `false`; enable only after Group B validation and reviewed hosted migrations `0012`/`0013` |
 | `NEXT_PUBLIC_APP_URL` | Client + server | No | OAuth redirect, manifest | Canonical origin |
 
 ### 10.1 Rules

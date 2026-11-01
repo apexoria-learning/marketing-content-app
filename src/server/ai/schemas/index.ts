@@ -62,7 +62,7 @@ export const GenerationContextSchema = z
         }).strict(),
       )
       .max(20),
-    recent_ideas: z.array(z.string().max(2000)).max(120),
+    recent_ideas: z.array(z.string().max(2000)),
     pillar_history: z.array(PillarSchema).max(120),
     steer: z.string().trim().max(500).optional(),
   })

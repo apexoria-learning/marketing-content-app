@@ -21,6 +21,7 @@ export const envSchema = z.object({
     }, "Must be an HTTPS v1 endpoint without credentials, query or fragment")
     .default("https://portkeygateway.perficient.com/v1"),
   AI_MODEL: z.string().min(1),
+  AI_GENERATION_ENABLED: z.enum(["true", "false"]).default("false"),
   CRON_SECRET: z.string().min(32),
   ALLOWED_EMAILS: z.string().default(""),
   NEWS_FEED_URLS: z

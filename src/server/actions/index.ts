@@ -17,6 +17,23 @@ import {
 } from "../../lib/schemas/brand-profile";
 import { runAuthorizedAction } from "./run-action";
 import {
+  HydrateItemInputSchema,
+  RegenerateItemInputSchema,
+  PlanMonthInputSchema,
+  GenerateForDayInputSchema,
+  type HydrateItemInput,
+  type RegenerateItemInput,
+  type PlanMonthInput,
+  type GenerateForDayInput,
+} from "../../lib/schemas/planning";
+import {
+  generateContentItem,
+  generateDay,
+  getHydrationAllowance,
+} from "../services/content-generation";
+import { generateMonth } from "../services/month-generation";
+import { consumeGenerationBudget } from "../security";
+import {
   appendActivityNote,
   changeContentStatus,
   updateBrandProfile as saveBrandProfile,
@@ -109,5 +126,53 @@ export async function updateBrandProfile(
     BrandProfileUpdateSchema,
     (fields, email) => saveBrandProfile({ fields, actorEmail: email }),
     revalidateSettings,
+  );
+}
+
+export async function hydrateItem(input: HydrateItemInput) {
+  return runAuthorizedAction(
+    input,
+    HydrateItemInputSchema,
+    (value) => generateContentItem(value.item_id, false),
+    (value) => revalidateContentPaths(value.item_id),
+    (email, value) => getHydrationAllowance(value.item_id, email),
+  );
+}
+
+export async function regenerateItem(input: RegenerateItemInput) {
+  return runAuthorizedAction(
+    input,
+    RegenerateItemInputSchema,
+    (value) => generateContentItem(value.item_id, true, value.steer),
+    (value) => revalidateContentPaths(value.item_id),
+    (email) => consumeGenerationBudget(email),
+  );
+}
+
+export async function planMonth(input: PlanMonthInput) {
+  return runAuthorizedAction(
+    input,
+    PlanMonthInputSchema,
+    (value) => generateMonth(value.month),
+    () => {
+      revalidatePath("/calendar");
+      revalidatePath("/create");
+      revalidatePath("/");
+    },
+    (email) => consumeGenerationBudget(email, true),
+  );
+}
+
+export async function generateForDay(input: GenerateForDayInput) {
+  return runAuthorizedAction(
+    input,
+    GenerateForDayInputSchema,
+    (value) => generateDay(value.date, value.count),
+    () => {
+      revalidatePath("/calendar");
+      revalidatePath("/create");
+      revalidatePath("/");
+    },
+    (email) => consumeGenerationBudget(email),
   );
 }

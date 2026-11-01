@@ -12,6 +12,10 @@ const PLATFORM_FORMATS = {
   whatsapp: ["story", "meme"],
 };
 
+export function isCompatiblePlannedSlot(item: PlannedSlot) {
+  return PLATFORM_FORMATS[item.platform].includes(item.format);
+}
+
 function words(idea: string) {
   return (
     idea
@@ -82,7 +86,7 @@ export function validatePlanningRules(
     day.push(item);
     byDate.set(item.scheduled_date, day);
     counts.set(item.pillar, (counts.get(item.pillar) ?? 0) + 1);
-    if (!PLATFORM_FORMATS[item.platform].includes(item.format))
+    if (!isCompatiblePlannedSlot(item))
       violations.push(
         `format: incompatible platform on ${item.scheduled_date}`,
       );

@@ -49,14 +49,14 @@ export function ItemActions({ item }: { item: ItemControls }) {
       </div>
       {item.status === "skipped" && !hydrated ? (
         <p className="mt-2 text-sm text-secondary">
-          This skipped idea must be generated before it can return to ready.
-          Generation is available in a later phase.
+          This skipped idea must be generated before it can return to ready. Use
+          Generate content below to finish it first.
         </p>
       ) : null}
       {item.status === "idea" && !hydrated ? (
         <p className="mt-2 text-sm text-secondary">
-          Skip is unavailable for unfinished ideas until content generation is
-          enabled. The idea remains in your Create queue.
+          Generate this unfinished idea before skipping it. The idea remains in
+          your Create queue.
         </p>
       ) : null}
       <BottomSheet

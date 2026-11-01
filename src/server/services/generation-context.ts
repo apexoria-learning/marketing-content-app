@@ -6,6 +6,27 @@ import type { Database } from "../db/database.types";
 import type { PlannedSlot } from "../../lib/schemas/planning";
 import { shiftDate } from "../../lib/utils/dates";
 
+async function loadRecentIdeas(
+  client: SupabaseClient<Database>,
+  today: string,
+) {
+  const ideas: string[] = [];
+  for (let offset = 0; ; offset += 500) {
+    const { data, error } = await client
+      .from("content_items")
+      .select("idea")
+      .eq("status", "posted")
+      .gte("posted_at", `${shiftDate(today, -60)}T00:00:00+05:30`)
+      .order("posted_at", { ascending: false })
+      .order("id", { ascending: false })
+      .range(offset, offset + 499);
+    if (error) throw error;
+    const rows = z.array(z.object({ idea: z.string() })).parse(data);
+    ideas.push(...rows.map((row) => row.idea));
+    if (rows.length < 500) return ideas;
+  }
+}
+
 export async function loadGenerationContext(
   client: SupabaseClient<Database>,
   slot: Pick<PlannedSlot, "platform" | "format" | "pillar" | "idea">,
@@ -20,13 +41,7 @@ export async function loadGenerationContext(
         .select("title,url,source,summary")
         .order("published_at", { ascending: false, nullsFirst: false })
         .limit(20),
-      client
-        .from("content_items")
-        .select("idea")
-        .eq("status", "posted")
-        .gte("posted_at", `${shiftDate(today, -60)}T00:00:00+05:30`)
-        .order("posted_at", { ascending: false })
-        .limit(120),
+      loadRecentIdeas(client, today),
       client
         .from("content_items")
         .select("pillar")
@@ -35,7 +50,7 @@ export async function loadGenerationContext(
         .order("scheduled_date", { ascending: false })
         .limit(120),
     ]);
-  for (const result of [brandResult, newsResult, recentResult, historyResult])
+  for (const result of [brandResult, newsResult, historyResult])
     if (result.error) throw result.error;
   const brand = z
     .object({
@@ -66,10 +81,7 @@ export async function loadGenerationContext(
       links: brand.links,
     },
     news: newsResult.data,
-    recent_ideas: z
-      .array(z.object({ idea: z.string() }))
-      .parse(recentResult.data)
-      .map((item) => item.idea),
+    recent_ideas: recentResult,
     pillar_history: z
       .array(z.object({ pillar: z.string() }))
       .parse(historyResult.data)

@@ -1,5 +1,9 @@
 import "server-only";
 import { z } from "zod";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "../db/database.types";
+import { ActionFailure } from "./service-error";
+import { generateContentItemWithClient } from "./content-generation";
 
 export async function hydrateBatch(
   dependencies: {
@@ -46,8 +50,12 @@ export async function hydrateBatch(
     try {
       await dependencies.hydrate(row.id, signal);
       completed++;
-    } catch {
+    } catch (failure) {
       console.error("Batch content hydration failed.");
+      if (!(
+        failure instanceof ActionFailure && failure.code === "GENERATION_FAILED"
+      ))
+        throw failure;
       await dependencies.recordFailure(
         row.id,
         "Content generation did not complete.",
@@ -56,4 +64,45 @@ export async function hydrateBatch(
     }
   }
   return { completed, failed, attempted, remaining: rows.length - attempted };
+}
+
+export async function hydratePendingContent(
+  client: SupabaseClient<Database>,
+  options: Parameters<typeof hydrateBatch>[1] = {},
+) {
+  return hydrateBatch(
+    {
+      async listIdeas(limit) {
+        const { data, error } = await client
+          .from("content_items")
+          .select("id")
+          .eq("status", "idea")
+          .is("hydrated_at", null)
+          .order("scheduled_date")
+          .order("slot")
+          .limit(limit);
+        if (error) throw error;
+        return z.array(z.object({ id: z.uuid() })).parse(data);
+      },
+      async hydrate(id, signal) {
+        await generateContentItemWithClient(
+          client,
+          id,
+          false,
+          undefined,
+          signal,
+        );
+      },
+      async recordFailure(id, message) {
+        const { error } = await client
+          .from("content_items")
+          .update({ generation_error: message })
+          .eq("id", id)
+          .eq("status", "idea")
+          .is("hydrated_at", null);
+        if (error) throw error;
+      },
+    },
+    options,
+  );
 }

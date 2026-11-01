@@ -30,6 +30,64 @@ afterAll(async () => {
 });
 
 describeDatabase("migrations", () => {
+  it("saves generated payload and history together, preserves scheduling, and rejects stale/posted writes", async () => {
+    const id = await insertContentItem(db, {
+      scheduled_date: "2028-12-03",
+      format: "post",
+    });
+    const original = (
+      await db.query(
+        "select *, updated_at::text as version from public.content_items where id=$1",
+        [id],
+      )
+    ).rows[0];
+    const content = {
+      format: "post",
+      title: "Title",
+      hook: "Hook",
+      caption: "Caption",
+      body: { visual_concept: "Diagram" },
+      design_brief: { objective: "Teach" },
+      hashtags: [],
+      cta: "Learn",
+      source_refs: [],
+    };
+    const saved = await db.query(
+      "select public.save_generated_item($1,$2::jsonb,$3,$4,$5) as item",
+      [id, JSON.stringify(content), "content-v1", original.version, false],
+    );
+    expect(saved.rows[0].item.status).toBe("ready");
+    expect(saved.rows[0].item.scheduled_date).toBe("2028-12-03");
+    expect(saved.rows[0].item.pillar).toBe(original.pillar);
+    const history = await db.query(
+      "select action from public.activity_log where content_item_id=$1",
+      [id],
+    );
+    expect(history.rows.map((row) => row.action)).toContain("hydrated");
+    await expectRejection(() =>
+      db.query("select public.save_generated_item($1,$2::jsonb,$3,$4,$5)", [
+        id,
+        JSON.stringify(content),
+        "content-v1",
+        "2000-01-01T00:00:00Z",
+        true,
+      ]),
+    );
+    await db.query(
+      `select set_config('request.jwt.claims', '{"email":"test@example.test"}', false)`,
+    );
+    await db.query("select public.change_content_status($1,'posted')", [id]);
+    await expectRejection(() =>
+      db.query("select public.save_generated_item($1,$2::jsonb,$3,$4,$5)", [
+        id,
+        JSON.stringify(content),
+        "content-v1",
+        saved.rows[0].item.updated_at,
+        true,
+      ]),
+    );
+  });
+
   it("charges user and global AI budgets atomically without spending on a denied request", async () => {
     await asRole(db, "authenticated", async () => {
       await db.query(

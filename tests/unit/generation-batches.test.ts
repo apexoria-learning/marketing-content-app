@@ -2,6 +2,10 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 import { hydrateBatch } from "../../src/server/services/hydration-batch";
 import { generateDailyTip } from "../../src/server/ai/generators/daily-tip";
+import { ActionFailure } from "../../src/server/services/service-error";
+vi.mock("../../src/server/services/content-generation", () => ({
+  generateContentItemWithClient: vi.fn(),
+}));
 
 const rows = Array.from({ length: 30 }, (_, index) => ({
   id: `00000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
@@ -56,7 +60,9 @@ describe("bounded hydration batch", () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     const hydrate = vi
       .fn()
-      .mockRejectedValueOnce(new Error("Provider detail"))
+      .mockRejectedValueOnce(
+        new ActionFailure("GENERATION_FAILED", "Provider detail"),
+      )
       .mockResolvedValue(undefined);
     const recordFailure = vi.fn();
     const result = await hydrateBatch({
@@ -93,10 +99,26 @@ describe("bounded hydration batch", () => {
     await expect(
       hydrateBatch({
         listIdeas: async () => rows.slice(0, 1),
-        hydrate: vi.fn().mockRejectedValue(new Error("Failed")),
+        hydrate: vi
+          .fn()
+          .mockRejectedValue(new ActionFailure("GENERATION_FAILED", "Failed")),
         recordFailure: vi.fn().mockRejectedValue(new Error("Telemetry failed")),
       }),
     ).rejects.toThrow("Telemetry failed");
+  });
+  it("stops the batch immediately if per-call run logging or infrastructure fails", async () => {
+    const failure = new Error("Run telemetry failed");
+    const hydrate = vi.fn().mockRejectedValue(failure);
+    const recordFailure = vi.fn();
+    await expect(
+      hydrateBatch({
+        listIdeas: async () => rows.slice(0, 2),
+        hydrate,
+        recordFailure,
+      }),
+    ).rejects.toBe(failure);
+    expect(hydrate).toHaveBeenCalledTimes(1);
+    expect(recordFailure).not.toHaveBeenCalled();
   });
 });
 

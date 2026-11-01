@@ -40,6 +40,12 @@ function run(input: unknown = { note: " Reviewed " }) {
 }
 
 describe("six-step action pipeline", () => {
+  it("passes only validated input to the allowance guard", async () => {
+    await run();
+    expect(rateLimit).toHaveBeenCalledWith("member@example.test", {
+      note: "Reviewed",
+    });
+  });
   it("short-circuits missing sessions before parsing or service calls", async () => {
     mocks.authorize.mockResolvedValue({ ok: false, code: "UNAUTHENTICATED" });
     expect(await run(null)).toMatchObject({

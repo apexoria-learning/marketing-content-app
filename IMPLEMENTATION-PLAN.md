@@ -137,8 +137,8 @@ enforce twice-monthly coverage of the other nine.
 The first Group B increment implements generation input schemas, deterministic
 month validation/generation with one repair, a transactional month-plan RPC,
 bounded hydration orchestration and anti-repeating daily tips. Persistence
-adapters, generation actions/rate limits, UI and J3 remain pending; no generation
-entry point is active. New migration `0012` requires isolated SQL validation and
+adapters, generation actions/rate limits and UI are subsequently wired below;
+J3 remains pending and live generation is not active. New migration `0012` requires isolated SQL validation and
 generated-type refresh before adapter wiring and manual hosted deployment.
 Simulated 240-second batch tests verify 30 items at 8s/item and 20 at 12s/item;
 these are not real-model throughput measurements.
@@ -146,8 +146,27 @@ The `0012` generated types were retrieved from isolated CI; SQL feature checks
 passed there. The composed month service now loads safe brand/news/history
 context, records model calls with unknown cost and commits via the typed RPC.
 Migration `0013` prepares atomic payload/history writes, day slots and combined
-daily quotas. Generated-type refresh and adapter/action/UI wiring for `0013`
-remain pending. Hosted migrations have not been run by the agent.
+daily quotas. Generated RPC types for `0013` were retrieved from the isolated CI artifact.
+Item/day adapters, four authorized generation actions, atomic user/global/month
+quotas, item hydration/regeneration controls and Calendar/Today planning controls
+are wired. `AI_GENERATION_ENABLED=false` keeps generation disabled by default.
+Unknown transport/save-confirmation outcomes require a reload before retry;
+regeneration guidance and errors stay within the sheet. Posted items cannot
+generate; already hydrated items do not issue another AI request. Recent posted
+ideas are paginated over the entire 60-day window, not silently truncated at 120.
+Feature-only validation is used per the owner's request; no paid AI call, hosted
+mutation test or cron activation has occurred. The daily-tip persistence service
+now returns an existing same-day tip without generating, stores validated output
+once, handles concurrent date conflicts and explicitly reports AI failure while
+retaining the last saved tip. Persistence failures still propagate.
+The batch service is composed with typed database reads/writes and item
+generation, drains oldest unfinished items within the existing 240s/30-item
+bounds, and stops immediately on infrastructure/run-telemetry failures rather
+than continuing unlogged calls.
+Latest local feature gates: 69 mocked tests, typecheck and focused lint pass.
+New SQL persistence regression coverage is written but has not run locally;
+this laptop has no isolated PostgreSQL. Additional UI journey checks and Group B
+signoff remain open; cron routes are not yet wired or activated. Hosted migrations have not been run by the agent.
 
 **Group C scope change requested:** move automation/brand settings into the
 existing admin panel at `C:\Apex\apexoria\src\admin`. Review its auth, deployment,

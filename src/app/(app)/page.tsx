@@ -5,6 +5,8 @@ import { TodayDeck } from "@/features/content/TodayDeck";
 import { parseReadParams } from "@/lib/schemas/read-params";
 import { displayDate, shiftDate, todayInIst } from "@/lib/utils/dates";
 import { getDailyTip, getMonthItems, getTodayItems } from "@/server/db/queries";
+import { GenerationControl } from "@/features/content/GenerationControl";
+import { env } from "@/server/config/env";
 
 export const metadata: Metadata = { title: "Today" };
 
@@ -36,6 +38,12 @@ export default async function HomePage() {
           />
         }
       />
+      {!items.length ? (
+        <GenerationControl
+          enabled={env.AI_GENERATION_ENABLED === "true"}
+          target={{ kind: "day", date: today }}
+        />
+      ) : null}
     </>
   );
 }

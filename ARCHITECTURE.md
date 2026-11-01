@@ -738,6 +738,7 @@ apexoria-content-copilot/
 | `REGEN_DAILY_LIMIT` | Server | No | `security/` | Default `20` (`DR-5`) |
 | `GLOBAL_DAILY_AI_LIMIT` | Server | No | `security/` | Default `100` — backstop bounding total daily AI spend |
 | `PLANNING_HORIZON_MONTHS` | Server | No | Planning service | Default `2` (`DR-6`) |
+| `AI_GENERATION_ENABLED` | Server | No | Generation actions and controls | Default `false`; owner enables after Group B validation and reviewed hosted migrations `0012`/`0013` |
 | `NEXT_PUBLIC_APP_URL` | Client + server | No | OAuth redirect, manifest | Canonical origin |
 
 Rules:

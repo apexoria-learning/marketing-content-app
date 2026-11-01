@@ -20,6 +20,8 @@ import { ActivityList } from "@/components/content/ActivityList";
 import { Banner } from "@/components/feedback/Banner";
 import { TrackedTick } from "@/features/content/TrackedTick";
 import { ItemActions } from "@/features/content/ItemActions";
+import { GenerationControl } from "@/features/content/GenerationControl";
+import { env } from "@/server/config/env";
 import { displayDate, displayTimestamp } from "@/lib/utils/dates";
 import { hasHydratedContent } from "@/lib/utils/status";
 import { getActivity, getItem } from "@/server/db/queries";
@@ -71,8 +73,10 @@ export default async function ItemPage({
       ) : null}
       {item.status === "idea" || !item.body ? (
         <Banner variant={item.generation_error ? "danger" : "neutral"}>
-          This is a planned idea, not finished content. AI generation is
-          available in a later phase.
+          This is a planned idea, not finished content.
+          {item.generation_error
+            ? " Generation didn't complete. Try generating again."
+            : " Generate it to prepare the caption and design brief."}
         </Banner>
       ) : null}
       <div className="mt-8 space-y-8">
@@ -127,6 +131,21 @@ export default async function ItemPage({
             is_hydrated: hasHydratedContent(item),
           })}
         />
+        {item.status !== "posted" ? (
+          <GenerationControl
+            key={`${item.id}:${item.updated_at}`}
+            enabled={env.AI_GENERATION_ENABLED === "true"}
+            auto={
+              item.status === "idea" &&
+              !hasHydratedContent(item) &&
+              !item.generation_error
+            }
+            target={{
+              kind: hasHydratedContent(item) ? "regenerate" : "hydrate",
+              itemId: item.id,
+            }}
+          />
+        ) : null}
         <ActivityList activity={activity} />
       </div>
       {["ready", "posted"].includes(item.status) ? (

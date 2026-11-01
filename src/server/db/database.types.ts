@@ -391,6 +391,10 @@ export type Database = {
         };
         Returns: Json;
       };
+      commit_day_items: {
+        Args: { p_date: string; p_items: Json; p_prompt_version: string };
+        Returns: Json;
+      };
       commit_month_plan: {
         Args: {
           p_items: Json;
@@ -399,6 +403,14 @@ export type Database = {
           p_prompt_version: string;
         };
         Returns: Json;
+      };
+      consume_ai_budget: {
+        Args: {
+          p_global_limit: number;
+          p_plan_month?: boolean;
+          p_user_limit: number;
+        };
+        Returns: boolean;
       };
       consume_rate_limit: {
         Args: {
@@ -415,6 +427,16 @@ export type Database = {
       pgp_armor_headers: {
         Args: { "": string };
         Returns: Record<string, unknown>[];
+      };
+      save_generated_item: {
+        Args: {
+          p_content: Json;
+          p_expected_updated_at: string;
+          p_item_id: string;
+          p_prompt_version: string;
+          p_regenerate: boolean;
+        };
+        Returns: Json;
       };
     };
     Enums: {
