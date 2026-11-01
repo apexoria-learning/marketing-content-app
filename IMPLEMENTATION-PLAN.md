@@ -225,6 +225,10 @@ latency in the gateway log.
 **Owner live confirmation (2026-11-01):** after `18c96f6` deployed, the owner
 confirmed month planning and item content generation work on the live site.
 This is owner-reported; the agent did not measure live latency or token usage.
+The owner also reported that both latest GitHub Actions workflows (database
+validation and seeded browser journeys) passed. On that owner-reported evidence,
+Group B (Phases 10–11) is signed off. The owner paused before Group C; the
+nightly job remains unbuilt and inactive.
 
 **Group C scope change requested:** move automation/brand settings into the
 existing admin panel at `C:\Apex\apexoria\src\admin`. Review its auth, deployment,
