@@ -844,6 +844,10 @@ the client's TLS connection to the pooler, so it is not used to validate
 client transport encryption. These check table/RLS presence, forbidden
 policies, function permissions, audit triggers, and the brand singleton.
 These deployment checks do not replace behavioral integration tests.
+Migration `0011` explicitly revokes anonymous execution of both application
+RPCs: hosted Supabase's role-specific default grants survive a revoke from
+`PUBLIC` alone. Authenticated execution and existing service-role access remain.
+Isolated tests reproduce those function defaults and verify both RPCs deny anon.
 No other hosted target or automatic push/pull-request trigger is configured.
 
 #### Isolated behavioral tests and generated types

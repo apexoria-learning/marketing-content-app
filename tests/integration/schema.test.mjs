@@ -30,6 +30,34 @@ afterAll(async () => {
 });
 
 describeDatabase("migrations", () => {
+  it("revokes explicit anonymous RPC grants while retaining authenticated access", async () => {
+    const result = await db.query(
+      `select p.proname,
+         has_function_privilege('anon', p.oid, 'execute') as anon_may,
+         has_function_privilege('authenticated', p.oid, 'execute') as authenticated_may,
+         has_function_privilege('service_role', p.oid, 'execute') as service_may
+       from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+       where n.nspname = 'public'
+         and p.proname in ('consume_rate_limit', 'change_content_status')
+       order by p.proname`,
+    );
+
+    expect(result.rows).toEqual([
+      {
+        proname: "change_content_status",
+        anon_may: false,
+        authenticated_may: true,
+        service_may: true,
+      },
+      {
+        proname: "consume_rate_limit",
+        anon_may: false,
+        authenticated_may: true,
+        service_may: true,
+      },
+    ]);
+  });
+
   it("apply cleanly to an empty database and create all eight tables", async () => {
     const result = await db.query(
       `select table_name from information_schema.tables
