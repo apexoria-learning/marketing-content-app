@@ -5,6 +5,7 @@ import {
   APPLICATION_TABLES,
   asRole,
   createTestDatabase,
+  createTestDatabasePool,
   dropTestDatabase,
   expectRejection,
   hydratedFields,
@@ -12,8 +13,7 @@ import {
   isDatabaseReachable,
 } from "./support/database.mjs";
 
-// Requires a real Postgres — `supabase start`, or DATABASE_URL pointing at the
-// dev project. Skips cleanly when neither is available.
+// Uses isolated loopback Postgres; REQUIRE_DATABASE_TESTS makes CI fail closed.
 const canRun = await isDatabaseReachable();
 const describeDatabase = describe.skipIf(!canRun);
 
@@ -173,14 +173,37 @@ describeDatabase("consume_rate_limit", () => {
 
   it("never allows the count to exceed the limit", async () => {
     const windowStart = "2026-06-01T00:00:00Z";
-    const attempts = await Promise.all(
-      Array.from({ length: 10 }, () =>
-        db.query(
-          "select public.consume_rate_limit($1, $2, $3::timestamptz, $4) as allowed",
-          ["burst@apexoria.test", "regenerate", windowStart, 3],
-        ),
-      ),
+    const pool = createTestDatabasePool(db);
+    const clients = await Promise.all(
+      Array.from({ length: 10 }, () => pool.connect()),
     );
+
+    let attempts;
+
+    try {
+      const backends = await Promise.all(
+        clients.map((client) => client.query("select pg_backend_pid() as pid")),
+      );
+
+      expect(new Set(backends.map((result) => result.rows[0].pid)).size).toBe(
+        10,
+      );
+
+      attempts = await Promise.all(
+        clients.map((client) =>
+          client.query(
+            "select public.consume_rate_limit($1, $2, $3::timestamptz, $4) as allowed",
+            ["burst@apexoria.test", "regenerate", windowStart, 3],
+          ),
+        ),
+      );
+    } finally {
+      for (const client of clients) {
+        client.release();
+      }
+
+      await pool.end();
+    }
 
     const granted = attempts.filter(
       (attempt) => attempt.rows[0]?.allowed === true,
@@ -226,10 +249,9 @@ describeDatabase("atomic content status changes", () => {
       scheduled_date: "2026-07-10",
     });
 
-    await db.query(
-      "select set_config('request.jwt.claims', $1, false)",
-      [JSON.stringify({ email: "member@apexoria.test" })],
-    );
+    await db.query("select set_config('request.jwt.claims', $1, false)", [
+      JSON.stringify({ email: "member@apexoria.test" }),
+    ]);
 
     const result = await asRole(db, "authenticated", () =>
       db.query(
@@ -268,10 +290,9 @@ describeDatabase("atomic content status changes", () => {
       scheduled_date: "2026-07-11",
     });
 
-    await db.query(
-      "select set_config('request.jwt.claims', $1, false)",
-      [JSON.stringify({ email: "member@apexoria.test" })],
-    );
+    await db.query("select set_config('request.jwt.claims', $1, false)", [
+      JSON.stringify({ email: "member@apexoria.test" }),
+    ]);
 
     await expectRejection(() =>
       db.query(

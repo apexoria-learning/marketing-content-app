@@ -38,7 +38,7 @@ These have external lead time and block later phases. Begin on day one, independ
 
 | Item | Blocks | Notes |
 |---|---|---|
-| Supabase project (dev + prod) | Phase 2 | Two separate projects — preview must never touch production (`ARCHITECTURE.md` §15.1) |
+| Supabase project (dev + prod) | Phase 2 | Normally separate; temporary owner-approved sharing is documented in `ARCHITECTURE.md` §15.1. Fixtures and mutation tests remain isolated in CI |
 | Google Cloud OAuth client + consent screen | Phase 3 | Test users added manually (`D3`) |
 | Portkey account, API key, virtual key | Phase 8 | **User-supplied** |
 | Vercel project | Phase 0 verification | Hobby tier |
@@ -171,6 +171,13 @@ None.
 
 ### Prerequisites
 Phase 0; Supabase dev project provisioned.
+
+**Approved temporary environment exception (2026-11-01):** the hosted project is
+shared until the owner requests a split. Phase 2 fixtures and mutation tests must
+run in isolated GitHub Actions PostgreSQL, never on hosted Supabase. No local
+database installation is permitted on the office laptop. The existing seed is a
+rolling 31-day fixture window so its UI edge cases remain available year-round.
+This does not seed the live site; hosted fixture browsing is deferred.
 
 ### Database changes
 All of them. This phase *is* the schema.

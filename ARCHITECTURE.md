@@ -801,7 +801,7 @@ Two crossings, both explicitly defended. Model output sits in Zone 0 — that cl
 | **Server Actions called directly** | Every action independently verifies session, validates input and checks rate limits — middleware is never the only gate |
 | **Service-role key over-reach** | Used in exactly one route handler; constructed behind an explicitly named function; unreachable from any user-facing path |
 | **Runaway AI spend** (`R4`) | Per-user daily cap, global daily cap, bounded batch sizes, cost recorded per run |
-| **Preview deployments touching production data** | Preview environments point at a separate Supabase project; **cron is disabled outside production** |
+| **Preview deployments touching production data** | Preview environments normally point at a separate Supabase project; the temporary owner-approved exception and safeguards are in §15.1. **Cron is disabled outside production** |
 | **Stale service worker serving old code** | Versioned precache with skip-waiting on activation and an in-app update prompt |
 | **XSS via generated content** | Content rendered as React text nodes only; no HTML rendering path exists anywhere in the product |
 
@@ -827,11 +827,18 @@ AI calls are mocked at the `ai/client` boundary. Unit tests never make network c
 
 ### 14.2 Integration tests
 
-Run against a local Supabase instance:
+Run against a local Supabase instance or an isolated PostgreSQL 15 service in
+[database CI](./.github/workflows/database-tests.yml):
 - RLS: the anon key returns zero rows for every table without a session (`L4`).
 - Triggers: the third item on a date is rejected; posted items cannot be content-edited.
 - Append-only: `activity_log` rows cannot be updated or deleted.
 - Idempotency: running the cron handler twice produces no duplicate work.
+
+Database integration tests reject non-loopback targets. Developers without a
+local database can run the workflow; CI sets `REQUIRE_DATABASE_TESTS=true` so an
+unreachable database fails rather than producing a skipped, success-shaped run.
+The CLI generates database types from a separate throwaway migrated database,
+checks committed type drift, and publishes the generated file as an artifact.
 
 ### 14.3 E2E tests — Playwright
 
@@ -873,6 +880,17 @@ Visual appearance, animation feel, and content quality. These are reviewed by a 
 
 Preview deployments never touch production data and never run scheduled jobs. This is a hard rule, not a convention.
 
+**Temporary owner-approved exception (2026-11-01):** preview and production
+currently share Supabase project `hkexglskvqaaeouvfdwm`. The owner has explicitly
+deferred provisioning a separate project. Treat this hosted database as
+production: never reset it, apply development fixtures to it, or run mutation
+tests against it. Preview application writes can affect live data; sharing does
+not provide isolation. Cron remains disabled outside production. Restore the
+separate-project arrangement when the owner requests the environment split.
+Synthetic fixtures and behavioral database tests run only in isolated GitHub
+Actions PostgreSQL databases; no database or Docker installation is required on
+the office laptop.
+
 ### 15.2 Pipeline
 
 ```
@@ -888,11 +906,12 @@ push → Vercel build
 
 Database migrations are applied through the Supabase CLI as an explicit step before the deployment that depends on them. Migrations are forward-only and backward-compatible within a release, so a rollback of application code never leaves the schema ahead in a breaking way.
 
-For hosted development, the
+For the temporarily shared hosted database, the
 [manual migration workflow](./.github/workflows/migrate-development.yml) runs
 the CLI on GitHub's runner; developers do not need a local database. It is
-restricted to the default branch and the `supabase-development` environment,
-previews changes by default, and applies only when explicitly selected.
+restricted to the default branch and the legacy `supabase-development` GitHub
+environment, previews changes by default, and applies only when explicitly
+selected with acknowledgement that the target serves the live site.
 See [DATABASE.md §9.2](./DATABASE.md) for secret setup and verification.
 Production migration automation remains unconfigured.
 

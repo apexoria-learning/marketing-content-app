@@ -1,10 +1,15 @@
-name: Migrate Supabase development
+name: Migrate shared Supabase (manual)
 
 on:
   workflow_dispatch:
     inputs:
       apply_migrations:
-        description: Apply pending migrations to apexoria-marketing-dev (unchecked = preview only)
+        description: Apply reviewed pending migrations to the shared live database (unchecked = dry run)
+        type: boolean
+        required: true
+        default: false
+      acknowledge_shared_target:
+        description: I understand this Supabase project also serves the live site
         type: boolean
         required: true
         default: false
@@ -24,6 +29,12 @@ jobs:
     env:
       SUPABASE_PROJECT_REF: hkexglskvqaaeouvfdwm
     steps:
+      - name: Require acknowledgement before hosted writes
+        if: ${{ inputs.apply_migrations && !inputs.acknowledge_shared_target }}
+        run: |
+          echo "::error::Acknowledge the shared live database before applying migrations."
+          exit 1
+
       - name: Require the default branch
         env:
           CURRENT_REF: ${{ github.ref }}

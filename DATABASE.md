@@ -806,14 +806,17 @@ Separating `0007_rls.sql` is deliberate: RLS gets its own reviewable diff, so "d
 #### Hosted development migrations through GitHub Actions
 
 No local database is required to deploy migrations. The manually dispatched
-[development migration workflow](./.github/workflows/migrate-development.yml)
-targets only `apexoria-marketing-dev` (`hkexglskvqaaeouvfdwm`).
+[manual migration workflow](./.github/workflows/migrate-development.yml)
+targets only `hkexglskvqaaeouvfdwm`. Under the temporary owner-approved exception
+in `ARCHITECTURE.md` §15.1, this project serves both preview and the live site.
+Treat it as production; its original development label is not an isolation
+guarantee.
 
-Create the GitHub environment `supabase-development` with these secrets:
+Keep the GitHub environment `supabase-development` (a legacy name) with these secrets:
 
 - `SUPABASE_ACCESS_TOKEN`: a Supabase personal access token belonging to an
-  authorized account with access to the development project.
-- `SUPABASE_DB_PASSWORD`: the development project's database password,
+  authorized account with access to the shared project.
+- `SUPABASE_DB_PASSWORD`: the shared project's database password,
   not its publishable key or service-role key.
 
 Restrict that environment to the repository default branch and configure
@@ -823,8 +826,10 @@ pins its actions and CLI, and serializes runs without cancelling an active
 migration.
 
 Run it first with `apply_migrations` unchecked to inspect migration history
-and the dry-run output. Run again with the option checked to apply pending
-forward migrations. It never runs `db reset` or `--include-seed`; migration
+and the dry-run output. Run again with both `apply_migrations` and
+`acknowledge_shared_target` checked to apply reviewed pending forward migrations.
+The acknowledgement is required because changes affect the live site.
+It never runs `db reset` or `--include-seed`; migration
 `0009` seeds the brand profile, but the synthetic development fixtures remain
 excluded.
 
@@ -833,7 +838,24 @@ After applying, the workflow runs
 session pooler with TLS required. These check table/RLS presence, forbidden
 policies, function permissions, audit triggers, and the brand singleton.
 These deployment checks do not replace behavioral integration tests.
-No production target or automatic push/pull-request trigger is configured.
+No other hosted target or automatic push/pull-request trigger is configured.
+
+#### Isolated behavioral tests and generated types
+
+[Database CI](./.github/workflows/database-tests.yml) starts PostgreSQL 15 on the
+GitHub runner, applies all migrations in throwaway databases, and runs the schema
+and fixture suites. It uses no hosted Supabase credentials. Local runs may skip
+when PostgreSQL is unavailable; CI requires the database and fails if unreachable.
+Test and type-generation URLs must use loopback hosts without query overrides.
+
+The concurrency test uses ten distinct PostgreSQL connections, not ten queued
+queries on one connection. Supabase CLI 2.122.0 generates
+`src/server/db/database.types.ts` from a separate migrated scratch database.
+The generated file is committed as the query contract, never hand-edited.
+CI rejects drift and uploads the file as the `database-types` artifact; retrieve
+that artifact after a migration when local generation is unavailable.
+`npm run db:types:ci` runs this generator on a runner with the CLI and Docker;
+`npm run db:types` remains the local Supabase equivalent.
 
 ### 9.3 Rules
 
@@ -845,7 +867,7 @@ No production target or automatic push/pull-request trigger is configured.
 | **Every migration is backward-compatible within its release** | `ARCHITECTURE.md` §15.2 applies migrations *before* deploying dependent code; the old code must survive the new schema |
 | **No destructive DDL in v1** | No `DROP COLUMN`, no `DROP TABLE`, no `TRUNCATE`. Given §10, destructive changes are effectively irreversible |
 | **Constraints are added `NOT VALID` then validated** on populated tables | Avoids a long exclusive lock |
-| **Migrations are tested against a seeded local database** before production | `ARCHITECTURE.md` §14.2 |
+| **Migrations are tested against a seeded isolated database** before production | Local Supabase or the GitHub Actions PostgreSQL service (`ARCHITECTURE.md` §14.2); never the shared hosted project |
 
 ### 9.4 Seeding
 
@@ -869,6 +891,13 @@ Seeding real brand content is a `PRD §17` release-checklist item, because gener
 - 30 days of `daily_tips`.
 
 Development seed data is never applied to production and lives outside the numbered migration sequence.
+
+While Supabase is shared, development fixtures run only in isolated CI databases.
+The hosted test site therefore has no synthetic browsable month. The existing
+seed uses a rolling 31-day window (today minus 21 through today plus 9) to keep
+overdue, today, empty-day, and upcoming states available across calendar
+boundaries; it is deterministic relative to the database date. JSON payload
+validation against the domain schemas remains a Phase 5 responsibility.
 
 ---
 

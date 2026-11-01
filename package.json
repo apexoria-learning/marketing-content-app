@@ -18,6 +18,7 @@
     "test:e2e": "playwright test",
     "db:reset": "supabase db reset",
     "db:types": "supabase gen types typescript --local --schema public > src/server/db/database.types.ts",
+    "db:types:ci": "node scripts/generate-database-types.mjs",
     "check:client-bundle": "node scripts/check-client-bundle.mjs"
   },
   "dependencies": {

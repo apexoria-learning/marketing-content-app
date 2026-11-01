@@ -1,0 +1,75 @@
+name: Validate database and generated types
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: database-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  database:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:15.8
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 54322:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://postgres@127.0.0.1:54322/postgres
+      REQUIRE_DATABASE_TESTS: "true"
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Restore dependencies
+        run: npm ci
+
+      - name: Verify migrations, RLS, concurrency, and fixtures
+        run: npm test
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359 # v3
+        with:
+          version: 2.122.0
+
+      - name: Generate types from isolated migrated schema
+        run: npm run db:types:ci
+
+      - name: Check generated type drift
+        run: git diff --exit-code -- src/server/db/database.types.ts
+
+      - name: Check types and lint
+        run: |
+          npm run typecheck
+          npm run lint
+
+      - name: Upload generated database types
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: database-types
+          path: src/server/db/database.types.ts
+          if-no-files-found: error
+          retention-days: 7

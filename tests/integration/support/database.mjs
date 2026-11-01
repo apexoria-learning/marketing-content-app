@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import pg from "pg";
+import { parseLocalDatabaseUrl } from "./local-database.mjs";
 
 const MIGRATIONS_DIRECTORY = path.resolve("supabase", "migrations");
 const SEED_FILE = path.resolve("supabase", "seed.sql");
@@ -13,7 +14,9 @@ const SEED_FILE = path.resolve("supabase", "seed.sql");
 const DEFAULT_DATABASE_URL =
   "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
 
-export const databaseUrl = process.env.DATABASE_URL ?? DEFAULT_DATABASE_URL;
+export const databaseUrl = parseLocalDatabaseUrl(
+  process.env.DATABASE_URL ?? DEFAULT_DATABASE_URL,
+).toString();
 
 // Supabase provisions these cluster-wide, so create them only when absent —
 // a scratch database on the same cluster shares them (DATABASE.md §7.2).
@@ -67,6 +70,12 @@ export async function isDatabaseReachable() {
     await client.end();
     return true;
   } catch {
+    if (process.env.REQUIRE_DATABASE_TESTS === "true") {
+      throw new Error(
+        "Required isolated PostgreSQL database is unreachable. Database tests must not be skipped in CI.",
+      );
+    }
+
     return false;
   }
 }
@@ -90,6 +99,14 @@ async function connectTo(database) {
   await client.connect();
 
   return client;
+}
+
+export function createTestDatabasePool(client) {
+  const url = new URL(databaseUrl);
+
+  url.pathname = `/${client.scratchDatabaseName}`;
+
+  return new pg.Pool({ connectionString: url.toString(), max: 10 });
 }
 
 /**

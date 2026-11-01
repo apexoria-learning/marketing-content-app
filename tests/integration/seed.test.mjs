@@ -10,8 +10,7 @@ import {
   isDatabaseReachable,
 } from "./support/database.mjs";
 
-// Requires a real Postgres — `supabase start`, or DATABASE_URL pointing at the
-// dev project. Skips cleanly when neither is available.
+// Uses isolated loopback Postgres; REQUIRE_DATABASE_TESTS makes CI fail closed.
 const canRun = await isDatabaseReachable();
 const describeDatabase = describe.skipIf(!canRun);
 
