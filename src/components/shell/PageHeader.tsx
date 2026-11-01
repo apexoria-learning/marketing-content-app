@@ -7,6 +7,7 @@ import { Button } from "../ui/Button";
 import { Icon } from "../ui/Icon";
 import { useShellScroll } from "./AppShell";
 import { triggerHaptic } from "@/lib/utils/haptics";
+import { refreshOfflinePage } from "@/lib/utils/offline";
 
 export function PageHeader({
   title,
@@ -65,7 +66,10 @@ export function PageHeader({
             return;
           }
           triggerHaptic("light");
-          startRefresh(() => router.refresh());
+          startRefresh(() => {
+            router.refresh();
+            refreshOfflinePage();
+          });
         }}
       >
         <Icon name="refresh" />

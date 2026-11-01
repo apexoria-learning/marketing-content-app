@@ -86,5 +86,19 @@ describe("archive query contracts", () => {
       { name: "order", args: ["posted_at", { ascending: false }] },
       { name: "order", args: ["id", { ascending: false }] },
     ]);
+    const cursor = {
+      posted_at: "2026-11-01T07:00:00.123456+00:00",
+      id: "c862f630-7968-4b35-b048-9b7e9183fef1",
+    };
+    await getArchive(
+      parseReadParams({ scope: "all" }),
+      Buffer.from(JSON.stringify(cursor)).toString("base64url"),
+    );
+    expect(calls.at(-1)).toContainEqual({
+      name: "or",
+      args: [
+        `posted_at.lt.${cursor.posted_at},and(posted_at.eq.${cursor.posted_at},id.lt.${cursor.id})`,
+      ],
+    });
   });
 });

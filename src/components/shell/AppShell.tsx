@@ -15,6 +15,7 @@ import {
 import { DURATION, EASE_STANDARD } from "@/lib/constants/motion";
 import { BottomNav } from "./BottomNav";
 import { triggerHaptic } from "@/lib/utils/haptics";
+import { refreshOfflinePage } from "@/lib/utils/offline";
 
 const ScrollContext = createContext({ collapsed: false, hideActions: false });
 export function useShellScroll() {
@@ -142,7 +143,11 @@ export function AppShell({
             return;
           triggerHaptic("light");
           if (!navigator.onLine) location.reload();
-          else startRefresh(() => router.refresh());
+          else
+            startRefresh(() => {
+              router.refresh();
+              refreshOfflinePage();
+            });
         }}
       >
         {prompts}

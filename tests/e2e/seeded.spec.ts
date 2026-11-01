@@ -3,6 +3,7 @@ import { expect, test } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { z } from "zod";
 import { FormatSchema } from "../../src/lib/schemas/content";
+import { ArchiveCursorSchema } from "../../src/lib/schemas/read-params";
 
 const formatFixtures =
   process.env.RUN_SEEDED_E2E === "true"
@@ -189,7 +190,20 @@ test.describe("isolated, genuinely authenticated content journeys", () => {
     const first = await page
       .locator("main article a")
       .evaluateAll((links) => links.map((link) => link.getAttribute("href")));
+    const nextHref = await page
+      .getByRole("link", { name: "Next 30 posts" })
+      .getAttribute("href");
+    expect(nextHref).toBeTruthy();
+    const nextUrl = new URL(nextHref ?? "", page.url());
+    const cursor = nextUrl.searchParams.get("cursor");
+    expect(cursor).toBeTruthy();
+    expect(
+      ArchiveCursorSchema.safeParse(
+        JSON.parse(Buffer.from(cursor ?? "", "base64url").toString("utf8")),
+      ).success,
+    ).toBe(true);
     await page.getByRole("link", { name: "Next 30 posts" }).click();
+    await expect(page).toHaveURL(nextUrl.href);
     await expect(page.locator("main article a").first()).not.toHaveAttribute(
       "href",
       first[0] ?? "",
@@ -409,6 +423,29 @@ test.describe("isolated, genuinely authenticated content journeys", () => {
             ).match(location.href),
           ),
         ),
+      )
+      .toBe(true);
+    await page.evaluate(async () => {
+      const cache = await caches.open("apexoria-private-v1");
+      const entry = await cache.match(location.href);
+      if (!entry) throw new Error("Expected verified offline document.");
+      await cache.put(
+        location.href,
+        new Response(`${await entry.text()}\n<!-- stale-refresh-probe -->`, {
+          headers: entry.headers,
+        }),
+      );
+    });
+    await page.getByRole("button", { name: "Refresh this screen" }).click();
+    await expect
+      .poll(async () =>
+        page.evaluate(async () => {
+          const cache = await caches.open("apexoria-private-v1");
+          const entry = await cache.match(location.href);
+          return entry
+            ? !(await entry.text()).includes("stale-refresh-probe")
+            : false;
+        }),
       )
       .toBe(true);
     await context.setOffline(true);
