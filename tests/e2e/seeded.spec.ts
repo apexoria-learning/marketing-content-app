@@ -300,7 +300,7 @@ test.describe("isolated, genuinely authenticated content journeys", () => {
       "href",
       second[0] ?? "",
     );
-    expect(await page.locator("main article").count()).toBeGreaterThan(0);
+    await expect(page.locator("main article").first()).toBeVisible();
   });
 
   test("J1: read, copy, post, progress, reload, history and undo", async ({

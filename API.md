@@ -456,6 +456,8 @@ Every value is parsed against an enum allowlist. **Invalid input is silently rep
 
 Activity history is fetched internally in 500-row keyset batches ordered by `created_at DESC, id DESC`, so item detail and Archive do not silently truncate notes at the PostgREST response cap. This does not introduce a second user-facing pagination control.
 
+Archive cursor links use full-document GET navigation, matching native filter submissions. This avoids aborted query-only RSC transitions and lets the existing authorized HTML/offline navigation policy handle every cursor page.
+
 `PRD` states nothing about pagination because at planned volume most screens do not need it (`DATABASE.md` §6.1):
 
 | Screen | Max rows | Paginated |

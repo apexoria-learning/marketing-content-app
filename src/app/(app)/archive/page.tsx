@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { EmptyState } from "@/components/feedback/States";
@@ -111,13 +110,12 @@ export default async function ArchivePage({
         ))}
       </ol>
       {nextCursor ? (
-        <Link
+        <a
           href={`/archive?${next}`}
-          prefetch={false}
           className="mt-8 inline-flex min-h-11 items-center rounded-pill border border-border-strong bg-surface-2 px-5 text-sm font-semibold"
         >
           Next 30 posts
-        </Link>
+        </a>
       ) : null}
     </>
   );
