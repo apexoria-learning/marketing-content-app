@@ -9,8 +9,10 @@ import {
   useTransition,
 } from "react";
 import { useRouter } from "next/navigation";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Button } from "@/components/ui/Button";
 import { BottomSheet } from "@/components/ui/BottomSheet";
+import { Banner } from "@/components/feedback/Banner";
 import { useToast } from "@/components/ui/Toast";
 import {
   hydrateItem,
@@ -23,6 +25,9 @@ import {
   refreshOfflinePage,
 } from "@/lib/utils/offline";
 import { displayTimestamp } from "@/lib/utils/dates";
+import { DURATION, EASE_STANDARD } from "@/lib/constants/motion";
+
+const UPDATED_VISIBLE_MS = 2000;
 
 type GenerationTarget =
   | { kind: "hydrate" | "regenerate"; itemId: string }
@@ -43,14 +48,23 @@ export function GenerationControl({
   const [error, setError] = useState("");
   const [retryAfter, setRetryAfter] = useState("");
   const [updated, setUpdated] = useState(false);
+  // Month/day generation creates rows once; a second run would be a duplicate.
+  const [completed, setCompleted] = useState(false);
   const [requiresReload, setRequiresReload] = useState(false);
   const [stage, setStage] = useState(0);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
   const toast = useToast();
+  const reducedMotion = useReducedMotion();
   const autoStarted = useRef(false);
   const steerId = useId();
   const stages = ["Researching…", "Writing…", "Briefing…"];
+  const createsRows = target.kind === "month" || target.kind === "day";
+  useEffect(() => {
+    if (!updated) return;
+    const timer = setTimeout(() => setUpdated(false), UPDATED_VISIBLE_MS);
+    return () => clearTimeout(timer);
+  }, [updated]);
   useEffect(() => {
     if (!pending) {
       setStage(0);
@@ -64,7 +78,7 @@ export function GenerationControl({
   }, [pending]);
 
   const execute = useCallback(() => {
-    if (pending || requiresReload || !enabled) return;
+    if (pending || requiresReload || completed || !enabled) return;
     if (!navigator.onLine) {
       setError("You're offline. Generation needs a connection.");
       return;
@@ -94,12 +108,18 @@ export function GenerationControl({
         }
         setOpen(false);
         setUpdated(true);
+        if (createsRows) setCompleted(true);
         const omission =
           "news_omitted" in result.data && result.data.news_omitted;
         toast.show({
-          message: omission
-            ? "Month planned. News was omitted because sources are unavailable."
-            : "Content updated.",
+          message:
+            target.kind === "month"
+              ? omission
+                ? "Month planned. News was omitted because sources are unavailable."
+                : "Month planned."
+              : target.kind === "day"
+                ? "Day planned."
+                : "Content updated.",
         });
         refreshOfflinePage(true);
         router.refresh();
@@ -109,7 +129,17 @@ export function GenerationControl({
         setError("Couldn't confirm generation. Reload before trying again.");
       }
     });
-  }, [pending, requiresReload, enabled, target, steer, toast, router]);
+  }, [
+    pending,
+    requiresReload,
+    completed,
+    createsRows,
+    enabled,
+    target,
+    steer,
+    toast,
+    router,
+  ]);
   // Automatic hydration uses the same authorized action and budget as the button.
   useEffect(() => {
     if (!auto || !enabled || target.kind !== "hydrate" || autoStarted.current)
@@ -130,24 +160,45 @@ export function GenerationControl({
     <div className="space-y-3">
       <Button
         variant="secondary"
-        disabled={!enabled || requiresReload}
+        disabled={!enabled || requiresReload || completed}
         loading={pending}
         onClick={() =>
           target.kind === "regenerate" ? setOpen(true) : execute()
         }
       >
-        {label}
+        {completed
+          ? target.kind === "month"
+            ? "Month planned"
+            : "Day planned"
+          : label}
       </Button>
-      {pending ? (
+      {pending && target.kind === "month" ? (
+        <Banner variant="accent" progress>
+          Planning this month… You can keep using the app.
+        </Banner>
+      ) : pending ? (
         <p role="status" className="text-sm text-secondary">
           {stages[stage]} You can keep using the app.
         </p>
       ) : null}
-      {updated ? (
-        <p role="status" className="text-sm text-success">
-          Updated
-        </p>
-      ) : null}
+      <AnimatePresence>
+        {updated ? (
+          <motion.p
+            key="updated"
+            role="status"
+            className="text-eyebrow font-semibold tracking-eyebrow text-accent uppercase"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{
+              duration: reducedMotion ? DURATION.fast : DURATION.base,
+              ease: EASE_STANDARD,
+            }}
+          >
+            Updated
+          </motion.p>
+        ) : null}
+      </AnimatePresence>
       {!enabled ? (
         <p className="text-sm text-secondary">
           Generation will be available after setup is complete.

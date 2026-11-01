@@ -27,6 +27,8 @@ import { hasHydratedContent } from "@/lib/utils/status";
 import { getActivity, getItem } from "@/server/db/queries";
 
 export const metadata: Metadata = { title: "Content details" };
+// hydrateItem/regenerateItem run from this route within a 240s budget.
+export const maxDuration = 300;
 
 export default async function ItemPage({
   params,
@@ -133,7 +135,7 @@ export default async function ItemPage({
         />
         {item.status !== "posted" ? (
           <GenerationControl
-            key={`${item.id}:${item.updated_at}`}
+            key={item.id}
             enabled={env.AI_GENERATION_ENABLED === "true"}
             auto={
               item.status === "idea" &&

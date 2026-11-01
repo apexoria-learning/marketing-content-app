@@ -197,6 +197,31 @@ also used ~267-character mini-briefs (31 of 34 over 200 characters) instead of
 the `one_line_idea` that ARCHITECTURE.md §4.3 specifies, so skeleton ideas are
 now single-line, ≤200 characters, in both the prompt and the schema.
 
+**Live item-generation fix and Group B completion work (2026-11-01):** month
+planning now works live. Item "Generate content" failed with "Something went
+wrong on our side" before any AI call: the item path passed the whole content
+row to `loadGenerationContext`, which spread it into the `.strict()` context
+schema, so `id`/`status`/`hook`/... raised a ZodError (`unrecognized_keys`, no
+database code → `UNEXPECTED`). Month planning passed a four-field literal and
+was unaffected; unit tests had mocked the loader. The loader now picks the four
+slot fields explicitly; a regression test reproduces the original failure.
+Because auto-hydration did not record this non-AI failure, opening unfinished
+items repeatedly charged quota; that path is now fixed.
+Item hydration/regeneration requests now get 120s each under a shared 240s
+budget (combined with any batch caller's earlier deadline), and the item route
+declares `maxDuration = 300`, matching the evidence that a 60s cap is too short
+for large replies. Month planning checks horizon and existing plan before
+charging quota; the control shows a non-blocking progress banner and becomes a
+disabled "Month planned"/"Day planned" button after success. The item control
+keeps a stable key so the gold "Updated" eyebrow survives the refresh, cross-
+fades in, and fades after 2s (opacity-only under reduced motion).
+Feature validation: 89 focused unit tests, 16 mocked browser checks (including
+design-system axe/CSP/reduced motion), typecheck, lint and production build pass.
+Phase 12 (Group C) owns cron hydration batches and daily-tip writes, which RLS
+restricts to `service_role`. Remaining Group B gaps are the seeded J3 journey
+and isolated SQL rollback checks running in CI, plus confirming real item
+latency in the gateway log.
+
 **Group C scope change requested:** move automation/brand settings into the
 existing admin panel at `C:\Apex\apexoria\src\admin`. Review its auth, deployment,
 database and server boundaries before implementing that integration; do not

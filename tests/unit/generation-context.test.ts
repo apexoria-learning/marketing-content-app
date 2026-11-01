@@ -64,3 +64,55 @@ it("includes every posted idea in the 60-day window without leaking brand audit 
   expect(context.recent_ideas.at(-1)).toBe("The last idea");
   expect(JSON.stringify(context)).not.toContain("private@example.test");
 });
+
+it("accepts a whole content item and keeps only its slot fields (live item-generation failure)", async () => {
+  const client = createClient<Database>("https://example.test", "test-key", {
+    auth: { persistSession: false },
+    global: {
+      fetch: async (input) => {
+        const url = new URL(String(input));
+        const result = url.pathname.endsWith("/brand_profile")
+          ? {
+              business_name: "Apexoria",
+              business_description: "Training",
+              audience_description: "Learners",
+              courses: [],
+              current_offers: null,
+              tone_instagram: "Helpful",
+              tone_linkedin: "Professional",
+              tone_whatsapp: "Friendly",
+              do_list: [],
+              dont_list: [],
+              links: {},
+            }
+          : [];
+        return new Response(JSON.stringify(result), {
+          headers: { "Content-Type": "application/json" },
+        });
+      },
+    },
+  });
+  // The item path passes the full row; the strict context schema used to
+  // reject these extra keys with an unclassified error before any AI call.
+  const item = {
+    id: "c862f630-7968-4b35-b048-9b7e9183fef1",
+    status: "idea",
+    hook: null,
+    updated_at: "2026-11-01T00:00:00Z",
+    scheduled_date: "2026-11-02",
+    platform: "linkedin" as const,
+    format: "post" as const,
+    pillar: "interview_questions" as const,
+    idea: "Before vs after triggers",
+  };
+  const context = await loadGenerationContext(client, item, "2026-11-01");
+  expect(context).toMatchObject({
+    platform: "linkedin",
+    format: "post",
+    pillar: "interview_questions",
+    idea: "Before vs after triggers",
+  });
+  expect(context.brand.tone).toBe("Professional");
+  expect(context).not.toHaveProperty("id");
+  expect(context).not.toHaveProperty("status");
+});

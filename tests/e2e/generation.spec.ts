@@ -54,6 +54,39 @@ test("automatic hydration starts once, progresses, and confirms an update", asyn
   }
   await expect(section.getByText("Updated", { exact: true })).toBeVisible();
   expect(requests()).toBe(1);
+  // The gold "Updated" eyebrow fades after 2s (DESIGN.md J3).
+  await expect(section.getByText("Updated", { exact: true })).toBeHidden({
+    timeout: 5000,
+  });
+});
+
+test("month planning shows a non-blocking banner and cannot run twice", async ({
+  page,
+}) => {
+  let release: () => void = () => {};
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const requests = await mockGeneration(
+    page,
+    { ok: true, data: { plan_id: "id", item_count: 30, news_omitted: false } },
+    { gate },
+  );
+  await page.goto("/design-system?generation=true");
+  const section = page.getByRole("region", { name: "Generation examples" });
+  const plan = section.getByRole("button", { name: "Plan this month" });
+  await plan.click();
+  try {
+    await expect(
+      section.getByText("Planning this month… You can keep using the app."),
+    ).toBeVisible();
+  } finally {
+    release();
+  }
+  const planned = section.getByRole("button", { name: "Month planned" });
+  await expect(planned).toBeDisabled();
+  await planned.click({ force: true });
+  expect(requests()).toBe(1);
 });
 
 test("regeneration keeps guidance and generation errors inside the sheet", async ({

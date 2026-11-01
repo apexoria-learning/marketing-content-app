@@ -91,6 +91,10 @@ export function Gallery({
                 itemId: "00000000-0000-4000-8000-000000000001",
               }}
             />
+            <GenerationControl
+              enabled
+              target={{ kind: "month", month: "2026-12" }}
+            />
           </Section>
         ) : null}
 

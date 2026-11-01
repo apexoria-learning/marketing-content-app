@@ -8,6 +8,11 @@ import {
 } from "../schemas";
 
 export const PROMPT_VERSION = "content-v1";
+// A full item (copy, per-format body and design brief) is far larger than the
+// 60s default suits. Each request may take 120s; the item's parse/schema/
+// business repairs share one 240s budget so the 300s function cap holds.
+export const CONTENT_REQUEST_TIMEOUT_MS = 120000;
+export const CONTENT_GENERATION_BUDGET_MS = 240000;
 
 export function buildContentPrompt(input: GenerationContext): AiRequest {
   const context = GenerationContextSchema.parse(input);

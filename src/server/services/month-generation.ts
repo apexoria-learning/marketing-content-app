@@ -8,6 +8,39 @@ import { planMonth } from "./planning";
 import { loadGenerationContext } from "./generation-context";
 import { createRecordedAiClient } from "./recorded-ai";
 import { MONTH_PLAN_REQUEST_TIMEOUT_MS } from "../ai/generators/month-plan";
+import { consumeGenerationBudget } from "../security";
+import { isMonthWithinHorizon } from "../../lib/utils/planning-rules";
+import type { ActionResult } from "../../lib/schemas/action-result";
+
+// Runs before quota: a repeat or out-of-horizon request is refused without
+// charging the shared AI budget. The unique plan_month constraint and the
+// service's own check still guard a concurrent duplicate.
+export async function getMonthPlanAllowance(
+  month: string,
+  email: string,
+): Promise<ActionResult<void>> {
+  if (!isMonthWithinHorizon(month, todayInIst(), env.PLANNING_HORIZON_MONTHS))
+    return {
+      ok: false,
+      code: "VALIDATION",
+      message:
+        "This month is outside the planning horizon. Nothing was changed.",
+    };
+  const client = await createUserDatabaseClient();
+  const { data, error } = await client
+    .from("content_plans")
+    .select("id")
+    .eq("plan_month", `${month}-01`)
+    .maybeSingle();
+  if (error) throw error;
+  if (data !== null)
+    return {
+      ok: false,
+      code: "VALIDATION",
+      message: "This month is already planned. Nothing was changed.",
+    };
+  return consumeGenerationBudget(email, true);
+}
 
 export async function generateMonth(month: string) {
   const client = await createUserDatabaseClient();

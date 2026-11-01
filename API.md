@@ -391,6 +391,11 @@ the owner completes the Group B activation gates.
 
 Generates the skeleton only (phase 1); hydration follows via cron or on demand. Idempotent through the `content_plans.plan_month` unique constraint — a second call for an existing month returns `VALIDATION` with "This month is already planned." Bounded by `PLANNING_HORIZON_MONTHS` (default 2); a request beyond the horizon is rejected. Runs the deterministic planning-rule validator (`ARCHITECTURE.md` §4.4) before any insert; a plan that cannot be repaired is **rejected whole, writing nothing**.
 
+The existing-month and horizon checks run in the allowance step **before** any
+quota is charged, so a repeat or out-of-horizon request costs nothing. The
+service check and unique constraint still guard a concurrent duplicate. After a
+successful plan the control is disabled ("Month planned") and cannot resubmit.
+
 **Owner-approved planning refinements (2026-11-01):** recent-idea similarity
 uses Unicode-normalized, case/punctuation-insensitive word-set Jaccard ≥0.70,
 including exact normalized matches. When verified news is unavailable, omit
@@ -555,7 +560,7 @@ Four outbound integrations. None is in the critical path for reading content.
 | Credentials | `PORTKEY_API_KEY` — server-only (`NFR-2.2`) |
 | Endpoint/routing | `PORTKEY_BASE_URL`, HTTPS `/v1` endpoint; provider selected by the `AI_MODEL` alias, no virtual key or config ID |
 | Model | `AI_MODEL` — configuration, not code |
-| Timeout | 60s per request; whole-month planning 120s per request (initial + one repair within the 240s work budget). Sent to the gateway as its per-request deadline and enforced locally |
+| Timeout | 60s per request; whole-month planning and item hydration/regeneration 120s per request (all repairs within a 240s work budget). Sent to the gateway as its per-request deadline and enforced locally |
 | Retries | None in the current owner-confirmed gateway setup; SDK retries disabled |
 | Streaming | **No** — output must be validated whole before use |
 | Response contract | Strict OpenAI compliance requested, so Claude's `end_turn`/`max_tokens` arrive as `stop`/`length`; only `stop` is accepted |

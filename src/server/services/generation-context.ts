@@ -68,7 +68,12 @@ export async function loadGenerationContext(
     })
     .parse(brandResult.data);
   return GenerationContextSchema.parse({
-    ...slot,
+    // Pick explicitly: callers may pass a whole content item, and the strict
+    // context schema rejects any extra field (id, status, hook, ...).
+    platform: slot.platform,
+    format: slot.format,
+    pillar: slot.pillar,
+    idea: slot.idea,
     brand: {
       business_name: brand.business_name,
       business_description: brand.business_description,

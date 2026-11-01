@@ -18,6 +18,10 @@ import { generateItem } from "./item-generation";
 import { generateDayPlan } from "../ai/generators/day-plan";
 import { ActionFailure } from "./service-error";
 import { isMonthWithinHorizon } from "../../lib/utils/planning-rules";
+import {
+  CONTENT_GENERATION_BUDGET_MS,
+  CONTENT_REQUEST_TIMEOUT_MS,
+} from "../ai/prompts";
 
 export async function getHydrationAllowance(
   itemId: string,
@@ -52,6 +56,7 @@ export async function generateContentItemWithClient(
   steer?: string,
   signal?: AbortSignal,
 ) {
+  const budget = AbortSignal.timeout(CONTENT_GENERATION_BUDGET_MS);
   return generateItem(
     { itemId, regenerate, steer },
     {
@@ -68,7 +73,7 @@ export async function generateContentItemWithClient(
         loadGenerationContext(client, item, todayInIst(), guidance),
       generate: createRecordedAiClient(
         client,
-        createAiClient(env),
+        createAiClient(env, { timeoutMs: CONTENT_REQUEST_TIMEOUT_MS }),
         {
           kind: regenerate ? "item_regeneration" : "item_hydration",
           content_item_id: itemId,
@@ -98,7 +103,7 @@ export async function generateContentItemWithClient(
         if (error) throw error;
       },
     },
-    signal,
+    signal ? AbortSignal.any([signal, budget]) : budget,
   );
 }
 

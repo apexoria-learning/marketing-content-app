@@ -31,7 +31,10 @@ import {
   generateDay,
   getHydrationAllowance,
 } from "../services/content-generation";
-import { generateMonth } from "../services/month-generation";
+import {
+  generateMonth,
+  getMonthPlanAllowance,
+} from "../services/month-generation";
 import { consumeGenerationBudget } from "../security";
 import {
   appendActivityNote,
@@ -159,7 +162,7 @@ export async function planMonth(input: PlanMonthInput) {
       revalidatePath("/create");
       revalidatePath("/");
     },
-    (email) => consumeGenerationBudget(email, true),
+    (email, value) => getMonthPlanAllowance(value.month, email),
   );
 }
 
