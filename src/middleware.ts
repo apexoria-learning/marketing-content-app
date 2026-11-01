@@ -5,6 +5,7 @@ import {
   getExpiredSessionCookies,
 } from "./server/db/middleware";
 import { isUnauthenticatedError } from "./server/auth/session-error";
+import { isPrivatePage, OFFLINE_MAX_AGE } from "./lib/utils/offline";
 
 function createContentSecurityPolicy(nonce: string): string {
   const scriptPolicy =
@@ -84,6 +85,8 @@ export async function middleware(request: NextRequest) {
     pathname === "/auth/callback" ||
     pathname === "/manifest.webmanifest" ||
     pathname === "/sw.js" ||
+    pathname === "/offline.html" ||
+    pathname === "/offline.css" ||
     pathname === "/api/health";
   const isServerActionRequest =
     request.method === "POST" &&
@@ -140,6 +143,19 @@ export async function middleware(request: NextRequest) {
   }
 
   response.headers.set("Cache-Control", "private, no-store");
+  if (
+    request.method === "GET" &&
+    isPrivatePage(pathname) &&
+    user?.id &&
+    isMiddlewareUserAllowed(user.email) &&
+    response.status === 200
+  ) {
+    response.headers.set("x-offline-session", user.id);
+    response.headers.set(
+      "x-offline-until",
+      String(Date.now() + OFFLINE_MAX_AGE),
+    );
+  }
   response.headers.set("Content-Security-Policy", contentSecurityPolicy);
   return response;
 }

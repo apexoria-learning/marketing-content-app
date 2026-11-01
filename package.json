@@ -8,7 +8,7 @@
     "build": "next build && npm run check:client-bundle",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src tests scripts eslint-rules next.config.ts vitest.config.ts playwright.config.ts eslint.config.mjs",
+    "lint": "eslint src tests scripts eslint-rules next.config.ts vitest.config.ts playwright.config.ts playwright.seeded.config.ts eslint.config.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "vitest run",

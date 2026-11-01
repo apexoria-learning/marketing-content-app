@@ -13,7 +13,10 @@ export class ActionFailure extends Error {
   }
 }
 
-function failure(code: ActionCode, message: string): ActionResult<never> {
+function failure(
+  code: ActionCode,
+  message: string,
+): Extract<ActionResult<never>, { ok: false }> {
   return { ok: false, code, message };
 }
 
@@ -88,10 +91,13 @@ export async function runAuthorizedAction<Input, Output>(
     });
 
     if (hasSaved) {
-      return failure(
-        "UNEXPECTED",
-        "Your changes were saved, but the view could not refresh. Reload the page.",
-      );
+      return {
+        ...failure(
+          "UNEXPECTED",
+          "Your changes were saved, but the view could not refresh. Reload the page.",
+        ),
+        saved: true,
+      };
     }
 
     if (error instanceof ActionFailure) {

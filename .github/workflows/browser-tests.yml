@@ -1,0 +1,73 @@
+name: Validate isolated authenticated browser journeys
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: browser-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      RUN_SEEDED_E2E: "true"
+      NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
+      ALLOWED_EMAILS: browser-test@example.test
+      PORTKEY_API_KEY: unused-isolated-browser-test-key
+      PORTKEY_VIRTUAL_KEY: unused-isolated-browser-test-virtual-key
+      AI_MODEL: unused-isolated-browser-test-model
+      CRON_SECRET: unused-isolated-browser-test-cron-secret
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Restore dependencies
+        run: npm ci
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359
+        with:
+          version: 2.122.0
+      - name: Start isolated Supabase and apply development seed
+        run: |
+          supabase start -x studio,imgproxy,storage-api,realtime,edge-runtime,logflare,vector,supavisor
+          supabase db reset --local
+          node --input-type=module <<'NODE'
+          import { execFileSync } from "node:child_process";
+          import { appendFileSync } from "node:fs";
+          const status = JSON.parse(execFileSync("supabase", ["status", "-o", "json"], {encoding:"utf8"}));
+          for (const [name, value] of Object.entries({
+            NEXT_PUBLIC_SUPABASE_URL: status.API_URL,
+            NEXT_PUBLIC_SUPABASE_ANON_KEY: status.ANON_KEY,
+            SUPABASE_SERVICE_ROLE_KEY: status.SERVICE_ROLE_KEY,
+            DATABASE_URL: status.DB_URL,
+          })) {
+            if (typeof value !== "string" || !value) throw new Error(`Missing isolated ${name}`);
+            if (name.includes("KEY") || name === "DATABASE_URL") console.log(`::add-mask::${value}`);
+            appendFileSync(process.env.GITHUB_ENV, `${name}=${value}\n`);
+          }
+          NODE
+      - name: Prepare real authenticated browser sessions
+        run: node scripts/prepare-browser-tests.mjs
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Build production app and check client secrets
+        run: npm run build
+      - name: Run authenticated screens, tracking, and PWA tests
+        run: npx playwright test --config=playwright.seeded.config.ts
+      - name: Stop isolated Supabase
+        if: always()
+        run: supabase stop --no-backup

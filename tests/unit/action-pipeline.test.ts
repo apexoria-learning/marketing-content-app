@@ -154,6 +154,7 @@ describe("six-step action pipeline", () => {
       code: "UNEXPECTED",
       message:
         "Your changes were saved, but the view could not refresh. Reload the page.",
+      saved: true,
     });
   });
 });

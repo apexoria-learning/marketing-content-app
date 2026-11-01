@@ -266,7 +266,7 @@ Every item, regardless of format, carries:
 
 **US-15** — As a founder, I want items I chose not to post to be marked as skipped, so that the backlog stays clean.
 - AC1: An item can be set to `skipped` with an optional reason.
-- AC2: Skipped items leave the Create queue but remain in the archive.
+- AC2: Skipped items leave the Create queue but remain accessible in Calendar and item detail. Archive contains posted items only (approved Phase 6 refinement).
 
 ### Brand configuration
 

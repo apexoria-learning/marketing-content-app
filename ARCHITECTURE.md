@@ -176,8 +176,13 @@ Four boxes. One deployable. No internal network to secure.
 | `RegenerateSheet`, brand profile fields | Form state |
 | `InstallPrompt`, `ThemeToggle` | Browser APIs |
 | `FormSubmitButton` | `useFormStatus` for pending authentication submissions; wraps the existing `Button`, with no client data access |
+| `AppShell`, `BottomNav`, `PwaControls` | Per-tab scroll restoration, route motion, long-background resume, navigation state, install/update/connectivity APIs and acknowledged cache purge before sign-out |
+| `CalendarView`, `ScopeControl` | Day-sheet state, month swipe/chevrons, and URL-based segment selection |
+| `TrackedTick`, `ItemActions`, `usePosting` | Optimistic status changes, shared Today tick/button/ring state, reversible tracking and note/skip sheet submission |
 
 Everything else — page shells, `ContentCard` content, `SlideList`, `ScriptList`, `BriefSection`, `CalendarGrid`, `QueueRow`, `TipCard`, archive lists — renders on the server.
+
+Shared presentational cards may also render beneath the Today/Calendar client boundary. Client props use inferred `ContentPreview`/`ItemControls` projections, excluding generation errors and internal generation metadata. Item bodies and audit sections remain server-rendered; no component constructs a database client.
 
 **Rules.**
 - `"use client"` is placed on the smallest possible component, never on a page or layout.
@@ -188,6 +193,14 @@ Everything else — page shells, `ContentCard` content, `SlideList`, `ScriptList
 - `error.tsx` exists at each route group; `global-error.tsx` catches the rest.
 
 **Rendering strategy.** All authenticated routes are dynamic — they depend on the session cookie and on per-day data. There is no static generation to reason about and no stale-cache class of bug. Perceived speed comes from server proximity to the database, small payloads and the service worker shell, not from caching.
+
+**Approved offline privacy policy (Phases 4–7).** Offline reads rely on the last server-verified, allowlisted session, not live authorization. Middleware marks eligible private GET responses with an opaque user identity and a deadline no later than seven days after verification. The worker keeps at most 30 private HTML documents; it never caches OAuth callbacks, Server Action POSTs, or partial RSC responses. On client navigation it downloads a complete HTML document only for a same-origin private route, re-checking authorization server-side. Background cache requests cannot fetch auth callbacks.
+
+Sign-out waits for worker acknowledgement that private data was purged before clearing the server session. Online authorization denial, account changes, session expiry and worker activation also purge private data. Successful mutations invalidate stale private pages and download the current page again. Uncached/expired offline routes receive the public offline shell. Cache data is local device storage, not encrypted storage; offline devices cannot detect an external session revocation or allowlist change until they reconnect. This shared-device limitation was explicitly approved.
+
+Serwist's automatic `cacheOnNavigation` is disabled: private caching must pass the policy above. Navigation preload remains explicitly disabled to preserve the single-use OAuth callback fix. Updates wait for an in-app Update confirmation, then send `SKIP_WAITING` and reload on controller change; public assets are revisioned by Serwist.
+
+**Authenticated browser CI exception:** the dedicated browser workflow starts a disposable loopback Supabase stack in GitHub Actions, applies the development seed, creates a confirmed test account via that stack's local admin credential, and signs in normally to produce ignored Playwright cookie storage. Only this CI setup script uses the isolated admin API; application authorization is never bypassed. The script rejects non-CI execution and any API/database target outside the approved loopback stack. No hosted secrets, resets, seed writes, or browser-cookie artifacts are used/uploaded.
 
 **Design token implementation.** Tokens from `DESIGN.md §3–5` are declared as CSS custom properties on `:root`, re-declared under a `[data-theme="light"]` selector, and surfaced to Tailwind as semantic names (`bg-surface-1`, `text-secondary`, `rounded-xl`, `gap-4`). Components use semantic utilities exclusively. An ESLint rule forbids arbitrary-value Tailwind classes containing raw colours or pixel values, which makes the checklist item *"Only tokens used"* mechanically enforced rather than a review opinion.
 

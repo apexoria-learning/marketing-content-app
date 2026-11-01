@@ -6,9 +6,10 @@
 }
 
 html {
-  min-width: 20rem;
+  min-width: 0;
   background: var(--canvas);
   scroll-behavior: smooth;
+  overscroll-behavior-y: contain;
 }
 
 body {
@@ -31,6 +32,80 @@ body {
   outline-color: var(--accent);
 }
 
+.app-content {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: calc(env(safe-area-inset-bottom) + 12rem);
+  overflow-wrap: anywhere;
+}
+
+.bottom-nav,
+.action-bar {
+  left: max(
+    var(--spacing-page),
+    calc((100vw - var(--container-content)) / 2 + var(--spacing-page))
+  );
+  right: max(
+    var(--spacing-page),
+    calc((100vw - var(--container-content)) / 2 + var(--spacing-page))
+  );
+}
+
+.bottom-nav {
+  bottom: calc(env(safe-area-inset-bottom) + 1rem);
+}
+
+.action-bar {
+  bottom: calc(env(safe-area-inset-bottom) + 5.75rem);
+}
+
+.page-header {
+  top: env(safe-area-inset-top);
+}
+
+.calendar-grid {
+  display: none;
+}
+
+@media (min-width: 400px) {
+  .calendar-grid {
+    display: grid;
+  }
+  .calendar-agenda {
+    display: none;
+  }
+}
+
+.today-deck {
+  display: flex;
+  gap: calc(var(--spacing) * 3);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+}
+
+.today-deck > li {
+  flex: 0 0 calc(100% - 1.75rem);
+  scroll-snap-align: start;
+}
+
+@media (max-width: 359px) {
+  .today-deck > li {
+    flex-basis: calc(100% - 1.25rem);
+  }
+}
+
+.all-done {
+  animation: all-done var(--motion-base) var(--ease-standard) 400ms both;
+}
+
+@keyframes all-done {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -39,5 +114,12 @@ body {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+  .today-deck {
+    display: block;
+    overflow: visible;
+  }
+  .today-deck > li + li {
+    margin-top: 1.5rem;
   }
 }

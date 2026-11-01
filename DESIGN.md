@@ -305,7 +305,7 @@ Structure, top to bottom:
 4. Footer row — scheduled date (`caption`), and a `StatusTick` on the right
 
 Surface `e1`, `r-xl`, padding `24`. Whole card is tappable to the detail route; the `StatusTick` stops propagation.
-**Posted treatment:** card content drops to 55% opacity, the meta row's platform colour switches to its `-dim` variant, and a gold tick appears in the footer. No strikethrough — the content must remain readable for reference.
+**Posted treatment (approved accessibility refinement):** use the sunken surface and a subdued accent border, retaining readable text and platform glyphs at full contrast. The Posted label and gold tick remain explicit. Do not apply 55% opacity to reading content: it fails the 4.5:1 body-text requirement, particularly in light mode. No strikethrough on content.
 
 **TipCard**
 Visually distinct from `ContentCard` so it is never mistaken for postable content: `surface-sunken`, a 2px left gold rule, `eyebrow` label "Tip of the day", tip in `body-strong`. No status, no copy-all, no tick.
@@ -377,6 +377,8 @@ Full-width inline strip at the top of the content area for persistent background
 **CalendarGrid**
 7 columns, Monday-first, fixed cell aspect 1:1.15, weekday header in `eyebrow`. Month label and chevrons sit in a sticky sub-header below `PageHeader`. Horizontal swipe changes month.
 
+**Approved narrow-phone refinement:** below 400px use a full-width, dated agenda instead of squeezing seven columns below the 44px target minimum. At 400px and above the grid uses an 8px gap and cells at least 44px wide. Both views open the same day sheet, retain the permanent legend, and provide month chevrons as the non-gesture equivalent.
+
 **DayCell**
 - Date numeral top-left, `sm`, tabular.
 - Up to two indicators bottom-centre: 8px platform dots. Pending = hollow ring in the platform colour; posted = filled dot with a 6px gold tick overlay.
@@ -436,7 +438,7 @@ Settings (from header, modal-style route)
 
 ## 8. Forms
 
-Forms exist in exactly two places: **Settings → Brand profile**, and the **regeneration steer** field.
+Forms also include the approved Phase 7 note/skip sheets (280-character limit) and native GET filter controls. Settings brand-profile and regeneration-steer forms arrive in their owning later phases.
 
 Rules:
 - One field per row, full width, label always visible above the field (never placeholder-as-label).
@@ -471,6 +473,8 @@ Specification per surface. These are requirements, not suggestions (P5).
 Rules: no full-screen spinners anywhere; no layout shift when content replaces a skeleton; anything under 300ms shows no loading state at all (avoids flicker).
 
 ### 9.2 Empty
+
+**Phases 4–7 staging:** generation is deferred to its approved later phases. Empty states explain this explicitly and link to existing Calendar/Today where useful; no generation CTA invokes an unavailable action or pretends content was generated.
 
 | Surface | Glyph | Statement | Guidance | Action |
 |---|---|---|---|---|

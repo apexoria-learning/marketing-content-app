@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
-import { FormSubmitButton } from "../../components/ui/FormSubmitButton";
+import { AppShell } from "../../components/shell/AppShell";
+import { PwaControls } from "../../features/shell/PwaControls";
 import { getAuthorizedUser } from "../../server/auth";
-import { signOut } from "../../server/auth/actions";
 
 export default async function AppLayout({
   children,
@@ -21,19 +21,5 @@ export default async function AppLayout({
     );
   }
 
-  return (
-    <>
-      <header className="mx-auto flex w-full max-w-content items-center justify-between px-page pt-4">
-        <p className="max-w-[65%] truncate text-caption text-secondary">
-          {authorization.user.email}
-        </p>
-        <form action={signOut}>
-          <FormSubmitButton className="px-4" variant="ghost">
-            Sign out
-          </FormSubmitButton>
-        </form>
-      </header>
-      {children}
-    </>
-  );
+  return <AppShell prompts={<PwaControls />}>{children}</AppShell>;
 }

@@ -220,6 +220,7 @@ Every action returns a discriminated union. **Actions never throw across the cli
 | `message` | string | **User-safe**, already matching `DESIGN.md` copy |
 | `fields` | object | Only for `VALIDATION` — field name → message |
 | `retry_after` | string | Only for `RATE_LIMITED` — RFC 3339 reset time |
+| `saved` | `true`, optional | Service succeeded but revalidation failed; reload, never retry the mutation |
 
 `message` is written for display, not for developers. It never contains a stack trace, model name, provider name, table name, SQL fragment or internal identifier (`PRD §15.3`).
 
@@ -243,6 +244,7 @@ contract is client-safe in `lib/schemas/action-result.ts`. Its optional quota st
 is supplied by AI actions when they land in Phase 11. Existing zero-cost actions
 omit that step (§7.5). If revalidation fails after the service succeeds, the
 failure message explicitly says the changes were saved and asks for a reload.
+The `saved: true` discriminator makes this recovery machine-readable. Transport failures with no result also ask for reload because the client cannot know whether the write committed.
 
 OAuth initiation and sign-out are redirecting authentication operations, not
 authenticated business mutations: requiring a session or allowlist would prevent
@@ -466,6 +468,8 @@ Archive uses **keyset (cursor) pagination**, not offset:
 - The cursor is a base64url encoding of the last row's `(posted_at, id)`.
 - Response includes `next_cursor`, omitted on the final page.
 - A malformed or tampered cursor is **discarded and treated as page one**, never surfaced as an error.
+
+Archive contains posted items only. Scope dates use `posted_at` and IST month boundaries, not scheduled dates. Counts cover the complete filtered scope rather than the current cursor page; head-only exact counts avoid PostgREST's row-return cap.
 
 Keyset is chosen over `OFFSET` because it maps exactly onto `idx_content_items_posted` (`DATABASE.md` §6.3), has stable performance as the archive grows, and — more importantly — cannot skip or duplicate rows when an item is marked posted mid-scroll, which `OFFSET` does.
 

@@ -1,15 +1,38 @@
-export default function HomePage() {
+import { TipCard } from "@/components/content/TipCard";
+import { ContentPreviewSchema } from "@/lib/schemas/content";
+import { TodayDeck } from "@/features/content/TodayDeck";
+import { parseReadParams } from "@/lib/schemas/read-params";
+import { displayDate, shiftDate, todayInIst } from "@/lib/utils/dates";
+import { getDailyTip, getMonthItems, getTodayItems } from "@/server/db/queries";
+
+export default async function HomePage() {
+  const today = todayInIst();
+  const [items, tip, month] = await Promise.all([
+    getTodayItems(today),
+    getDailyTip(today),
+    getMonthItems(parseReadParams({ month: today.slice(0, 7) })),
+  ]);
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-content flex-col px-page pb-24 pt-12">
-      <p className="text-eyebrow font-semibold tracking-eyebrow text-secondary">
-        Apexoria Learning
-      </p>
-      <h1 className="mt-4 font-display text-display font-bold tracking-display text-primary">
-        Morning Briefing
-      </h1>
-      <p className="mt-3 max-w-reading text-body text-secondary">
-        Your daily content workspace is ready.
-      </p>
-    </main>
+    <>
+      <TodayDeck
+        items={items.map((item) => ContentPreviewSchema.parse(item))}
+        progress={{
+          posted: month.filter((item) => item.status === "posted").length,
+          planned: month.length,
+        }}
+        dateLabel={displayDate(today, {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+        })}
+        tomorrow={shiftDate(today, 1)}
+        tip={
+          <TipCard
+            tip={tip}
+            isFallback={Boolean(tip && tip.tip_date !== today)}
+          />
+        }
+      />
+    </>
   );
 }

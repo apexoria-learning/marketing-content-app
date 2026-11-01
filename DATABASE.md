@@ -479,6 +479,8 @@ Indexes are derived from the actual queries the journeys in `PRD §7` generate �
 | Q11 | Recent runs for the Settings log | S8 | `idx_generation_runs_recent` |
 | Q12 | Rate-limit lookup | `NFR-2.7` | `rate_limits_pkey` |
 
+Q1–Q11 have typed server-only read helpers. Q12 is an index mapping for the atomic quota operation, **not an authenticated SELECT API**: the policy matrix below intentionally denies quota reads. AI phases must use `consume_rate_limit`, never add a direct authenticated lookup to satisfy a query checklist.
+
 ### 6.3 Definitions
 
 ```sql

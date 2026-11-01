@@ -18,4 +18,5 @@ export type ActionResult<T> =
       message: string;
       fields?: Record<string, string>;
       retry_after?: string;
+      saved?: true;
     };

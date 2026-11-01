@@ -41,6 +41,30 @@ beforeEach(() => {
 });
 
 describe("middleware session boundaries", () => {
+  it("marks only verified allowlisted private GETs as eligible for offline reads", async () => {
+    mocks.getUser.mockResolvedValue({
+      data: { user: { id: "verified-id", email: "member@example.test" } },
+      error: null,
+    });
+    const response = await middleware(
+      new NextRequest("https://app.example.test/calendar"),
+    );
+    expect(response.headers.get("x-offline-session")).toBe("verified-id");
+    expect(Number(response.headers.get("x-offline-until"))).toBeGreaterThan(
+      Date.now(),
+    );
+    const action = await middleware(
+      new NextRequest("https://app.example.test/calendar", {
+        method: "POST",
+        headers: { "Next-Action": "id" },
+      }),
+    );
+    expect(action.headers.get("x-offline-session")).toBeNull();
+    const publicPage = await middleware(
+      new NextRequest("https://app.example.test/sign-in"),
+    );
+    expect(publicPage.headers.get("x-offline-session")).toBeNull();
+  });
   it.each([
     "/",
     "/calendar",

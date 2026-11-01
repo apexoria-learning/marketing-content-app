@@ -255,6 +255,10 @@ denial check complete based only on mocked tests.
 
 **Goal:** the navigation chrome and installability.
 
+**Current approved batch:** Phases 4–6 plus Phase 7 reversible tracking; AI generation remains deferred. The user confirmed deployed Phase 3 login/sign-out/denial, approved isolated Supabase browser CI, and authorized focused commits/pushes. No hosted database reset or fixture writes are permitted.
+
+**Approved refinements:** posted-only Archive (skipped content remains in Calendar/detail), agenda below 400px, readable posted-card styling instead of whole-card opacity, and seven-day last-verified-session offline reads with explicit purge/expiry rules in ARCHITECTURE.md §3.2.
+
 ### Tasks
 
 | # | Task |
@@ -336,10 +340,10 @@ None — schemas must match the `DATABASE.md` §5.3 column shapes exactly.
 
 | # | Task |
 |---|---|
-| 6.1 | `server/db/queries` — the twelve queries in `DATABASE.md` §6.2, typed |
+| 6.1 | `server/db/queries` — Q1–Q11 in `DATABASE.md` §6.2, typed; Q12 is the atomic quota RPC, not a permitted authenticated SELECT |
 | 6.2 | Search-param parsing: enum allowlist, silent fallback to defaults, never echoed |
 | 6.3 | **Today** (S3) — date, progress ring, tip, swipeable deck with 16px peek and page dots |
-| 6.4 | **Calendar** (S4) — month grid, platform dots, posted indicators, filters, `DaySheet`, swipe between months, permanent legend |
+| 6.4 | **Calendar** (S4) — agenda below 400px / month grid at wider widths, platform dots, posted indicators, filters, `DaySheet`, swipe between months, permanent legend |
 | 6.5 | **Create** (S5) — format groups in fixed order, overdue group first, segmented filter |
 | 6.6 | **Item detail** (S6) — fixed section order across all formats |
 | 6.7 | **Archive** (S7) — scope control, filters, summary counts, keyset pagination |

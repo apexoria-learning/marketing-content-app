@@ -5,6 +5,7 @@ const withSerwist = withSerwistInit({
   swSrc: "src/app/sw.ts",
   swDest: "public/sw.js",
   disable: process.env.NODE_ENV !== "production",
+  cacheOnNavigation: false,
 });
 
 // Behind Vercel's proxy the Origin/Host check must be pinned explicitly or it
