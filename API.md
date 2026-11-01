@@ -570,6 +570,15 @@ Invariants: nothing partial is ever written; a failed item remains `idea` with `
 
 **Cost accounting:** `input_tokens`, `output_tokens` and `estimated_cost_usd` are written to `generation_runs` per call (`NFR-6.4`).
 
+The preparation implementation requires explicitly supplied, verified input/
+output USD prices per million tokens before a recorded call can begin. Cost is
+calculated using fixed-point integer arithmetic and rounded to six decimal
+places for the database's numeric column. No unknown price is substituted with
+zero. Each transport request, including repair requests, gets its own run;
+request success records token usage, while final content validation remains a
+separate gate before any content write. Parse, schema and business validation
+each permit at most one repair (at most four requests in total).
+
 **Failure:** timeout, 429 or persistent error → `GENERATION_FAILED`, **nothing changed**. The failure is recorded and surfaced as an in-app banner so it is never silent (`FR-2.6`).
 
 ### 8.2 Supabase — Postgres and Auth
@@ -625,6 +634,13 @@ Only the email address is retained; no Google profile data is stored (`DATABASE.
 **SSRF posture:** feed URLs are operator-configured, not user-supplied, which removes the usual SSRF surface. The scheme allowlist, public-host requirement and redirect cap exist so that a compromised or hijacked feed domain still cannot pivot into internal network space.
 
 **Failure:** generation proceeds **without** news grounding and **never invents news** (`FR-3.3`, risk `R2`). A pillar that cannot be grounded is planned around rather than fabricated.
+
+Preparation implementation uses validated, pinned IPv4 DNS addresses for the
+HTTPS request, preserving hostname TLS verification and refusing private/
+reserved ranges. IPv6-only feeds fail explicitly. Conditional validators are
+held by the caller and updated only after successful ingestion; durable state
+wiring belongs to cron setup. Retention must be explicitly supplied before
+pruning is enabled; no unspecified retention period is silently chosen.
 
 ---
 

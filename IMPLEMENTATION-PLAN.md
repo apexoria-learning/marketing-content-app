@@ -82,7 +82,23 @@ deadline, disables SDK retries, rejects incomplete/refused responses and require
 token usage instead of silently defaulting missing counts to zero. Local
 validation passes: 296 tests, typecheck, lint, production build and the 59-file
 client-secret scan; 84 database tests are intentionally skipped on the laptop.
-Prompt/output repair, accounting persistence and news ingestion remain unfinished.
+Prompt composition, generated-output schemas, canonical source cross-checks,
+and one repair per parse/schema/business stage are implemented. Per-call run
+logging opens before the request and fails closed on telemetry errors. Cost
+estimation uses integer fixed-point arithmetic with explicitly supplied pricing;
+no unverified model price is hardcoded.
+News parsing/fetching and repository adapters are implemented, including DNS
+address pinning, private IPv4 rejection, 2 MB streamed body limits, three redirects,
+one retry, RSS/Atom parsing, declaration rejection, URL deduplication, per-feed
+isolation, conditional validators and caller-supplied retention. The fetcher
+uses IPv4 DNS only; IPv6-only feeds fail explicitly instead of bypassing address
+validation. Conditional validators are caller-owned state, not a new database
+table. Live activation and persistent state wiring remain deferred to Phase 12.
+Latest local gates: 328 tests pass; 84 database tests intentionally skipped;
+typecheck, lint, production build and 59-file secret scan pass.
+Group A cannot be signed off until feed URLs/retention and verified pricing or
+gateway cost accounting are confirmed, and an explicitly approved real smoke
+call passes. No new action or cron route calls these modules yet.
 Mocked tests only remain authorized;
 real calls require explicit approval, real credentials remain outside the
 repository, and cost metadata/retry behavior still require verification.
