@@ -259,9 +259,9 @@ denial check complete based only on mocked tests.
 
 **Approved refinements:** posted-only Archive (skipped content remains in Calendar/detail), agenda below 400px, readable posted-card styling instead of whole-card opacity, and seven-day last-verified-session offline reads with explicit purge/expiry rules in ARCHITECTURE.md §3.2.
 
-**Automated verification (2026-11-01):** 279 local tests pass; 83 database tests are intentionally skipped on the shared laptop. Typecheck, lint, production build, the 59-file client-secret scan, 23 existing browser regressions and the production anonymous offline-shell test pass. Isolated database CI passes all 362 tests without skips, including migrations/RLS/concurrency, schema fixtures and generated-type drift. Production browser CI passes all 24 tests, including all six formats, screen accessibility, 320px/text enlargement, verbatim/long-press/fallback copy, 30-row Archive keysets while another page posts content, posting/Undo/history, offline refresh and sign-out cache purge. Month/scope navigation, keyboard focus and tab scroll preservation now pass using the user's approved full-document GET refinement (API.md §6.2).
+**Automated verification (2026-11-01):** 280 local tests pass; 83 database tests are intentionally skipped on the shared laptop. Typecheck, lint, production build, the 59-file client-secret scan, 23 existing browser regressions and the production anonymous offline-shell test pass. Isolated database CI passes all 363 tests without skips, including migrations/RLS/concurrency, schema fixtures and generated-type drift. Production browser CI passes all 24 tests, including all six formats, screen accessibility, 320px/text enlargement, verbatim/long-press/fallback copy, 30-row Archive keysets while another page posts content, posting/Undo/history, offline refresh and sign-out cache purge. Month/scope navigation, keyboard focus and tab scroll preservation now pass using the user's approved full-document GET refinement (API.md §6.2). Safari rubber-band overscroll is normalized to zero when saving tab offsets, preserving the other tabs' positions.
 
-**Release sign-off still pending:** physical-device installation/splash/safe-area/update checks, visual/haptic design review, production Lighthouse thresholds and measured layout-shift checks. Implementation and automated verification are complete; do not mark every phase's manual completion criteria signed off yet. AI generation remains deferred. Verified code/test commit: `9b2d1b8`; database run `41295198032` and browser run `41295198046` both succeeded.
+**Manual release sign-off (user-confirmed, 2026-11-01):** the user confirmed iOS Safari and Android Chrome installation/icon/splash, safe areas and navigation/action-bar clearance, the worker update prompt/reload, visual/keyboard/greyscale/haptic review, production Lighthouse thresholds (Performance ≥90, Accessibility ≥95, Best Practices ≥95), and measured layout shift with no unexpected content jumps. These are user-reported checks, not measurements independently collected by the agent. Phases 4–6 and approved Phase 7 tracking are signed off. AI generation remains deferred. Verified code/test commit: `efc4f56`; database run `41297386506` and browser run `41297386566` both succeeded.
 
 ### Tasks
 
@@ -290,11 +290,11 @@ None.
 - Nothing is obscured by the nav pill at the end of scroll.
 
 ### Completion criteria
-- [ ] Installs with correct icon and splash on both platforms
-- [ ] Lighthouse reports installable
+- [x] Installs with correct icon and splash on both platforms
+- [x] Lighthouse reports installable
 - [x] Tab scroll positions preserved independently
-- [ ] Safe areas correct on a notched device
-- [ ] Service worker update prompt verified
+- [x] Safe areas correct on a notched device
+- [x] Service worker update prompt verified
 
 ---
 
@@ -369,9 +369,9 @@ Read-only. Implements the read contracts in `API.md` §6.
 
 ### Completion criteria
 - [x] All five screens render from the dev seed
-- [ ] Every empty state in `DESIGN.md` §9.2 reachable and correct
+- [x] Every empty state in `DESIGN.md` §9.2 reachable and correct
 - [x] Deck, calendar and month swipe all have non-gesture equivalents
-- [ ] `DESIGN.md` §14 checklist passes per screen
+- [x] `DESIGN.md` §14 checklist passes per screen
 
 ---
 
@@ -408,7 +408,7 @@ Implements `API.md` §5.1. No schema change.
 
 ### Completion criteria
 - [x] J1 passes end to end
-- [ ] Tick animation, haptic and ring advance choreographed together
+- [x] Tick animation, haptic and ring advance choreographed together
 - [x] Posted items immutable
 - [x] Archive shows complete history
 
