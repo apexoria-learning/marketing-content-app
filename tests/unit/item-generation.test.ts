@@ -78,6 +78,13 @@ function dependencies() {
       news: [],
       recent_ideas: [],
       pillar_history: [],
+      platform_rules: {
+        label: "Instagram",
+        allows_hashtags: true,
+        max_hashtags: 30,
+        caption_max_chars: null,
+        guidance: "",
+      },
     }),
     generate: vi.fn().mockResolvedValue({ content: JSON.stringify(content) }),
     save: vi.fn().mockResolvedValue({ ...item, ...content }),

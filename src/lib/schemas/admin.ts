@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { PillarSchema, PlatformSchema } from "./content";
+import { PillarSchema } from "./content";
 
 // Admin panel contracts (API.md §5.5). Single definition for both the
 // client-side pre-check and the server action.
@@ -96,12 +96,6 @@ export const MIN_TOPIC_PILLARS = 3;
 const isUnique = (values: readonly string[]) =>
   new Set(values).size === values.length;
 
-export const EnabledPlatformsSchema = z
-  .array(PlatformSchema)
-  .min(1, "Keep at least one platform.")
-  .max(PlatformSchema.options.length)
-  .refine(isUnique, "Each platform may appear once.");
-
 export const EnabledPillarsSchema = z
   .array(PillarSchema)
   .max(PillarSchema.options.length)
@@ -140,7 +134,6 @@ export const AppSettingsUpdateSchema = z
       .refine(isUnique, "Each feed may appear once.")
       .nullable()
       .optional(),
-    enabled_platforms: EnabledPlatformsSchema.nullable().optional(),
     enabled_pillars: EnabledPillarsSchema.nullable().optional(),
   })
   .strict()
@@ -159,7 +152,6 @@ export const AppSettingsRowSchema = z.object({
   ai_model: z.string().nullable(),
   ai_base_url: z.string().nullable(),
   news_feed_urls: z.array(z.string()).nullable(),
-  enabled_platforms: z.array(PlatformSchema).nullable(),
   enabled_pillars: z.array(PillarSchema).nullable(),
   updated_at: z.string(),
   updated_by: z.string().nullable(),

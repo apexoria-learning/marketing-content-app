@@ -22,7 +22,7 @@ export async function generateDayPlan(
     count: number;
     context: GenerationContext;
     adjacentSlots?: Pick<PlannedSlot, "pillar" | "format">[];
-    filters?: PlanningFilters;
+    filters: PlanningFilters;
   },
   generate: (request: AiRequest) => Promise<{ content: string }>,
 ) {
@@ -31,14 +31,26 @@ export async function generateDayPlan(
     count: input.count,
   });
   const context = GenerationContextSchema.parse(input.context);
-  // Instructions are sent as their own subordinate message, never as data.
-  const { instructions, ...referenceData } = context;
+  // Instructions are sent as their own subordinate message, never as data;
+  // the context's placeholder slot and its platform rules are irrelevant here.
+  const { instructions } = context;
+  const referenceData = {
+    brand: context.brand,
+    news: context.news,
+    recent_ideas: context.recent_ideas,
+    pillar_history: context.pillar_history,
+  };
   const schema = z
     .object({ items: z.array(PlannedSlotSchema).length(count) })
     .strict();
-  const filterRule = input.filters
-    ? ` Use only platforms ${JSON.stringify(input.filters.platforms)} and pillars ${JSON.stringify(input.filters.pillars)}.`
-    : "";
+  const filterRule = ` Use only these platforms, each with only its listed formats: ${JSON.stringify(
+    Object.fromEntries(
+      input.filters.platforms.map((platform) => [
+        platform.key,
+        platform.formats,
+      ]),
+    ),
+  )}; and only these pillars: ${JSON.stringify(input.filters.pillars)}.`;
   const prompt: AiRequest = {
     max_tokens: 2048,
     messages: [
@@ -68,7 +80,7 @@ export async function generateDayPlan(
       if (
         parsed.data.items.some(
           (item) =>
-            !isCompatiblePlannedSlot(item) ||
+            !isCompatiblePlannedSlot(item, input.filters) ||
             !isSlotAllowedByFilters(item, input.filters) ||
             (!context.news.length && item.pillar === "salesforce_news") ||
             input.adjacentSlots?.some(

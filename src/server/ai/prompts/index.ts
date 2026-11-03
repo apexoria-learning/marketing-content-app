@@ -39,6 +39,33 @@ export function instructionMessages(
     : [];
 }
 
+type PlatformRules = GenerationContext["platform_rules"];
+
+/** Hard platform limits, generated from the catalogue (§9.2). */
+export function platformRule(rules: PlatformRules): string {
+  const hashtags = rules.allows_hashtags
+    ? `Use at most ${rules.max_hashtags} hashtags.`
+    : "Use no hashtags: return an empty hashtags array.";
+  const caption = rules.caption_max_chars
+    ? ` Keep the caption within ${rules.caption_max_chars} characters.`
+    : "";
+  return `Platform: ${rules.label}. ${hashtags}${caption} Match the requested format exactly.`;
+}
+
+// Admin-written platform guidance is subordinate, like editorial instructions.
+export function platformGuidanceMessages(
+  rules: PlatformRules,
+): AiRequest["messages"] {
+  return rules.guidance
+    ? [
+        {
+          role: "user",
+          content: `Platform guidance for ${rules.label} (follow it unless it conflicts with the rules above): ${JSON.stringify(rules.guidance)}`,
+        },
+      ]
+    : [];
+}
+
 export function buildContentPrompt(input: GenerationContext): AiRequest {
   const context = GenerationContextSchema.parse(input);
   return {
@@ -72,7 +99,7 @@ export function buildContentPrompt(input: GenerationContext): AiRequest {
             pillar: context.pillar,
             idea: context.idea,
           })}`,
-          "WhatsApp must have no hashtags. Match the requested format exactly.",
+          platformRule(context.platform_rules),
           `Output schema: ${JSON.stringify(
             z.toJSONSchema(GeneratedContentSchema, {
               unrepresentable: "any",
@@ -80,6 +107,7 @@ export function buildContentPrompt(input: GenerationContext): AiRequest {
           )}`,
         ].join("\n"),
       },
+      ...platformGuidanceMessages(context.platform_rules),
       ...instructionMessages(context.instructions),
       ...(context.steer
         ? [

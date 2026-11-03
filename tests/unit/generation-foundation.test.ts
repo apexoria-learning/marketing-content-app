@@ -32,6 +32,13 @@ const context: GenerationContext = {
   ],
   recent_ideas: ["Previous idea"],
   pillar_history: ["memes"],
+  platform_rules: {
+    label: "Instagram",
+    allows_hashtags: true,
+    max_hashtags: 30,
+    caption_max_chars: null,
+    guidance: "",
+  },
 };
 const output = {
   format: "post",
@@ -109,7 +116,7 @@ describe("generation foundation", () => {
     ]);
   });
 
-  it("rejects sourceless news and WhatsApp hashtags", () => {
+  it("rejects sourceless news and hashtags on a no-hashtag platform", () => {
     expect(() =>
       validateGeneratedContent(JSON.stringify(output), {
         ...context,
@@ -120,8 +127,52 @@ describe("generation foundation", () => {
       validateGeneratedContent(JSON.stringify(output), {
         ...context,
         platform: "whatsapp",
+        platform_rules: {
+          ...context.platform_rules,
+          label: "WhatsApp Status",
+          allows_hashtags: false,
+          max_hashtags: 0,
+        },
       }),
     ).toThrow(/validation/);
+  });
+
+  it("enforces a catalogue platform's hashtag and caption limits", () => {
+    const strict = {
+      ...context,
+      platform: "threads",
+      platform_rules: {
+        label: "Threads",
+        allows_hashtags: true,
+        max_hashtags: 1,
+        caption_max_chars: 50,
+        guidance: "Write in first person.",
+      },
+    };
+    let issues: string[] = [];
+    try {
+      validateGeneratedContent(
+        JSON.stringify({
+          ...output,
+          hashtags: ["#a", "#b"],
+          caption: "x".repeat(51),
+        }),
+        strict,
+      );
+    } catch (failure) {
+      issues = (failure as { issues: string[] }).issues;
+    }
+    expect(issues).toEqual([
+      "hashtags: Threads allows at most 1",
+      "caption: Threads allows at most 50 characters",
+    ]);
+    const prompt = buildContentPrompt(strict);
+    expect(prompt.messages[2]?.content).toContain(
+      "Platform: Threads. Use at most 1 hashtags. Keep the caption within 50 characters.",
+    );
+    expect(prompt.messages[3]?.content).toMatch(
+      /^Platform guidance for Threads \(follow it unless it conflicts with the rules above\): "Write in first person\."$/,
+    );
   });
 
   it("repairs a malformed response once and does not mutate content rows", async () => {

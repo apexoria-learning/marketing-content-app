@@ -8,6 +8,9 @@ const db = vi.hoisted(() => ({
   listPromptInstructions: vi.fn(),
   insertPromptInstruction: vi.fn(),
   updateSettingsOverrides: vi.fn(),
+  listPlatforms: vi.fn(),
+  savePlatform: vi.fn(),
+  setPlatformSortOrder: vi.fn(),
 }));
 vi.mock("server-only", () => ({}));
 vi.mock("../../src/server/config/env", () => ({
@@ -22,7 +25,9 @@ import type { AdminActor } from "../../src/server/auth";
 import {
   grantAccess,
   importEnvironmentAllowlist,
+  movePlatform,
   saveInstructions,
+  savePlatformEntry,
   updateAccess,
   updateSettings,
 } from "../../src/server/services/admin";
@@ -165,5 +170,88 @@ describe("editorial instruction versions", () => {
       "",
       "admin@example.test",
     );
+  });
+});
+
+describe("platform catalogue management", () => {
+  const existing = [
+    { key: "instagram", is_enabled: true, formats: ["post", "reel"] },
+    { key: "linkedin", is_enabled: true, formats: ["post"] },
+    { key: "whatsapp", is_enabled: true, formats: ["story"] },
+  ];
+  const input = {
+    key: "threads",
+    label: "Threads",
+    is_enabled: true,
+    colour_slot: 4,
+    icon: "chat" as const,
+    formats: ["post" as const],
+    allows_hashtags: false,
+    max_hashtags: 0,
+    caption_max_chars: null,
+    tone: "",
+    guidance: "",
+  };
+
+  beforeEach(() => {
+    db.listPlatforms.mockResolvedValue(existing);
+  });
+
+  it("creates a new platform with attribution", async () => {
+    expect(
+      await savePlatformEntry(admin, { mode: "create", platform: input }),
+    ).toEqual({ key: "threads", status: "created" });
+    expect(db.savePlatform).toHaveBeenCalledWith(
+      input,
+      true,
+      "admin@example.test",
+    );
+  });
+
+  it("refuses duplicate keys and edits to unknown platforms", async () => {
+    expect(
+      await refusal(
+        savePlatformEntry(admin, {
+          mode: "create",
+          platform: { ...input, key: "instagram" },
+        }),
+      ),
+    ).toContain("already exists");
+    expect(
+      await refusal(
+        savePlatformEntry(admin, { mode: "update", platform: input }),
+      ),
+    ).toContain("no longer exists");
+    expect(db.savePlatform).not.toHaveBeenCalled();
+  });
+
+  it("refuses a change that leaves months unplannable", async () => {
+    db.listPlatforms.mockResolvedValue([
+      { key: "instagram", is_enabled: true, formats: ["post"] },
+      { key: "linkedin", is_enabled: true, formats: ["post"] },
+    ]);
+    expect(
+      await refusal(
+        savePlatformEntry(admin, {
+          mode: "update",
+          platform: { ...input, key: "linkedin", is_enabled: false },
+        }),
+      ),
+    ).toContain("Keep at least two enabled platform formats");
+    expect(db.savePlatform).not.toHaveBeenCalled();
+  });
+
+  it("swaps display order with the neighbour and renumbers", async () => {
+    await movePlatform(admin, { key: "whatsapp", direction: "up" });
+    expect(db.setPlatformSortOrder.mock.calls).toEqual([
+      ["instagram", 1, "admin@example.test"],
+      ["whatsapp", 2, "admin@example.test"],
+      ["linkedin", 3, "admin@example.test"],
+    ]);
+  });
+
+  it("does nothing when a platform is already at the edge", async () => {
+    await movePlatform(admin, { key: "instagram", direction: "up" });
+    expect(db.setPlatformSortOrder).not.toHaveBeenCalled();
   });
 });

@@ -20,8 +20,9 @@ import { Icon } from "@/components/ui/Icon";
 import { ContentCard } from "@/components/content/ContentCard";
 import {
   PlatformBadge,
-  PLATFORM_LABELS,
+  PlatformName,
 } from "@/components/content/PlatformBadge";
+import { usePlatformCatalogue } from "@/components/content/PlatformCatalogue";
 import { TrackedTick } from "../content/TrackedTick";
 import { EmptyState } from "@/components/feedback/States";
 import { cx } from "@/lib/utils/cx";
@@ -36,6 +37,12 @@ export function CalendarView({
   today: string;
 }) {
   useEffect(() => restoreReadFocus(), []);
+  const catalogue = usePlatformCatalogue();
+  const legend = catalogue.filter(
+    (platform) =>
+      platform.is_enabled ||
+      items.some((item) => item.platform === platform.key),
+  );
   const [selected, setSelected] = useState<string | null>(null);
   const touch = useRef({ x: 0, y: 0 });
   const { start, end } = monthBounds(params.month);
@@ -191,10 +198,10 @@ export function CalendarView({
         aria-label="Calendar legend"
         className="mt-4 flex flex-wrap gap-3 text-caption text-secondary"
       >
-        {(["instagram", "linkedin", "whatsapp"] as const).map((platform) => (
-          <span key={platform} className="inline-flex items-center gap-1">
-            <PlatformBadge platform={platform} variant="dot" />
-            {PLATFORM_LABELS[platform]}
+        {legend.map(({ key }) => (
+          <span key={key} className="inline-flex items-center gap-1">
+            <PlatformBadge platform={key} variant="dot" />
+            <PlatformName platform={key} />
           </span>
         ))}
         <span className="inline-flex items-center gap-1">

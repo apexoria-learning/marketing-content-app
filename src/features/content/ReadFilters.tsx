@@ -1,12 +1,11 @@
 import Link from "next/link";
 import {
-  PlatformSchema,
   PillarSchema,
   FormatSchema,
   StatusSchema,
 } from "@/lib/schemas/content";
 import type { ReadParams } from "@/lib/schemas/read-params";
-import { PLATFORM_LABELS } from "@/components/content/PlatformBadge";
+import type { PlatformDisplay } from "@/lib/schemas/platforms";
 import { PILLAR_LABELS } from "@/components/content/PillarChip";
 import { FORMAT_LABELS } from "@/components/content/FormatChip";
 import { Button } from "@/components/ui/Button";
@@ -14,16 +13,21 @@ import { Button } from "@/components/ui/Button";
 export function ReadFilters({
   path,
   params,
+  platforms,
 }: {
   path: "/calendar" | "/create" | "/archive";
   params: ReadParams;
+  /** Catalogue platforms, including retired ones that still have content. */
+  platforms: readonly Pick<PlatformDisplay, "key" | "label">[];
 }) {
   const selects = [
     {
       name: "platform",
       label: "Platform",
-      values: PlatformSchema.options,
-      labels: PLATFORM_LABELS,
+      values: platforms.map((platform) => platform.key),
+      labels: Object.fromEntries(
+        platforms.map((platform) => [platform.key, platform.label]),
+      ),
     },
     ...(path === "/create"
       ? []

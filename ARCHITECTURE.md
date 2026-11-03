@@ -179,7 +179,8 @@ Four boxes. One deployable. No internal network to secure.
 | `AppShell`, `BottomNav`, `PwaControls` | Per-tab scroll restoration, route motion, long-background resume, navigation state, install/update/connectivity APIs and acknowledged cache purge before sign-out |
 | `CalendarView`, `ScopeControl` | Day-sheet state, month swipe/chevrons, and URL-based segment selection |
 | `TrackedTick`, `ItemActions`, `usePosting` | Optimistic status changes, shared Today tick/button/ring state, reversible tracking and note/skip sheet submission |
-| `GrantAccessForm`, `UserAccessRow`, `ImportAllowlistControl`, `InstructionsEditor`, `PlanningFiltersForm`, `RuntimeSettingsForm`, `useAdminAction` | Admin panel form state, confirmation sheets and action feedback (`features/admin`, `US-17`); data stays server-rendered |
+| `GrantAccessForm`, `UserAccessRow`, `ImportAllowlistControl`, `InstructionsEditor`, `PlanningFiltersForm`, `RuntimeSettingsForm`, `PlatformManager`, `PlatformForm`, `useAdminAction` | Admin panel form state, confirmation sheets and action feedback (`features/admin`, `US-17`, `US-18`); data stays server-rendered |
+| `PlatformCatalogueProvider`, `PlatformBadge`, `PlatformName` | The `(app)` layout loads the platform catalogue's display fields once per request and provides them by context, so badges and labels in both server- and client-rendered trees never hard-code platforms |
 
 Everything else — page shells, `ContentCard` content, `SlideList`, `ScriptList`, `BriefSection`, `CalendarGrid`, `QueueRow`, `TipCard`, archive lists — renders on the server.
 
@@ -341,6 +342,14 @@ coverage of the remaining nine; retain all-ten coverage when sources exist.
 See API.md §5.2. Month persistence uses the invoker/RLS-constrained
 `commit_month_plan` transaction, not sequential parent/child writes.
 
+The platform/format matrix is **catalogue data**, not code (`DATABASE.md`
+§5.12–5.13). Planning services load the enabled platforms with their formats
+(`server/services/planning-scope.ts`), pass them to the prompt and to the
+validator as `PlanningFilters`, and fail closed with guidance when fewer than
+two enabled platform/format pairs exist. A slot on a disabled or unknown
+platform, or with a format the platform does not support, is a violation;
+the database trigger re-checks the same rules on insert.
+
 ### 4.5 The daily cron
 
 One job, because each Hobby cron fires at most once per day (§1.2). Splitting into several jobs would buy nothing — they would all still run once daily, while multiplying the authentication surface and the failure modes. It runs four stages in dependency order, each independently failure-isolated:
@@ -404,7 +413,7 @@ Variable-shaped payloads (carousel slides vs. reel scripts vs. poll options) are
 | `id` | `uuid` PK | |
 | `plan_id` | `uuid` FK → `content_plans` | `ON DELETE SET NULL` — plans are disposable, items are not |
 | `scheduled_date` | `date` | Indexed |
-| `platform` | `text` | `CHECK IN ('instagram','linkedin','whatsapp')` |
+| `platform` | `text` | FK → admin-managed `platforms(key)`; format/hashtag rules from the catalogue (`DATABASE.md` §5.12–5.13) |
 | `format` | `text` | `CHECK IN ('carousel','reel','post','story','meme','poll')` |
 | `pillar` | `text` | `CHECK` against the ten pillars (`PRD §6.1`) |
 | `title`, `hook`, `caption`, `cta` | `text` | |
@@ -533,6 +542,7 @@ Everything else is a Server Action. There is no public REST API, no API versioni
 | `grantUserAccess`, `updateUserAccess`, `importAllowlist` | email, role, active, AI permission | No | Admin only (`runAdminAction`); owners and self are refused |
 | `updateAppSettings` | runtime overrides, planning filters | No | Admin only; `null` restores the environment value |
 | `saveEditorialInstructions` | scope, text ≤ 2,000 | No | Admin only; appends a version |
+| `savePlatform`, `reorderPlatform` | catalogue platform fields / key + direction | No | Admin only; atomic `save_platform`; keeps ≥ 2 enabled platform/format pairs |
 
 **Uniform contract.** Every action returns a discriminated result — success with typed data, or failure with a stable error code and a user-safe message. Actions never throw across the client boundary, because thrown errors in production are reduced to an opaque digest and the UI cannot render the specific recovery guidance `DESIGN.md §9.3` requires.
 
@@ -589,13 +599,14 @@ Nothing outside `server/ai/` knows which model is in use, what a prompt looks li
 
 ### 9.2 Prompt composition
 
-Five layers, assembled in a fixed order so that caching and reasoning both behave predictably:
+Six layers, assembled in a fixed order so that caching and reasoning both behave predictably:
 
 | Layer | Contents | Volatility |
 |---|---|---|
 | **System** | Role, brand profile, platform tone rules, do/don't lists, hard constraints | Changes when the brand profile changes |
 | **Context** | Recent `news_items` (News pillar only), pillar usage history, last 60 days of posted ideas | Changes daily |
-| **Task** | The specific instruction and the exact output schema; enabled platforms/pillars when an admin has filtered them | Fixed per generator |
+| **Task** | The specific instruction and the exact output schema; enabled platforms with their formats and enabled pillars for planning; the item's platform rules (label, hashtag limit, caption limit) from the catalogue for content | Fixed per generator |
+| **Platform guidance** | The platform's admin-written guidance (≤ 1,000 chars), sent as its own message explicitly subordinate to the rules above | Per catalogue edit |
 | **Editorial instructions** | Admin-authored house style per scope (`content`, `planning`, `daily_tip`; `DATABASE.md` §5.11), ≤ 2,000 chars, sent as its own message explicitly subordinate to the factual, privacy, platform and schema rules | Per saved version |
 | **Steer** | Optional user instruction from the regeneration sheet | Per request |
 
@@ -981,6 +992,7 @@ Mapping directly to `PRD §17`:
 - **Rollback:** Vercel instant rollback for application code. Data is never destructively migrated in v1, so a code rollback is always safe.
 - **Adding a user:** grant access in `/admin/users` (role and AI permission included). If the Google consent screen is in testing mode, also add the account as a Cloud Console test user. No deployment required.
 - **Changing feed sources, filters, prompts or tuning limits:** `/admin/filters`, `/admin/prompts` and `/admin/settings`; changes apply to the next request. Environment variables remain the defaults.
+- **Adding or retiring a platform:** `/admin/platforms`. No migration or deployment; a new custom glyph is the only part that needs code.
 
 ---
 

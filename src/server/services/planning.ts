@@ -14,7 +14,7 @@ export async function planMonth(
     month: string;
     today: string;
     horizonMonths: number;
-    filters?: PlanningFilters;
+    filters: PlanningFilters;
   },
   dependencies: {
     exists: (month: string) => Promise<boolean>;

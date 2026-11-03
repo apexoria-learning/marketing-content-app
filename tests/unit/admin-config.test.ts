@@ -59,14 +59,11 @@ describe("admin input contracts", () => {
     ).toBe(true);
   });
 
-  it("keeps planning feasible: one platform and three non-news pillars", () => {
+  it("keeps planning feasible: three non-news pillars", () => {
+    // Platforms moved to the catalogue (0016); the old override is rejected.
     expect(
-      AppSettingsUpdateSchema.safeParse({ enabled_platforms: [] }).success,
-    ).toBe(false);
-    expect(
-      AppSettingsUpdateSchema.safeParse({
-        enabled_platforms: ["linkedin", "linkedin"],
-      }).success,
+      AppSettingsUpdateSchema.safeParse({ enabled_platforms: ["linkedin"] })
+        .success,
     ).toBe(false);
     expect(
       AppSettingsUpdateSchema.safeParse({
@@ -162,7 +159,6 @@ describe("runtime configuration", () => {
     ai_model: null,
     ai_base_url: null,
     news_feed_urls: null,
-    enabled_platforms: null,
     enabled_pillars: null,
     updated_at: "2026-11-01T00:00:00Z",
     updated_by: null,
@@ -179,7 +175,6 @@ describe("runtime configuration", () => {
         "https://a.example.test/feed",
         "https://b.example.test/feed",
       ],
-      enabledPlatforms: ["instagram", "linkedin", "whatsapp"],
     });
     expect(runtimeDefaults(env).enabledPillars).toHaveLength(10);
   });
@@ -193,7 +188,6 @@ describe("runtime configuration", () => {
         regen_daily_limit: 5,
         ai_model: "@admin/model",
         news_feed_urls: [],
-        enabled_platforms: ["whatsapp", "instagram"],
         enabled_pillars: ["memes", "salesforce_tips", "career_guidance"],
       },
     );
@@ -204,7 +198,6 @@ describe("runtime configuration", () => {
       aiModel: "@admin/model",
       aiBaseUrl: "https://env.example.test/v1",
       newsFeedUrls: [],
-      enabledPlatforms: ["instagram", "whatsapp"],
       enabledPillars: ["salesforce_tips", "memes", "career_guidance"],
     });
   });

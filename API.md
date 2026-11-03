@@ -263,7 +263,7 @@ reported on sign-in without claiming the remote session was revoked.
 | Strict objects | Unknown keys are **rejected**, not stripped — an unexpected field signals a client/server mismatch worth surfacing in development |
 | Explicit field picking | Validated objects are never spread into a database write |
 | Trim and bound | All free text is trimmed; every string field has a maximum length |
-| Enum coercion | `platform`, `format`, `pillar`, `status` validate against the enums in `DATABASE.md` §4 |
+| Enum coercion | `format`, `pillar`, `status` validate against the enums in `DATABASE.md` §4; `platform` validates as a catalogue key and the database foreign key/trigger decide whether it exists and is usable |
 | Date validation | Dates parse as calendar dates in IST, then convert to UTC for storage |
 | Null vs absent | Absent means "do not change"; explicit `null` means "clear" |
 
@@ -308,13 +308,13 @@ Actions call `revalidatePath` for every affected route so Server Components re-r
 | `planMonth`, `generateForDay` | `/`, `/calendar`, `/create` |
 | `updateBrandProfile` | `/settings` |
 | `grantUserAccess`, `updateUserAccess`, `importAllowlist`, `saveEditorialInstructions` | `/admin` (layout) |
-| `updateAppSettings` | `/` (layout — every route) |
+| `updateAppSettings`, `savePlatform`, `reorderPlatform` | `/` (layout — every route) |
 
 ---
 
 ## 5. Server Actions — catalogue
 
-Nine member actions — eight carried over from `ARCHITECTURE.md` §7.2, plus `addNote`, with one signature refinement — both noted inline below. Five admin actions are catalogued in §5.5.
+Nine member actions — eight carried over from `ARCHITECTURE.md` §7.2, plus `addNote`, with one signature refinement — both noted inline below. Seven admin actions are catalogued in §5.5.
 
 ### 5.1 Content status
 
@@ -459,6 +459,7 @@ Writes a cookie only. No database access, no AI, no rate limit.
 | `grantUserAccess` / `updateUserAccess` / `importAllowlist` | ✅ | ✅ + **admin** | — | — | app_users |
 | `updateAppSettings` | ✅ | ✅ + **admin** | — | — | app_settings |
 | `saveEditorialInstructions` | ✅ | ✅ + **admin** | — | — | prompt_instructions |
+| `savePlatform` / `reorderPlatform` | ✅ | ✅ + **admin** | — | — | platforms, platform_formats |
 
 ### 5.5 Admin (`US-17`)
 
@@ -471,6 +472,8 @@ Defined in `server/actions/admin.ts`, all via `runAdminAction` (§4.2). Each del
 | `importAllowlist` | `{}` | `{ imported }` | Inserts missing `ALLOWED_EMAILS` entries (owners excluded) as members; existing rows untouched |
 | `updateAppSettings` | Any subset of the `app_settings` overrides; `null` restores the env default | `{ updated_at }` | Revalidates every route (generation controls change) |
 | `saveEditorialInstructions` | `scope`, `instructions` (≤ 2,000; empty clears) | `{ version, changed }` | Appends a version only when the text differs |
+| `savePlatform` | `mode` (`create`\|`update`), `platform` { `key` (permanent), `label`, `is_enabled`, `colour_slot` 1–8, `icon` (from the icon set), `formats` ≥ 1, `allows_hashtags`, `max_hashtags` 0–30, `caption_max_chars` 50–10000 or null, `tone` ≤ 2,000, `guidance` ≤ 1,000 } | `{ key, status }` | Atomic via `save_platform`. Duplicate key, unknown platform, or a result with fewer than two enabled platform/format pairs → `VALIDATION`. Revalidates every route |
+| `reorderPlatform` | `key`, `direction` (`up`\|`down`) | `{ key }` | Swaps with the neighbour and renumbers `sort_order`; no-op at the edge |
 
 Guards (`VALIDATION`, user-safe message, nothing changed): `ADMIN_EMAILS` owners cannot be changed from the panel, and an admin cannot change their own access. Revocation needs no session purge: every page, action and middleware request re-reads the access row.
 
@@ -485,7 +488,7 @@ Reads happen in Server Components (§1.2). The contract is the URL.
 | Route | Param | Values | Default |
 |---|---|---|---|
 | `/calendar` | `month` | `YYYY-MM` | current month (IST) |
-| | `platform` | `instagram` \| `linkedin` \| `whatsapp` | all |
+| | `platform` | a catalogue key (`^[a-z][a-z0-9_]{1,29}$`, `DATABASE.md` §5.12) | all |
 | | `pillar` | one of ten (`DATABASE.md` §4) | all |
 | | `status` | `idea` \| `ready` \| `posted` \| `skipped` | all |
 | `/create` | `format` | `carousel` \| `reel` \| `post` \| `story` \| `meme` \| `poll` | all |

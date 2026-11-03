@@ -10,6 +10,7 @@ import { todayInIst } from "@/lib/utils/dates";
 import { getMonthItems, getMonthPlan } from "@/server/db/queries";
 import { GenerationControl } from "@/features/content/GenerationControl";
 import { getViewerCapabilities } from "@/server/services/viewer-capabilities";
+import { getPlatformDisplays } from "@/server/services/platform-display";
 import { isMonthWithinHorizon } from "@/lib/utils/planning-rules";
 
 export const metadata: Metadata = { title: "Calendar" };
@@ -22,15 +23,16 @@ export default async function CalendarPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = parseReadParams(await searchParams);
-  const [items, plan, viewer] = await Promise.all([
+  const [items, plan, viewer, platforms] = await Promise.all([
     getMonthItems(params),
     getMonthPlan(params.month),
     getViewerCapabilities(),
+    getPlatformDisplays(),
   ]);
   return (
     <>
       <PageHeader title="Calendar" />
-      <ReadFilters path="/calendar" params={params} />
+      <ReadFilters path="/calendar" params={params} platforms={platforms} />
       {plan?.status === "generating" ? (
         <Banner variant="accent" progress>
           Month planning is in progress.

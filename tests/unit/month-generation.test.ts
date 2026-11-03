@@ -16,10 +16,18 @@ vi.mock("../../src/server/db/settings", () => ({
     aiModel: "@test/model",
     aiBaseUrl: "https://gateway.example.test/v1",
     planningHorizonMonths: 2,
-    enabledPlatforms: ["linkedin"],
     enabledPillars: ["memes", "salesforce_tips", "career_guidance"],
   }),
   getActiveInstructions: async () => null,
+}));
+vi.mock("../../src/server/services/planning-scope", () => ({
+  loadPlanningScope: async () => ({
+    filters: {
+      platforms: [{ key: "linkedin", formats: ["post", "poll"] }],
+      pillars: ["memes", "salesforce_tips", "career_guidance"],
+    },
+    anchor: { platform: "linkedin", format: "post" },
+  }),
 }));
 vi.mock("../../src/server/db/client", () => ({
   createUserDatabaseClient: async () => ({
@@ -75,12 +83,12 @@ it("gives whole-month planning a bounded deadline that fits one repair in the wo
   expect(MONTH_PLAN_REQUEST_TIMEOUT_MS * 2).toBeLessThanOrEqual(240000);
 });
 
-it("plans only with the platforms and pillars an admin enabled", async () => {
+it("plans only with the catalogue platforms and pillars an admin enabled", async () => {
   await generateMonth("2026-12");
   expect(mocks.planMonth.mock.calls[0]?.[0]).toMatchObject({
     horizonMonths: 2,
     filters: {
-      platforms: ["linkedin"],
+      platforms: [{ key: "linkedin", formats: ["post", "poll"] }],
       pillars: ["memes", "salesforce_tips", "career_guidance"],
     },
   });

@@ -4,14 +4,8 @@ import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/Button";
 import { Chip } from "@/components/ui/Chip";
 import { Textarea } from "@/components/ui/Input";
-import { PLATFORM_LABELS } from "@/components/content/PlatformBadge";
 import { PILLAR_LABELS } from "@/components/content/PillarChip";
-import {
-  PillarSchema,
-  PlatformSchema,
-  type Pillar,
-  type Platform,
-} from "@/lib/schemas/content";
+import { PillarSchema, type Pillar } from "@/lib/schemas/content";
 import {
   AppSettingsUpdateSchema,
   MIN_TOPIC_PILLARS,
@@ -20,7 +14,6 @@ import { updateAppSettings } from "@/server/actions/admin";
 import { useAdminAction } from "./use-admin-action";
 
 export type PlanningFilterValues = {
-  enabledPlatforms: Platform[];
   enabledPillars: Pillar[];
   newsFeedUrls: string[];
 };
@@ -42,7 +35,6 @@ export function PlanningFiltersForm({
   effective: PlanningFilterValues;
   isOverridden: boolean;
 }) {
-  const [platforms, setPlatforms] = useState(effective.enabledPlatforms);
   const [pillars, setPillars] = useState(effective.enabledPillars);
   const [feeds, setFeeds] = useState(effective.newsFeedUrls.join("\n"));
   const [localErrors, setLocalErrors] = useState<Record<string, string>>({});
@@ -52,9 +44,6 @@ export function PlanningFiltersForm({
     .map((line) => line.trim())
     .filter(Boolean);
   const changes = {
-    ...(sameSet(platforms, effective.enabledPlatforms)
-      ? {}
-      : { enabled_platforms: platforms }),
     ...(sameSet(pillars, effective.enabledPillars)
       ? {}
       : { enabled_pillars: pillars }),
@@ -91,7 +80,6 @@ export function PlanningFiltersForm({
     run(
       () =>
         updateAppSettings({
-          enabled_platforms: null,
           enabled_pillars: null,
           news_feed_urls: null,
         }),
@@ -101,27 +89,6 @@ export function PlanningFiltersForm({
 
   return (
     <form onSubmit={submit} className="space-y-8" noValidate>
-      <fieldset className="space-y-3" disabled={pending}>
-        <legend className="mb-3 text-eyebrow font-semibold tracking-eyebrow text-secondary uppercase">
-          Platforms
-        </legend>
-        <div className="flex flex-wrap gap-2">
-          {PlatformSchema.options.map((platform) => (
-            <Chip
-              key={platform}
-              selected={platforms.includes(platform)}
-              onClick={() => setPlatforms((value) => toggle(value, platform))}
-            >
-              {PLATFORM_LABELS[platform]}
-            </Chip>
-          ))}
-        </div>
-        {errors.enabled_platforms ? (
-          <p role="alert" className="text-caption text-danger">
-            {errors.enabled_platforms}
-          </p>
-        ) : null}
-      </fieldset>
       <fieldset className="space-y-3" disabled={pending}>
         <legend className="mb-3 text-eyebrow font-semibold tracking-eyebrow text-secondary uppercase">
           Content pillars

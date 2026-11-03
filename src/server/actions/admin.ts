@@ -16,19 +16,45 @@ import {
 import {
   grantAccess,
   importEnvironmentAllowlist,
+  movePlatform,
   saveInstructions,
+  savePlatformEntry,
   updateAccess,
   updateSettings,
 } from "../services/admin";
+import {
+  MovePlatformInputSchema,
+  SavePlatformInputSchema,
+  type MovePlatformInput,
+  type SavePlatformInput,
+} from "../../lib/schemas/platforms";
 import { runAdminAction } from "./run-action";
 
 function revalidateAdmin(): void {
   revalidatePath("/admin", "layout");
 }
 
-// Runtime settings change generation controls on every screen.
+// Runtime settings and the platform catalogue change every screen.
 function revalidateEverything(): void {
   revalidatePath("/", "layout");
+}
+
+export async function savePlatform(input: SavePlatformInput) {
+  return runAdminAction(
+    input,
+    SavePlatformInputSchema,
+    (value, admin) => savePlatformEntry(admin, value),
+    revalidateEverything,
+  );
+}
+
+export async function reorderPlatform(input: MovePlatformInput) {
+  return runAdminAction(
+    input,
+    MovePlatformInputSchema,
+    (value, admin) => movePlatform(admin, value),
+    revalidateEverything,
+  );
 }
 
 export async function grantUserAccess(input: GrantAccessInput) {

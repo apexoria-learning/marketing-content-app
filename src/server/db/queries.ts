@@ -5,7 +5,6 @@ import {
   ContentItemSchema,
   DailyTipSchema,
   MonthSkeletonSchema,
-  PlatformSchema,
   PillarSchema,
   type Activity,
 } from "../../lib/schemas/content";
@@ -199,7 +198,11 @@ export async function getActivity(itemIds: string[]) {
   }));
 }
 
-export async function getArchive(params: ReadParams, rawCursor: unknown) {
+export async function getArchive(
+  params: ReadParams,
+  rawCursor: unknown,
+  platformKeys: readonly string[],
+) {
   const client = await createUserDatabaseClient();
   function filteredQuery(countOnly = false) {
     let query = client
@@ -230,7 +233,7 @@ export async function getArchive(params: ReadParams, rawCursor: unknown) {
   const [total, platforms, pillars] = await Promise.all([
     count(filteredQuery(true)),
     Promise.all(
-      PlatformSchema.options.map(
+      platformKeys.map(
         async (platform) =>
           [
             platform,

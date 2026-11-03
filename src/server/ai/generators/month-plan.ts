@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { AiRequest } from "../client";
 import { GenerationContextSchema, type GenerationContext } from "../schemas";
 import { PlanOutputSchema } from "../../../lib/schemas/planning";
-import { PillarSchema, PlatformSchema } from "../../../lib/schemas/content";
+import { PillarSchema, type Pillar } from "../../../lib/schemas/content";
 import {
   isMonthWithinHorizon,
   validatePlanningRules,
@@ -18,12 +18,12 @@ export const PLAN_PROMPT_VERSION = "month-plan-v1";
 // The initial request plus its one repair must fit the 240s work budget.
 export const MONTH_PLAN_REQUEST_TIMEOUT_MS = 120000;
 
-function pillarRule(hasNews: boolean, filters?: PlanningFilters) {
-  if (!filters)
+function pillarRule(hasNews: boolean, pillars: readonly Pillar[]) {
+  if (PillarSchema.options.every((pillar) => pillars.includes(pillar)))
     return hasNews
       ? "Each of the ten pillars must appear at least twice. No pillar may repeat on adjacent dates."
       : "Omit salesforce_news explicitly. Each of the other nine pillars must appear at least twice. No pillar may repeat on adjacent dates.";
-  const required = filters.pillars.filter(
+  const required = pillars.filter(
     (pillar) => hasNews || pillar !== "salesforce_news",
   );
   return `Use only these pillars, each at least twice: ${JSON.stringify(required)}. Never use: ${JSON.stringify(
@@ -37,7 +37,7 @@ export async function generateMonthPlan(
     today: string;
     horizonMonths: number;
     context: GenerationContext;
-    filters?: PlanningFilters;
+    filters: PlanningFilters;
   },
   generate: (
     request: AiRequest,
@@ -74,15 +74,16 @@ export async function generateMonthPlan(
         content: [
           "Return one or two items for EVERY date in the requested month, slots starting at 1.",
           "Each idea is ONE line of at most 200 characters naming the topic and angle only. Do not write hooks, slide-by-slide copy, captions, scripts, hashtags or production notes; those are generated later for each item.",
-          pillarRule(context.news.length > 0, input.filters),
+          pillarRule(context.news.length > 0, input.filters.pillars),
           "Do not repeat a format on adjacent dates for the same platform.",
-          "Instagram supports all six formats; LinkedIn supports carousel/post/poll; WhatsApp supports story/meme.",
-          ...(input.filters &&
-          input.filters.platforms.length < PlatformSchema.options.length
-            ? [
-                `Use only these platforms: ${JSON.stringify(input.filters.platforms)}.`,
-              ]
-            : []),
+          `Use only these platforms, each with only its listed formats: ${JSON.stringify(
+            Object.fromEntries(
+              input.filters.platforms.map((platform) => [
+                platform.key,
+                platform.formats,
+              ]),
+            ),
+          )}.`,
           "Avoid recent posted ideas: case/punctuation-insensitive word-set Jaccard similarity >=0.70 is rejected.",
           context.news.length
             ? "Use supplied news only for news ideas."
@@ -106,8 +107,8 @@ export async function generateMonthPlan(
       input.month,
       decoded,
       context.recent_ideas,
-      context.news.length > 0,
       input.filters,
+      context.news.length > 0,
     );
     if (!result.violations.length) {
       return {

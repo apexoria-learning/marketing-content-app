@@ -1,9 +1,4 @@
-import {
-  PillarSchema,
-  PlatformSchema,
-  type Pillar,
-  type Platform,
-} from "../../lib/schemas/content";
+import { PillarSchema, type Pillar } from "../../lib/schemas/content";
 import type { AppSettingsRow } from "../../lib/schemas/admin";
 import type { Env } from "./env-schema";
 
@@ -16,7 +11,6 @@ export type RuntimeConfig = {
   aiModel: string;
   aiBaseUrl: string;
   newsFeedUrls: string[];
-  enabledPlatforms: Platform[];
   enabledPillars: Pillar[];
 };
 
@@ -44,7 +38,6 @@ export function runtimeDefaults(env: RuntimeEnv): RuntimeConfig {
     newsFeedUrls: env.NEWS_FEED_URLS.split(",")
       .map((url) => url.trim())
       .filter(Boolean),
-    enabledPlatforms: [...PlatformSchema.options],
     enabledPillars: [...PillarSchema.options],
   };
 }
@@ -60,7 +53,6 @@ export function resolveRuntimeConfig(
 ): RuntimeConfig {
   const defaults = runtimeDefaults(env);
   if (!overrides) return defaults;
-  const platforms = overrides.enabled_platforms;
   const pillars = overrides.enabled_pillars;
   return {
     aiGenerationEnabled:
@@ -74,9 +66,7 @@ export function resolveRuntimeConfig(
     aiModel: overrides.ai_model ?? defaults.aiModel,
     aiBaseUrl: overrides.ai_base_url ?? defaults.aiBaseUrl,
     newsFeedUrls: overrides.news_feed_urls ?? defaults.newsFeedUrls,
-    enabledPlatforms: platforms
-      ? PlatformSchema.options.filter((value) => platforms.includes(value))
-      : defaults.enabledPlatforms,
+
     enabledPillars: pillars
       ? PillarSchema.options.filter((value) => pillars.includes(value))
       : defaults.enabledPillars,

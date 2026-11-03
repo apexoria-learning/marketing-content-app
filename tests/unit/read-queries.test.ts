@@ -190,7 +190,9 @@ describe("archive query contracts", () => {
         return builder;
       },
     });
-    await getArchive(parseReadParams({ scope: "all" }), "bad");
+    // One head-only count per catalogue platform key, as the page passes them.
+    const keys = ["instagram", "linkedin", "whatsapp"];
+    await getArchive(parseReadParams({ scope: "all" }), "bad", keys);
     expect(calls).toHaveLength(15);
     const page = calls.at(-1);
     expect(page).toContainEqual({ name: "select", args: ["*", {}] });
@@ -211,6 +213,7 @@ describe("archive query contracts", () => {
     await getArchive(
       parseReadParams({ scope: "all" }),
       Buffer.from(JSON.stringify(cursor)).toString("base64url"),
+      keys,
     );
     expect(calls.at(-1)).toContainEqual({
       name: "or",

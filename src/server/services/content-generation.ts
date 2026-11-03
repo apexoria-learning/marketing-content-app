@@ -19,6 +19,7 @@ import type { ActionResult } from "../../lib/schemas/action-result";
 import { createRecordedAiClient } from "./recorded-ai";
 import { loadGenerationContext } from "./generation-context";
 import { gatewayConfiguration } from "./gateway-configuration";
+import { loadPlanningScope } from "./planning-scope";
 import { generateItem } from "./item-generation";
 import { generateDayPlan } from "../ai/generators/day-plan";
 import { ActionFailure } from "./service-error";
@@ -140,14 +141,10 @@ export async function generateDay(date: string, count: number) {
   if (error) throw error;
   if (z.number().int().nonnegative().parse(existing) + count > 2)
     throw new ActionFailure("VALIDATION", "This day has no remaining slots.");
+  const { filters, anchor } = await loadPlanningScope(config);
   const context = await loadGenerationContext(
     client,
-    {
-      platform: "instagram",
-      format: "post",
-      pillar: "salesforce_tips",
-      idea: `Plan content for ${date}`,
-    },
+    { ...anchor, pillar: "salesforce_tips", idea: `Plan content for ${date}` },
     today,
     undefined,
     (await getActiveInstructions(client, "planning")) ?? undefined,
@@ -177,10 +174,7 @@ export async function generateDay(date: string, count: number) {
       count,
       context,
       adjacentSlots,
-      filters: {
-        platforms: config.enabledPlatforms,
-        pillars: config.enabledPillars,
-      },
+      filters,
     },
     generate,
   );

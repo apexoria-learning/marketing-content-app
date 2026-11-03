@@ -3,18 +3,14 @@ import { PageHeader } from "@/components/shell/PageHeader";
 import { EmptyState } from "@/components/feedback/States";
 import { ContentCard } from "@/components/content/ContentCard";
 import { ActivityList } from "@/components/content/ActivityList";
-import { PLATFORM_LABELS } from "@/components/content/PlatformBadge";
 import { PILLAR_LABELS } from "@/components/content/PillarChip";
-import {
-  PlatformSchema,
-  PillarSchema,
-  ContentPreviewSchema,
-} from "@/lib/schemas/content";
+import { PillarSchema, ContentPreviewSchema } from "@/lib/schemas/content";
 import { ReadFilters } from "@/features/content/ReadFilters";
 import { ScopeControl } from "@/features/content/ScopeControl";
 import { TrackedTick } from "@/features/content/TrackedTick";
 import { parseReadParams } from "@/lib/schemas/read-params";
 import { getActivity, getArchive } from "@/server/db/queries";
+import { getPlatformDisplays } from "@/server/services/platform-display";
 
 export const metadata: Metadata = { title: "Archive" };
 
@@ -25,7 +21,12 @@ export default async function ArchivePage({
 }) {
   const raw = await searchParams;
   const params = parseReadParams(raw);
-  const { items, summary, nextCursor } = await getArchive(params, raw.cursor);
+  const platforms = await getPlatformDisplays();
+  const { items, summary, nextCursor } = await getArchive(
+    params,
+    raw.cursor,
+    platforms.map((platform) => platform.key),
+  );
   const activity = await getActivity(items.map((item) => item.id));
   const next = new URLSearchParams({ scope: params.scope });
   if (params.platform) next.set("platform", params.platform);
@@ -36,16 +37,16 @@ export default async function ArchivePage({
     <>
       <PageHeader title="Archive" />
       <ScopeControl params={params} mode="archive" />
-      <ReadFilters path="/archive" params={params} />
+      <ReadFilters path="/archive" params={params} platforms={platforms} />
       <section aria-label="Archive summary" className="my-8 space-y-3">
         <h2 className="font-display text-h2 font-semibold">
           {summary.total} posted in this scope
         </h2>
         <dl className="flex flex-wrap gap-3 text-sm text-secondary">
-          {PlatformSchema.options.map((platform) => (
-            <div key={platform}>
-              <dt>{PLATFORM_LABELS[platform]}</dt>
-              <dd>{summary.platforms[platform]}</dd>
+          {platforms.map((platform) => (
+            <div key={platform.key}>
+              <dt>{platform.label}</dt>
+              <dd>{summary.platforms[platform.key] ?? 0}</dd>
             </div>
           ))}
         </dl>

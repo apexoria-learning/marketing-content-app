@@ -96,15 +96,20 @@ Apexoria is a career-outcome brand: "apex" = reaching the top. Gold communicates
 | `accent-muted` | `rgba(255,178,36,0.14)` | Accent-tinted backgrounds, selected chips |
 | `accent-on` | `#1A1203` | Text/icon on top of a solid accent fill |
 
-**Platform encoding** — each pairs with a mandatory icon.
+**Platform encoding** — each pairs with a mandatory icon. Platforms are admin-managed catalogue rows (`DATABASE.md` §5.12); each picks one of eight contrast-tested **colour slots** and one glyph from the icon set. Admins cannot enter arbitrary colours or upload logos.
 
-| Token | Value | Platform | Icon |
+| Token | Dark value | Slot name | Seeded for |
 |---|---|---|---|
-| `platform-instagram` | `#FF4D8D` | Instagram | camera glyph |
-| `platform-linkedin` | `#3B9BFF` | LinkedIn | "in" glyph |
-| `platform-whatsapp` | `#2BD97C` | WhatsApp Status | chat-bubble glyph |
+| `platform-1` | `#FF4D8D` | Pink | Instagram (camera glyph) |
+| `platform-2` | `#3B9BFF` | Blue | LinkedIn ("in" glyph) |
+| `platform-3` | `#2BD97C` | Green | WhatsApp Status (chat-bubble glyph) |
+| `platform-4` | `#FF9640` | Orange | — |
+| `platform-5` | `#B28CFF` | Violet | — |
+| `platform-6` | `#2FD0E0` | Cyan | — |
+| `platform-7` | `#A6E33B` | Lime | — |
+| `platform-8` | `#9AA8BD` | Slate | — |
 
-Each platform colour also has a `-muted` variant at 14% opacity for chip backgrounds, and a `-dim` variant at 55% lightness for use on posted (de-emphasised) items.
+Each slot has a `-muted` variant (14% dark, 12% light) for chip backgrounds and a light-theme value darkened to keep ≥ 3:1 on every surface; `token-contrast.test.ts` checks all eight in both themes. Platform glyphs: `instagram`, `linkedin`, `whatsapp` (custom-drawn marks) plus generic `platform`, `globe`, `video`, `chat`, `briefcase`, `megaphone`. A new custom mark is a code change to the icon set; it is never an uploaded image.
 
 **Semantic**
 
@@ -282,8 +287,8 @@ Drag-to-dismiss, `r-xl` top corners, `e4`, grab handle, max height 85vh, interna
 ### 6.2 Identity and metadata
 
 **PlatformBadge**
-Icon + label. Variants: `dot` (8px coloured dot, calendar only), `compact` (icon only, 20px), `full` (icon + text in a `platform-*-muted` pill).
-Always colour **and** icon **and** — in `full` — text.
+Icon + label. Variants: `dot` (8px coloured dot, calendar only), `compact` (icon only, 20px), `full` (icon + text in a `platform-<slot>-muted` pill).
+Always colour **and** icon **and** — in `full` — text. Label, colour slot and glyph come from the platform catalogue via `PlatformCatalogueProvider`; an unknown key renders its humanised key in neutral `surface-2` with the generic glyph. `PlatformName` renders the label as plain text (queue rows, legends).
 
 **PillarChip**
 `r-pill`, `surface-2`, `border`, `eyebrow` text, no colour coding (ten pillars cannot be colour-coded legibly). Each pillar has a fixed short label: *Tips, News, Meme, Interview, Success, Promo, Career, BTS, Myths, Poll*.
@@ -424,7 +429,7 @@ Admin (from the Today header, admins only; sections as sibling links)
 - Tabs preserve independent scroll positions.
 - Item detail is a pushed route with a back chevron; it returns to the originating tab.
 - Settings pushes from the Today header and dismisses back to it.
-- Admin pushes from the Today header with a back chevron. Its five sections (Overview, Users, Prompts, Filters, Settings) are siblings in a chip-style link row, so depth stays at two.
+- Admin pushes from the Today header with a back chevron. Its six sections (Overview, Users, Platforms, Prompts, Filters, Settings) are siblings in a chip-style link row, so depth stays at two.
 - Maximum depth is two. Nothing in v1 goes three levels deep.
 
 ### 7.2 Transitions
@@ -695,8 +700,9 @@ Admins only (members get the not-found screen). `PageHeader` with back chevron, 
 1. **Overview** — two-column stat tiles (`surface-1`, `r-lg`, `h2` tabular numerals) for people (with access, active 7/30 days, signed in without access) and 30-day AI usage; then usage by person, by day and by type as compact rows. No charts. A neutral banner when AI generation is off. Empty usage uses `EmptyState`.
 2. **Users** — grant form (email `Input`, Member/Admin `SegmentedControl`, AI `Checkbox`, the screen's one `primary` button), an accent banner offering to import `ALLOWED_EMAILS`, then groups: *Signed in without access*, *With access*, *Revoked*. Each row shows name, email, badges and last activity, with a `secondary` **Manage**/**Grant access** button opening a `BottomSheet`. Revoking needs an inline danger confirmation inside the sheet. Owners and the signed-in admin show a note instead of a button.
 3. **Prompts** — scope `SegmentedControl` (Content · Planning · Daily tip), a `Textarea` with a character counter, the active version line, and an immutable history list with **Use this text**. Copy states that built-in rules always apply first.
-4. **Filters** — platform and pillar toggle `Chip`s, a news-feed `Textarea` (one URL per line), **Save filters** and **Reset to defaults**.
-5. **Settings** — AI generation `Checkbox`, limit/planning/provider `Input`s with "Custom value · Use default" helpers. Changing the model or gateway asks for confirmation in a `BottomSheet`. The API key is never shown.
+4. **Filters** — pillar toggle `Chip`s, a news-feed `Textarea` (one URL per line), **Save filters** and **Reset to defaults**. Platforms are managed on their own section.
+5. **Platforms** — a primary **Add platform** button, then the catalogue in display order: a slot-coloured glyph tile, label (· *Retired* when disabled), formats and hashtag/caption rule, up/down `icon` buttons to reorder and a `secondary` **Edit**. Add/Edit open a `BottomSheet` form: name, permanent key (create only, suggested from the name), *Use in new plans* `Checkbox`, colour-slot and glyph `Chip`s, format `Chip`s, hashtag `Checkbox` + maximum, optional caption limit, tone and AI-guidance `Textarea`s. Platforms are retired, never deleted.
+6. **Settings** — AI generation `Checkbox`, limit/planning/provider `Input`s with "Custom value · Use default" helpers. Changing the model or gateway asks for confirmation in a `BottomSheet`. The API key is never shown.
 
 Loading uses the shape-accurate `ScreenLoading surface="Admin"` skeleton; failures use `ErrorState` inside the admin segment so navigation keeps working.
 

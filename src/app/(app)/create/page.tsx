@@ -9,6 +9,7 @@ import { ReadFilters } from "@/features/content/ReadFilters";
 import { ScopeControl } from "@/features/content/ScopeControl";
 import { TrackedTick } from "@/features/content/TrackedTick";
 import { getCreateQueue } from "@/server/db/queries";
+import { getPlatformDisplays } from "@/server/services/platform-display";
 
 export const metadata: Metadata = { title: "Create" };
 
@@ -26,14 +27,17 @@ export default async function CreatePage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = parseReadParams(await searchParams);
-  const items = await getCreateQueue(params);
+  const [items, platforms] = await Promise.all([
+    getCreateQueue(params),
+    getPlatformDisplays(),
+  ]);
   const today = todayInIst();
   const overdue = items.filter((item) => item.scheduled_date < today);
   return (
     <>
       <PageHeader title="Create" />
       <ScopeControl params={params} mode="create" />
-      <ReadFilters path="/create" params={params} />
+      <ReadFilters path="/create" params={params} platforms={platforms} />
       {!items.length ? (
         <EmptyState
           glyph={params.platform || params.format ? "filter" : "layers"}

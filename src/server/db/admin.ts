@@ -16,8 +16,13 @@ import {
   type AuthAccount,
 } from "../../lib/utils/user-directory";
 import { UsageRunSchema, type UsageRun } from "../../lib/utils/usage-summary";
+import type {
+  PlatformInput,
+  PlatformRecord,
+} from "../../lib/schemas/platforms";
 import { env } from "../config/env";
 import type { Database, TablesUpdate } from "./database.types";
+import { loadPlatformCatalogue } from "./platforms";
 
 // Approved, scoped service_role use (ARCHITECTURE.md §6.3): callers are admin
 // services that only run after the server re-verified an admin session. The
@@ -191,7 +196,7 @@ export async function updateSettingsOverrides(
   const client = createAdminServiceRoleClient();
   const update: TablesUpdate<"app_settings"> = { updated_by: actorEmail };
   // Fields are picked explicitly; a validated object is never spread into a
-  // write (API.md §2.4).
+  // write (API.md §2.4). Platform enablement lives in the catalogue (§5.12).
   for (const field of [
     "ai_generation_enabled",
     "regen_daily_limit",
@@ -201,7 +206,6 @@ export async function updateSettingsOverrides(
     "ai_model",
     "ai_base_url",
     "news_feed_urls",
-    "enabled_platforms",
     "enabled_pillars",
   ] as const) {
     const value = changes[field];
@@ -293,4 +297,50 @@ export async function getGlobalAllowanceUsed(windowStart: string) {
     .maybeSingle();
   if (error) throw error;
   return data ? z.number().int().nonnegative().parse(data.count) : 0;
+}
+
+export async function listPlatforms(): Promise<PlatformRecord[]> {
+  return loadPlatformCatalogue(createAdminServiceRoleClient());
+}
+
+/** Writes the platform row and its formats in one transaction (0016). */
+export async function savePlatform(
+  platform: PlatformInput,
+  create: boolean,
+  actorEmail: string,
+): Promise<{ key: string }> {
+  const client = createAdminServiceRoleClient();
+  const { formats, ...fields } = platform;
+  const { data, error } = await client.rpc("save_platform", {
+    p_platform: {
+      key: fields.key,
+      label: fields.label,
+      is_enabled: fields.is_enabled,
+      colour_slot: fields.colour_slot,
+      icon: fields.icon,
+      allows_hashtags: fields.allows_hashtags,
+      max_hashtags: fields.allows_hashtags ? fields.max_hashtags : 0,
+      caption_max_chars: fields.caption_max_chars,
+      tone: fields.tone,
+      guidance: fields.guidance,
+    },
+    p_formats: formats,
+    p_create: create,
+    p_actor: actorEmail,
+  });
+  if (error) throw error;
+  return z.object({ key: z.string() }).parse(data);
+}
+
+export async function setPlatformSortOrder(
+  key: string,
+  sortOrder: number,
+  actorEmail: string,
+): Promise<void> {
+  const client = createAdminServiceRoleClient();
+  const { error } = await client
+    .from("platforms")
+    .update({ sort_order: sortOrder, updated_by: actorEmail })
+    .eq("key", key);
+  if (error) throw error;
 }

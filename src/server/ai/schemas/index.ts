@@ -64,6 +64,16 @@ export const GenerationContextSchema = z
       .max(20),
     recent_ideas: z.array(z.string().max(2000)),
     pillar_history: z.array(PillarSchema).max(120),
+    // Catalogue rules for the slot's platform (DATABASE.md §5.12).
+    platform_rules: z
+      .object({
+        label: z.string().trim().min(1).max(40),
+        allows_hashtags: z.boolean(),
+        max_hashtags: z.number().int().min(0).max(30),
+        caption_max_chars: z.number().int().min(50).max(10000).nullable(),
+        guidance: z.string().trim().max(1000),
+      })
+      .strict(),
     steer: z.string().trim().max(500).optional(),
     // Owner editorial instructions (DATABASE.md §5.11); subordinate to rules.
     instructions: z

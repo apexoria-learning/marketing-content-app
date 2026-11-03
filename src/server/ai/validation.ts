@@ -42,8 +42,21 @@ export function validateGeneratedContent(
   const issues: string[] = [];
   if (content.format !== context.format)
     issues.push("format: must match the requested format");
-  if (context.platform === "whatsapp" && content.hashtags.length)
-    issues.push("hashtags: WhatsApp requires an empty array");
+  const rules = context.platform_rules;
+  const hashtagLimit = rules.allows_hashtags ? rules.max_hashtags : 0;
+  if (content.hashtags.length > hashtagLimit)
+    issues.push(
+      hashtagLimit === 0
+        ? `hashtags: ${rules.label} requires an empty array`
+        : `hashtags: ${rules.label} allows at most ${hashtagLimit}`,
+    );
+  if (
+    rules.caption_max_chars !== null &&
+    content.caption.length > rules.caption_max_chars
+  )
+    issues.push(
+      `caption: ${rules.label} allows at most ${rules.caption_max_chars} characters`,
+    );
   const sources = new Map(
     context.news.map((article) => [article.url, article]),
   );

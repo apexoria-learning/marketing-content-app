@@ -12,7 +12,6 @@ import {
   SourceRefSchema,
   DesignBriefSchema,
   type ContentItem,
-  type Platform,
   type ContentFormat,
   type Pillar,
 } from "../../src/lib/schemas/content";
@@ -75,12 +74,16 @@ const fixture = {
 
 describe("domain schemas and plain-text rendering", () => {
   it("matches all generated enum unions", () => {
-    expectTypeOf<Platform>().toEqualTypeOf<Enums<"platform">>();
     expectTypeOf<ContentFormat>().toEqualTypeOf<Enums<"content_format">>();
     expectTypeOf<Pillar>().toEqualTypeOf<Enums<"content_pillar">>();
-    expect(PlatformSchema.options).toHaveLength(3);
     expect(FormatSchema.options).toHaveLength(6);
     expect(PillarSchema.options).toHaveLength(10);
+  });
+  it("accepts any well-formed catalogue platform key and nothing else", () => {
+    for (const key of ["instagram", "youtube_shorts", "x2"])
+      expect(PlatformSchema.safeParse(key).success).toBe(true);
+    for (const key of ["Instagram", "x", "1abc", "<script>", "a-b", ""])
+      expect(PlatformSchema.safeParse(key).success).toBe(false);
   });
   it.each([
     {
@@ -118,7 +121,7 @@ describe("domain schemas and plain-text rendering", () => {
     { slot: 3 },
     { id: "not-a-uuid" },
     { scheduled_date: "2026-02-30" },
-    { platform: "whatsapp" },
+    { platform: "Not A Key" },
     { body: null },
     { caption: null },
     { status: "posted" },

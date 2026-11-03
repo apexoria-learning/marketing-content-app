@@ -4,6 +4,21 @@ import type { Database } from "../../src/server/db/database.types";
 vi.mock("server-only", () => ({}));
 import { loadGenerationContext } from "../../src/server/services/generation-context";
 
+// PostgREST answers maybeSingle() with an array; one catalogue row per key.
+function platformRow(url: URL) {
+  const key = url.searchParams.get("key")?.replace("eq.", "");
+  return [
+    {
+      label: key === "linkedin" ? "LinkedIn" : "Instagram",
+      allows_hashtags: true,
+      max_hashtags: 30,
+      caption_max_chars: null,
+      guidance: "",
+      tone: key === "linkedin" ? "Professional" : "Helpful",
+    },
+  ];
+}
+
 it("includes every posted idea in the 60-day window without leaking brand audit fields", async () => {
   const pages: string[] = [];
   const client = createClient<Database>(
@@ -15,7 +30,9 @@ it("includes every posted idea in the 60-day window without leaking brand audit 
         fetch: async (input) => {
           const url = new URL(String(input));
           let result: unknown = [];
-          if (url.pathname.endsWith("/brand_profile")) {
+          if (url.pathname.endsWith("/platforms")) {
+            result = platformRow(url);
+          } else if (url.pathname.endsWith("/brand_profile")) {
             result = {
               business_name: "Apexoria",
               business_description: "Training",
@@ -71,21 +88,23 @@ it("accepts a whole content item and keeps only its slot fields (live item-gener
     global: {
       fetch: async (input) => {
         const url = new URL(String(input));
-        const result = url.pathname.endsWith("/brand_profile")
-          ? {
-              business_name: "Apexoria",
-              business_description: "Training",
-              audience_description: "Learners",
-              courses: [],
-              current_offers: null,
-              tone_instagram: "Helpful",
-              tone_linkedin: "Professional",
-              tone_whatsapp: "Friendly",
-              do_list: [],
-              dont_list: [],
-              links: {},
-            }
-          : [];
+        const result = url.pathname.endsWith("/platforms")
+          ? platformRow(url)
+          : url.pathname.endsWith("/brand_profile")
+            ? {
+                business_name: "Apexoria",
+                business_description: "Training",
+                audience_description: "Learners",
+                courses: [],
+                current_offers: null,
+                tone_instagram: "Helpful",
+                tone_linkedin: "Professional",
+                tone_whatsapp: "Friendly",
+                do_list: [],
+                dont_list: [],
+                links: {},
+              }
+            : [];
         return new Response(JSON.stringify(result), {
           headers: { "Content-Type": "application/json" },
         });
@@ -113,6 +132,13 @@ it("accepts a whole content item and keeps only its slot fields (live item-gener
     idea: "Before vs after triggers",
   });
   expect(context.brand.tone).toBe("Professional");
+  expect(context.platform_rules).toEqual({
+    label: "LinkedIn",
+    allows_hashtags: true,
+    max_hashtags: 30,
+    caption_max_chars: null,
+    guidance: "",
+  });
   expect(context).not.toHaveProperty("id");
   expect(context).not.toHaveProperty("status");
 });

@@ -8,6 +8,7 @@ import { planMonth } from "./planning";
 import { loadGenerationContext } from "./generation-context";
 import { createRecordedAiClient } from "./recorded-ai";
 import { gatewayConfiguration } from "./gateway-configuration";
+import { loadPlanningScope } from "./planning-scope";
 import { MONTH_PLAN_REQUEST_TIMEOUT_MS } from "../ai/generators/month-plan";
 import { consumeGenerationBudget } from "../security";
 import { isMonthWithinHorizon } from "../../lib/utils/planning-rules";
@@ -47,15 +48,13 @@ export async function getMonthPlanAllowance(
 export async function generateMonth(month: string) {
   const client = await createUserDatabaseClient();
   const config = await getRuntimeConfig();
+  const { filters, anchor } = await loadPlanningScope(config);
   return planMonth(
     {
       month,
       today: todayInIst(),
       horizonMonths: config.planningHorizonMonths,
-      filters: {
-        platforms: config.enabledPlatforms,
-        pillars: config.enabledPillars,
-      },
+      filters,
     },
     {
       async exists(value) {
@@ -70,12 +69,7 @@ export async function generateMonth(month: string) {
       loadContext: async () =>
         loadGenerationContext(
           client,
-          {
-            platform: "instagram",
-            format: "post",
-            pillar: "salesforce_tips",
-            idea: "Plan the month",
-          },
+          { ...anchor, pillar: "salesforce_tips", idea: "Plan the month" },
           todayInIst(),
           undefined,
           (await getActiveInstructions(client, "planning")) ?? undefined,

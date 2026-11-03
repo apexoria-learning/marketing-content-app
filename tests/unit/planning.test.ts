@@ -16,6 +16,20 @@ import { AiOutputError } from "../../src/server/ai/validation";
 import { planMonth } from "../../src/server/services/planning";
 import { buildContentPrompt } from "../../src/server/ai/prompts";
 import type { GenerationContext } from "../../src/server/ai/schemas";
+import type { PlanningFilters } from "../../src/lib/utils/planning-rules";
+
+// Today's three catalogue platforms (migration 0016 seed) and every pillar.
+const seeded: PlanningFilters = {
+  platforms: [
+    {
+      key: "instagram",
+      formats: ["carousel", "reel", "post", "story", "meme", "poll"],
+    },
+    { key: "linkedin", formats: ["carousel", "post", "poll"] },
+    { key: "whatsapp", formats: ["story", "meme"] },
+  ],
+  pillars: PillarSchema.options,
+};
 
 const context: GenerationContext = {
   platform: "instagram",
@@ -43,6 +57,13 @@ const context: GenerationContext = {
   ],
   recent_ideas: [],
   pillar_history: [],
+  platform_rules: {
+    label: "Instagram",
+    allows_hashtags: true,
+    max_hashtags: 30,
+    caption_max_chars: null,
+    guidance: "",
+  },
 };
 function validPlan(): { items: PlannedSlot[] } {
   return {
@@ -56,7 +77,12 @@ function validPlan(): { items: PlannedSlot[] } {
     })),
   };
 }
-const input = { month: "2026-11", today: "2026-11-01", horizonMonths: 2 };
+const input = {
+  month: "2026-11",
+  today: "2026-11-01",
+  horizonMonths: 2,
+  filters: seeded,
+};
 
 describe("day planning", () => {
   const slot: PlannedSlot = {
@@ -73,7 +99,7 @@ describe("day planning", () => {
       .mockResolvedValue({ content: JSON.stringify({ items: [slot] }) });
     expect(
       await generateDayPlan(
-        { date: slot.scheduled_date, count: 1, context },
+        { date: slot.scheduled_date, count: 1, context, filters: seeded },
         generate,
       ),
     ).toEqual({ items: [slot], prompt_version: "day-plan-v1" });
@@ -83,7 +109,7 @@ describe("day planning", () => {
     const generate = vi.fn().mockResolvedValue({ content: "not JSON" });
     await expect(
       generateDayPlan(
-        { date: slot.scheduled_date, count: 1, context },
+        { date: slot.scheduled_date, count: 1, context, filters: seeded },
         generate,
       ),
     ).rejects.toThrow(AiOutputError);
@@ -105,6 +131,7 @@ describe("day planning", () => {
             date: slot.scheduled_date,
             count: 1,
             context: { ...context, news: [], recent_ideas: ["already posted"] },
+            filters: seeded,
             adjacentSlots: [{ pillar: "career_guidance", format: "post" }],
           },
           generate,
@@ -119,7 +146,7 @@ describe("deterministic planning rules", () => {
   it("accepts complete valid months and returns chronological slots", () => {
     const plan = validPlan();
     plan.items.reverse();
-    const result = validatePlanningRules("2026-11", plan, []);
+    const result = validatePlanningRules("2026-11", plan, [], seeded);
     expect(result.violations).toEqual([]);
     expect(result.items[0]?.scheduled_date).toBe("2026-11-01");
   });
@@ -144,7 +171,7 @@ describe("deterministic planning rules", () => {
     second.pillar = first.pillar;
     for (const item of plan.items)
       if (item.pillar === "salesforce_news") item.pillar = "memes";
-    const result = validatePlanningRules("2026-11", plan, []);
+    const result = validatePlanningRules("2026-11", plan, [], seeded);
     expect(
       result.violations.some((issue) =>
         issue.includes("consecutive day repeat"),
@@ -162,7 +189,7 @@ describe("deterministic planning rules", () => {
     if (!second || !third) throw new Error("Fixture missing");
     second.format = "carousel";
     third.platform = "whatsapp";
-    const result = validatePlanningRules("2026-11", plan, []);
+    const result = validatePlanningRules("2026-11", plan, [], seeded);
     expect(result.violations).toContain(
       "format: consecutive day repeat on 2026-11-02",
     );
@@ -180,6 +207,7 @@ describe("deterministic planning rules", () => {
           items: [...plan.items, { ...plan.items[0], slot: 3 }],
         },
         [],
+        seeded,
       ).violations.length,
     ).toBeGreaterThan(0);
     const first = plan.items[0];
@@ -191,11 +219,12 @@ describe("deterministic planning rules", () => {
           items: [...plan.items, first],
         },
         [],
+        seeded,
       ).violations,
     ).toContain("slot: duplicate 2026-11-01:1");
     plan.items = plan.items.slice(1);
     plan.items.push({ ...first, scheduled_date: "2026-12-01" });
-    const result = validatePlanningRules("2026-11", plan, []);
+    const result = validatePlanningRules("2026-11", plan, [], seeded);
     expect(result.violations).toContain("date: 2026-11-01 has no content");
     expect(result.violations).toContain(
       "date: 2026-12-01 is outside the requested month",
@@ -208,9 +237,12 @@ describe("deterministic planning rules", () => {
     if (!first) throw new Error("Fixture missing");
     first.idea = "Salesforce flows automate tasks";
     first.slot = 2;
-    const result = validatePlanningRules("2026-11", plan, [
-      "Salesforce FLOWS automate tasks!",
-    ]);
+    const result = validatePlanningRules(
+      "2026-11",
+      plan,
+      ["Salesforce FLOWS automate tasks!"],
+      seeded,
+    );
     expect(result.violations).toContain(
       "idea: near-duplicate of a recent post on 2026-11-01",
     );
@@ -240,7 +272,7 @@ describe("month generation pipeline", () => {
     first.idea =
       "Hook: 'SOQL in a loop?' 5-slide carousel. Slide 1 shows the bad pattern, a SOQL query inside a for loop. Slide 2 explains the governor limit. Slide 3 shows the fix: query once outside the loop. Slide 4 shows a Map.";
     expect(
-      validatePlanningRules("2026-11", verbose, []).violations.length,
+      validatePlanningRules("2026-11", verbose, [], seeded).violations.length,
     ).toBeGreaterThan(0);
     expect(
       validatePlanningRules(
@@ -251,6 +283,7 @@ describe("month generation pipeline", () => {
           ),
         },
         [],
+        seeded,
       ).violations.length,
     ).toBeGreaterThan(0);
     const generate = vi
@@ -312,9 +345,13 @@ describe("month generation pipeline", () => {
     ).resolves.toMatchObject({ news_omitted: true });
     expect(generate).toHaveBeenCalledTimes(1);
     expect(
-      validatePlanningRules("2026-11", validPlan(), [], false).violations.some(
-        (issue) => issue.includes("news is unavailable"),
-      ),
+      validatePlanningRules(
+        "2026-11",
+        validPlan(),
+        [],
+        seeded,
+        false,
+      ).violations.some((issue) => issue.includes("news is unavailable")),
     ).toBe(true);
   });
 
@@ -380,7 +417,15 @@ describe("admin planning filters and editorial instructions", () => {
     });
     return plan;
   }
-  const filters = { platforms: ["instagram" as const], pillars: threePillars };
+  const filters: PlanningFilters = {
+    platforms: [
+      {
+        key: "instagram",
+        formats: ["carousel", "reel", "post", "story", "meme", "poll"],
+      },
+    ],
+    pillars: threePillars,
+  };
   const instructed: GenerationContext = {
     ...context,
     instructions: { version: 4, text: "Prefer Indian examples." },
@@ -388,11 +433,10 @@ describe("admin planning filters and editorial instructions", () => {
 
   it("rejects disabled platforms and pillars and requires only enabled pillars", () => {
     expect(
-      validatePlanningRules("2026-11", filteredPlan(), [], true, filters)
-        .violations,
+      validatePlanningRules("2026-11", filteredPlan(), [], filters).violations,
     ).toEqual([]);
-    const violations = validatePlanningRules("2026-11", validPlan(), [], true, {
-      platforms: ["linkedin"],
+    const violations = validatePlanningRules("2026-11", validPlan(), [], {
+      platforms: [{ key: "linkedin", formats: ["carousel", "post", "poll"] }],
       pillars: threePillars,
     }).violations;
     expect(violations).toContain(
@@ -428,7 +472,7 @@ describe("admin planning filters and editorial instructions", () => {
     });
   });
 
-  it("keeps the month prompt unchanged when no filters or instructions exist", async () => {
+  it("keeps the original pillar wording when every pillar is enabled and no instructions exist", async () => {
     const generate = vi
       .fn()
       .mockResolvedValue({ content: JSON.stringify(validPlan()) });

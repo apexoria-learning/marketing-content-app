@@ -16,8 +16,11 @@ import {
   listActivityActors,
   listAppUsers,
   listAuthAccounts,
+  listPlatforms,
   listPromptInstructions,
   listUsageRuns,
+  savePlatform,
+  setPlatformSortOrder,
   updateAppUser,
   updateSettingsOverrides,
 } from "../db/admin";
@@ -31,6 +34,12 @@ import {
   type SaveInstructionsInput,
   type UpdateAccessInput,
 } from "../../lib/schemas/admin";
+import {
+  hasPlannablePlatforms,
+  type MovePlatformInput,
+  type PlatformRecord,
+  type SavePlatformInput,
+} from "../../lib/schemas/platforms";
 import { todayInIst } from "../../lib/utils/dates";
 import {
   summarizeUsage,
@@ -84,9 +93,8 @@ export type AdminOverview = {
     | "aiGenerationEnabled"
     | "aiModel"
     | "planningHorizonMonths"
-    | "enabledPlatforms"
     | "enabledPillars"
-  >;
+  > & { enabledPlatformLabels: string[] };
 };
 
 export async function getAdminOverview(
@@ -94,10 +102,11 @@ export async function getAdminOverview(
   now = new Date(),
 ): Promise<AdminOverview> {
   assertAdmin(admin);
-  const [{ runs, entries }, overrides, used] = await Promise.all([
+  const [{ runs, entries }, overrides, used, platforms] = await Promise.all([
     loadDirectory(now),
     getSettingsOverrides(),
     getGlobalAllowanceUsed(`${todayInIst(now)}T00:00:00+05:30`),
+    listPlatforms(),
   ]);
   const config = resolveRuntimeConfig(env, overrides);
   return {
@@ -117,7 +126,9 @@ export async function getAdminOverview(
       aiGenerationEnabled: config.aiGenerationEnabled,
       aiModel: config.aiModel,
       planningHorizonMonths: config.planningHorizonMonths,
-      enabledPlatforms: config.enabledPlatforms,
+      enabledPlatformLabels: platforms
+        .filter((platform) => platform.is_enabled)
+        .map((platform) => platform.label),
       enabledPillars: config.enabledPillars,
     },
   };
@@ -275,4 +286,59 @@ export async function saveInstructions(
     admin.email,
   );
   return { version: saved.id, changed: true };
+}
+
+export async function getPlatformCatalogueForAdmin(
+  admin: AdminActor,
+): Promise<PlatformRecord[]> {
+  assertAdmin(admin);
+  return listPlatforms();
+}
+
+export async function savePlatformEntry(
+  admin: AdminActor,
+  input: SavePlatformInput,
+): Promise<{ key: string; status: "created" | "updated" }> {
+  assertAdmin(admin);
+  const catalogue = await listPlatforms();
+  const existing = catalogue.find(
+    (platform) => platform.key === input.platform.key,
+  );
+  if (input.mode === "create" && existing)
+    refuse("A platform with this key already exists. Edit it instead.");
+  if (input.mode === "update" && !existing)
+    refuse("This platform no longer exists.");
+  // The database re-checks this inside the same transaction (0016).
+  const next = [
+    ...catalogue.filter((platform) => platform.key !== input.platform.key),
+    input.platform,
+  ];
+  if (!hasPlannablePlatforms(next))
+    refuse(
+      "Keep at least two enabled platform formats so months can still be planned.",
+    );
+  await savePlatform(input.platform, input.mode === "create", admin.email);
+  return {
+    key: input.platform.key,
+    status: input.mode === "create" ? "created" : "updated",
+  };
+}
+
+export async function movePlatform(
+  admin: AdminActor,
+  input: MovePlatformInput,
+): Promise<{ key: string }> {
+  assertAdmin(admin);
+  const order = (await listPlatforms()).map((platform) => platform.key);
+  const index = order.indexOf(input.key);
+  if (index < 0) refuse("This platform no longer exists.");
+  const target = input.direction === "up" ? index - 1 : index + 1;
+  const neighbour = order[target];
+  if (neighbour === undefined) return { key: input.key };
+  order[target] = input.key;
+  order[index] = neighbour;
+  // Renumber in display order so ties from older rows cannot persist.
+  for (const [position, key] of order.entries())
+    await setPlatformSortOrder(key, position + 1, admin.email);
+  return { key: input.key };
 }

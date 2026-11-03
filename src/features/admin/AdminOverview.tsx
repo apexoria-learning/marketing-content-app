@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { Banner } from "@/components/feedback/Banner";
 import { EmptyState } from "@/components/feedback/States";
-import { PLATFORM_LABELS } from "@/components/content/PlatformBadge";
 import { PILLAR_LABELS } from "@/components/content/PillarChip";
 import { formatCount, formatTokens } from "@/lib/format/numbers";
 import { displayDate } from "@/lib/utils/dates";
@@ -197,9 +196,7 @@ export function AdminOverview({ overview }: { overview: Overview }) {
           <div className="flex justify-between gap-3">
             <dt className="text-secondary">Platforms</dt>
             <dd className="text-right text-primary">
-              {config.enabledPlatforms
-                .map((platform) => PLATFORM_LABELS[platform])
-                .join(", ")}
+              {config.enabledPlatformLabels.join(", ")}
             </dd>
           </div>
           <div className="flex justify-between gap-3">

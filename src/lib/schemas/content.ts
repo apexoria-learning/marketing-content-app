@@ -1,6 +1,14 @@
 import { z } from "zod";
 
-export const PlatformSchema = z.enum(["instagram", "linkedin", "whatsapp"]);
+// Platforms are admin-managed catalogue keys (DATABASE.md §5.12); the
+// database foreign key and catalogue trigger decide which keys exist.
+export const PLATFORM_KEY_PATTERN = /^[a-z][a-z0-9_]{1,29}$/;
+export const PlatformSchema = z
+  .string()
+  .regex(
+    PLATFORM_KEY_PATTERN,
+    "Use 2–30 lowercase letters, numbers or underscores, starting with a letter.",
+  );
 export const FormatSchema = z.enum([
   "carousel",
   "reel",
@@ -161,20 +169,8 @@ export const ContentItemSchema = z
     base.extend({ format: z.literal("poll"), body: PollBodySchema.nullable() }),
   ])
   .superRefine((item, context) => {
-    const allowed = {
-      carousel: ["instagram", "linkedin"],
-      reel: ["instagram"],
-      post: ["instagram", "linkedin"],
-      story: ["instagram", "whatsapp"],
-      meme: ["instagram", "whatsapp"],
-      poll: ["instagram", "linkedin"],
-    };
-    if (!allowed[item.format].includes(item.platform))
-      context.addIssue({
-        code: "custom",
-        message: "Incompatible platform and format",
-        path: ["platform"],
-      });
+    // Platform/format and hashtag rules are catalogue data enforced by the
+    // database (content_items_enforce_platform_rules) and the generators.
     if (
       ["ready", "posted"].includes(item.status) &&
       (!item.hook?.trim() ||
@@ -202,12 +198,6 @@ export const ContentItemSchema = z
         code: "custom",
         message: "Skip reason belongs to skipped content",
         path: ["skip_reason"],
-      });
-    if (item.platform === "whatsapp" && item.hashtags.length)
-      context.addIssue({
-        code: "custom",
-        message: "WhatsApp has no hashtags",
-        path: ["hashtags"],
       });
   });
 export const DailyTipSchema = z.object({

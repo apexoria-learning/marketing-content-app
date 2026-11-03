@@ -273,6 +273,41 @@ migration workflow (dry run first), then import `ALLOWED_EMAILS` from
 `/admin/users`. Daily-tip instructions, `PLAN_DAY_OF_MONTH` and news feeds take
 effect only once the Phase 12 cron exists. Cost is still recorded as unknown.
 
+**Universal (multi-industry) roadmap — owner-approved 2026-11-03.** Goal: the
+same codebase can serve another business or industry (e.g. Python training)
+by configuration, not code. Owner decisions: **one deployment per company**
+(own Vercel project, Supabase project and Google OAuth client; content stays
+business-owned, so the authorization model is unchanged; multi-tenant
+workspaces are explicitly deferred); retire-only (no deletes); colours and
+glyphs from approved palettes/icon set only; English only for now (language
+kept as a future setting). Phases, each one forward-only migration deployed
+with the two-step push (migration commit → apply → app commit):
+
+1. **Platform catalogue — built 2026-11-03 (`US-18`, migration `0016`).**
+   Admin-managed platforms (key, label, colour slot, glyph, formats, hashtag
+   and caption limits, tone, AI guidance, enable/retire, order) replace the
+   enum, hard-coded checks, prompt text and UI constants. Seeded rules are
+   identical to before. Validated against disposable local PostgreSQL 17 (110
+   database tests) plus 617 total tests, typecheck, lint and production build;
+   generated types hand-written to match the generator, pending CI drift check.
+   Not yet committed or deployed; requires `0015` applied first.
+2. **Pillar catalogue — not started.** Same pattern for the ten pillars, with a
+   "requires news sources" flag replacing `salesforce_news` special cases and a
+   feasibility check of enabled pillars against monthly slots.
+3. **Industry-neutral business profile — not started.** Generic profile
+   (industry, offerings with a configurable label, audience, offers, do/don't,
+   links, time zone, language), an Admin → Business page (supersedes the
+   Phase 13 brand editor), prompts built from the profile instead of
+   "Salesforce", daily-tip topic from the profile, business time zone in code
+   and in `consume_ai_budget`. Needs owner-approved paid smoke calls to check
+   output quality.
+4. **Industry templates and setup wizard — not started.** Versioned templates
+   in the repo (Salesforce training = today's Apexoria setup, Python training,
+   general services), a first-run wizard, app name/short name/accent from
+   configuration, and a new-company deployment runbook. Migration `0009`
+   still seeds Apexoria's sample profile in a fresh database; the wizard
+   overwrites it.
+
 ## 2. Phase map
 
 | # | Phase | Depends on | Outcome |

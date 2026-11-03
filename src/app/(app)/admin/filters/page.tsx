@@ -17,20 +17,19 @@ export default async function AdminFiltersPage() {
           Planning filters
         </h2>
         <p className="text-sm text-secondary">
-          Choose which platforms and pillars new month and day plans may use.
-          Content that is already planned is not changed.
+          Choose which pillars new month and day plans may use, and where news
+          comes from. Platforms are managed on the Platforms page. Content that
+          is already planned is not changed.
         </p>
       </div>
       {/* Remount after each save so local state matches the saved values. */}
       <PlanningFiltersForm
         key={overrides.updated_at}
         effective={{
-          enabledPlatforms: effective.enabledPlatforms,
           enabledPillars: effective.enabledPillars,
           newsFeedUrls: effective.newsFeedUrls,
         }}
         isOverridden={
-          overrides.enabled_platforms !== null ||
           overrides.enabled_pillars !== null ||
           overrides.news_feed_urls !== null
         }

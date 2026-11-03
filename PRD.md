@@ -81,7 +81,7 @@ These were agreed during discovery and are **fixed** for v1.
 | D5 | Generation strategy | **Scheduled pre-generation** (cron) + **on-demand regeneration** of individual items |
 | D6 | News grounding | **Live Salesforce RSS/Atom feeds** are ingested and used as factual grounding |
 | D7 | Visual assets | **Text + detailed design brief only.** AI image generation deferred |
-| D8 | Platforms | **Instagram, LinkedIn, WhatsApp Status** |
+| D8 | Platforms | **Admin-managed catalogue** (`US-18`), seeded with **Instagram, LinkedIn, WhatsApp Status** |
 | D9 | Cadence | AI plans the month; **maximum 2 pieces per day**, varying by day |
 | D10 | Tip of the Day | **Marketing tips for the internal team** (not audience-facing content) |
 | D11 | Auto-publishing | **Out of scope for v1**, designed for as a future phase |
@@ -195,6 +195,12 @@ Every item, regardless of format, carries:
 - AC4: Admins can limit planning to chosen platforms and pillars (at least one platform and three non-news pillars) and edit news feeds.
 - AC5: Admins can override AI generation on/off, daily limits, planning day/horizon, model alias and gateway URL; clearing an override restores the environment value. The gateway API key is never shown or editable.
 - AC6: Owners in `ADMIN_EMAILS` cannot be changed from the panel, and no admin can change their own access.
+
+**US-18** — As the owner, I want to add and manage the platforms we post to from the admin panel, so that a new channel needs no code change or deployment.
+- AC1: Admins can add a platform with a permanent key, name, colour (from approved slots), glyph (from the icon set), supported formats, hashtag rule, optional caption limit, tone and AI guidance.
+- AC2: Admins can edit, reorder and retire platforms. Retired platforms receive no new plans but their existing content keeps showing correctly; platforms are never deleted.
+- AC3: Badges, filters, calendar legend, archive counts, planning and generation rules all come from the catalogue; nothing lists platforms in code.
+- AC4: The app refuses changes that would leave fewer than two enabled platform/format combinations, because months could no longer be planned.
 
 ### Today's Plan
 
@@ -425,7 +431,7 @@ Every item, regardless of format, carries:
 | S6 | Item detail | `/item/[id]` | Everything about one piece | Hook, caption block, slides/script, hashtags, CTA, design brief, sources, copy actions, regenerate, posted toggle |
 | S7 | **Archive** | `/archive` | History and review | Month filter, platform/pillar/format filters, counts, posted list with notes |
 | S8 | Settings | `/settings` | Configuration | Brand profile editor, manual month generation, generation run log, install hint, theme, sign out |
-| S9 | Admin | `/admin` (+ `/users`, `/prompts`, `/filters`, `/settings`) | Owner controls (`US-17`) | Usage and user-base overview, access management, editorial instructions, planning filters, runtime settings |
+| S9 | Admin | `/admin` (+ `/users`, `/platforms`, `/prompts`, `/filters`, `/settings`) | Owner controls (`US-17`, `US-18`) | Usage and user-base overview, access management, platform catalogue, editorial instructions, planning filters, runtime settings |
 
 Bottom navigation exposes S3, S4, S5, S7. Settings is reached from the header. Admin is reached from the Today header and shown only to admins. Item detail is reached from S3, S4, S5 and S7.
 

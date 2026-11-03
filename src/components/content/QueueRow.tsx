@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import type { ContentItem } from "@/lib/schemas/content";
 import { displayDate } from "@/lib/utils/dates";
-import { PLATFORM_LABELS } from "./PlatformBadge";
+import { PlatformName } from "./PlatformBadge";
 import { PILLAR_LABELS } from "./PillarChip";
 import { Icon } from "../ui/Icon";
 import { cx } from "@/lib/utils/cx";
@@ -40,8 +40,9 @@ export function QueueRow({
             overdue ? "text-danger" : "text-secondary",
           )}
         >
-          {displayDate(item.scheduled_date)} · {PLATFORM_LABELS[item.platform]}{" "}
-          · {PILLAR_LABELS[item.pillar]}
+          {displayDate(item.scheduled_date)} ·{" "}
+          <PlatformName platform={item.platform} /> ·{" "}
+          {PILLAR_LABELS[item.pillar]}
           {overdue ? " · Overdue" : ""}
         </p>
       </Link>

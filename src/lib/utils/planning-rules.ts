@@ -1,4 +1,8 @@
-import { PillarSchema, type Pillar, type Platform } from "../schemas/content";
+import {
+  PillarSchema,
+  type ContentFormat,
+  type Pillar,
+} from "../schemas/content";
 import {
   PlanMonthInputSchema,
   PlanOutputSchema,
@@ -6,30 +10,38 @@ import {
 } from "../schemas/planning";
 import { monthBounds, shiftDate, shiftMonth } from "./dates";
 
-/** Admin-enabled platforms and pillars (DATABASE.md §5.10). */
+/** An enabled catalogue platform and the formats it supports (§5.12–5.13). */
+export type PlannablePlatform = {
+  key: string;
+  formats: readonly ContentFormat[];
+};
+
+/** Enabled platforms (catalogue) and pillars (DATABASE.md §5.10). */
 export type PlanningFilters = {
-  platforms: readonly Platform[];
+  platforms: readonly PlannablePlatform[];
   pillars: readonly Pillar[];
 };
 
-const PLATFORM_FORMATS = {
-  instagram: ["carousel", "reel", "post", "story", "meme", "poll"],
-  linkedin: ["carousel", "post", "poll"],
-  whatsapp: ["story", "meme"],
-};
+function platformOf(key: string, filters: PlanningFilters) {
+  return filters.platforms.find((platform) => platform.key === key);
+}
 
-export function isCompatiblePlannedSlot(item: PlannedSlot) {
-  return PLATFORM_FORMATS[item.platform].includes(item.format);
+export function isCompatiblePlannedSlot(
+  item: Pick<PlannedSlot, "platform" | "format">,
+  filters: PlanningFilters,
+) {
+  return Boolean(
+    platformOf(item.platform, filters)?.formats.includes(item.format),
+  );
 }
 
 export function isSlotAllowedByFilters(
   item: Pick<PlannedSlot, "platform" | "pillar">,
-  filters?: PlanningFilters,
+  filters: PlanningFilters,
 ) {
   return (
-    !filters ||
-    (filters.platforms.includes(item.platform) &&
-      filters.pillars.includes(item.pillar))
+    platformOf(item.platform, filters) !== undefined &&
+    filters.pillars.includes(item.pillar)
   );
 }
 
@@ -70,8 +82,8 @@ export function validatePlanningRules(
   month: string,
   input: unknown,
   postedIdeas: readonly string[],
+  filters: PlanningFilters,
   hasNews = true,
-  filters?: PlanningFilters,
 ): { items: PlannedSlot[]; violations: string[] } {
   PlanMonthInputSchema.parse({ month });
   const parsed = PlanOutputSchema.safeParse(input);
@@ -104,7 +116,11 @@ export function validatePlanningRules(
     day.push(item);
     byDate.set(item.scheduled_date, day);
     counts.set(item.pillar, (counts.get(item.pillar) ?? 0) + 1);
-    if (!isCompatiblePlannedSlot(item))
+    if (!platformOf(item.platform, filters))
+      violations.push(
+        `platform: ${item.platform} is disabled on ${item.scheduled_date}`,
+      );
+    else if (!isCompatiblePlannedSlot(item, filters))
       violations.push(
         `format: incompatible platform on ${item.scheduled_date}`,
       );
@@ -114,11 +130,7 @@ export function validatePlanningRules(
       );
     if (!hasNews && item.pillar === "salesforce_news")
       violations.push(`pillar: news is unavailable on ${item.scheduled_date}`);
-    if (filters && !filters.platforms.includes(item.platform))
-      violations.push(
-        `platform: ${item.platform} is disabled on ${item.scheduled_date}`,
-      );
-    if (filters && !filters.pillars.includes(item.pillar))
+    if (!filters.pillars.includes(item.pillar))
       violations.push(
         `pillar: ${item.pillar} is disabled on ${item.scheduled_date}`,
       );
@@ -146,7 +158,7 @@ export function validatePlanningRules(
   }
   for (const [pillar, count] of counts) {
     if (!hasNews && pillar === "salesforce_news") continue;
-    if (filters && !filters.pillars.includes(pillar)) continue;
+    if (!filters.pillars.includes(pillar)) continue;
     if (count < 2)
       violations.push(`pillar: ${pillar} must appear at least twice`);
   }

@@ -89,9 +89,14 @@ const PAIRS: Array<[string, string, number, string]> = [
     ["text-tertiary", surface, 3, "non-essential text"],
     ["accent", surface, 3, "focus ring, tick, progress arc"],
     ["danger", surface, 3, "error glyphs"],
-    ["platform-instagram", surface, 3, "platform glyph"],
-    ["platform-linkedin", surface, 3, "platform glyph"],
-    ["platform-whatsapp", surface, 3, "platform glyph"],
+    ...[1, 2, 3, 4, 5, 6, 7, 8].map(
+      (slot): [string, string, number, string] => [
+        `platform-${slot}`,
+        surface,
+        3,
+        "platform glyph",
+      ],
+    ),
   ]),
   ["accent-on", "accent", 4.5, "primary button label"],
   ["danger", "danger-muted@surface-1", 4.5, "danger banner/button text"],
