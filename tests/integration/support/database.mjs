@@ -58,12 +58,15 @@ const SUPABASE_BOOTSTRAP = `
 
 export const APPLICATION_TABLES = [
   "activity_log",
+  "app_settings",
+  "app_users",
   "brand_profile",
   "content_items",
   "content_plans",
   "daily_tips",
   "generation_runs",
   "news_items",
+  "prompt_instructions",
   "rate_limits",
 ];
 

@@ -6,7 +6,8 @@ declare
 begin
   foreach v_table in array array[
     'brand_profile', 'content_plans', 'content_items', 'daily_tips',
-    'news_items', 'activity_log', 'generation_runs', 'rate_limits'
+    'news_items', 'activity_log', 'generation_runs', 'rate_limits',
+    'app_users', 'app_settings', 'prompt_instructions'
   ] loop
     if not exists (
       select 1
@@ -31,6 +32,16 @@ begin
     where schemaname = 'public' and tablename = 'rate_limits'
   ) then
     raise exception 'rate_limits must have no policies';
+  end if;
+
+  -- Admin tables are written only by the server's admin module (service_role).
+  if exists (
+    select 1 from pg_policies
+    where schemaname = 'public'
+      and tablename in ('app_users', 'app_settings', 'prompt_instructions')
+      and cmd <> 'SELECT'
+  ) then
+    raise exception 'Admin tables must not have member write policies';
   end if;
 
   if not exists (

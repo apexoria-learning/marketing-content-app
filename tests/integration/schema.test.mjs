@@ -275,7 +275,7 @@ describeDatabase("migrations", () => {
     ]);
   });
 
-  it("apply cleanly to an empty database and create all eight tables", async () => {
+  it("apply cleanly to an empty database and create every application table", async () => {
     const result = await db.query(
       `select table_name from information_schema.tables
        where table_schema = 'public' and table_type = 'BASE TABLE'
@@ -327,7 +327,7 @@ describeDatabase("migrations", () => {
 });
 
 describeDatabase("row level security", () => {
-  it("is enabled on all eight tables (L4)", async () => {
+  it("is enabled on every application table (L4)", async () => {
     const result = await db.query(
       `select c.relname from pg_class c
        join pg_namespace n on n.oid = c.relnamespace

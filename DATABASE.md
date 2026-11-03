@@ -423,6 +423,8 @@ create table public.generation_runs (
 
 `generation_runs_failure_has_reason` guarantees that a failed run is always diagnosable. A failure with a null error is the single worst thing an observability table can contain.
 
+`actor_email text` (migration `0015`) attributes each run to the signed-in person for the admin usage view. A `BEFORE INSERT OR UPDATE` trigger (`stamp_generation_run_actor`) sets it from the JWT `email` claim and keeps it unchanged on update, so a caller can neither spoof nor rewrite it. Scheduled (`service_role`) runs and rows written before `0015` have `NULL` ("Scheduled or earlier runs").
+
 ### 5.8 `rate_limits`
 
 AI spend control (`NFR-2.7`, `NFR-6.3`, `DR-5`).
@@ -443,6 +445,30 @@ create table public.rate_limits (
 - `actor_key` is a user email, or the literal `'global'` for the system-wide cap.
 - The composite primary key *is* the lookup index; no secondary index is needed or created.
 - This table has **no RLS policies at all** (§7.3) — it is reachable only through a `SECURITY DEFINER` function, so a user can neither read nor tamper with their own quota.
+
+### 5.9 `app_users`
+
+Database-managed access list and roles (`US-17`, migration `0015`).
+
+| Column | Type | Notes |
+|---|---|---|
+| `email` | `text` PK | Lower-case, trimmed (`app_users_email_normalized`) |
+| `role` | `text` | `member` \| `admin` (`app_users_role_valid`); text + check, not an enum, so roles can grow without an enum-only migration |
+| `is_active` | `boolean` | `false` revokes access and wins over `ALLOWED_EMAILS` |
+| `can_generate` | `boolean` | Per-person AI generation permission, re-checked before every quota charge |
+| `created_at/by`, `updated_at/by` | | Attribution; `updated_at` maintained by `touch_updated_at` |
+
+`ADMIN_EMAILS` owners are resolved from the environment and need no row. There is no delete path: revoking is `is_active = false`, which preserves the audit trail.
+
+### 5.10 `app_settings`
+
+Singleton (`id = 1`, seeded by `0015`) of runtime overrides for the environment defaults in `ARCHITECTURE.md` §11. **`NULL` means "use the environment value"**, so the app behaves exactly as before until an admin changes something.
+
+Columns: `ai_generation_enabled`, `regen_daily_limit` (1–1000), `global_daily_ai_limit` (1–10000), `plan_day_of_month` (1–31), `planning_horizon_months` (1–12), `ai_model` (trimmed, ≤ 200), `ai_base_url` (HTTPS `/v1`, no credentials/query/fragment, ≤ 500), `news_feed_urls text[]` (≤ 25; empty array disables feeds), `enabled_platforms platform[]` (1–3), `enabled_pillars content_pillar[]` (≥ 3 excluding `salesforce_news`, so the no-adjacent-repeat rule stays satisfiable), `updated_at`, `updated_by`. No secret is ever stored here.
+
+### 5.11 `prompt_instructions`
+
+Append-only editorial-instruction versions (`ARCHITECTURE.md` §9.2): `id` (identity), `scope` (`content` \| `planning` \| `daily_tip`), `instructions` (trimmed, ≤ 2000; empty string clears the scope), `created_at`, `created_by`. The highest `id` per scope is active. `BEFORE UPDATE`/`BEFORE DELETE` triggers (`reject_prompt_instruction_mutation`) make history immutable even for `service_role`, mirroring `activity_log` (§7.4).
 
 ---
 
@@ -538,11 +564,11 @@ Partial indexes are used throughout because they stay small permanently: `idx_co
 
 ### 7.1 The authorization model
 
-`PRD §12` defines exactly one role: an authenticated, allowlisted team member with full capability. The schema reflects this honestly:
+`PRD §12` defines two roles: Member and Admin (`US-17`). The schema reflects this honestly:
 
-> **Policies check *authentication*, never ownership.** Content belongs to Apexoria Learning, not to the person who happened to be signed in. `posted_by`, `actor_email` and `updated_by` are **attribution, not authorization** — they record who acted; they never gate what anyone may do.
+> **Content policies check *authentication*, never ownership.** Content belongs to Apexoria Learning, not to the person who happened to be signed in. `posted_by`, `actor_email` and `updated_by` are **attribution, not authorization** — they record who acted; they never gate what anyone may do.
 
-Keeping those two concepts separate is what makes the future Designer role (`DR-1`) a contained change: adding a `user_roles` table and tightening mutation policies, with no attribution columns to rework.
+Roles live in `app_users` (§5.9). Members can read only their own row and nothing can be written by `authenticated`; admin writes go through the server's scoped admin module (`ARCHITECTURE.md` §6.3).
 
 ### 7.2 Database roles
 
@@ -550,7 +576,7 @@ Keeping those two concepts separate is what makes the future Designer role (`DR-
 |---|---|---|
 | `anon` | Unauthenticated browser | Subject to RLS. **No policy grants it anything** → every table returns zero rows |
 | `authenticated` | Signed-in team member, via Server Components and Server Actions | Subject to RLS. Policies below |
-| `service_role` | The daily cron route handler **only** (`ARCHITECTURE.md` §5.3) | **Bypasses RLS.** The highest-value secret in the system |
+| `service_role` | The daily cron route handler and the scoped admin module (`ARCHITECTURE.md` §5.3, §6.3) | **Bypasses RLS.** The highest-value secret in the system |
 
 `anon` returning nothing is the `L4` launch criterion and the final backstop in the three-layer auth model (`ARCHITECTURE.md` §6.2): even if middleware were misconfigured and a page leaked, no data follows.
 
@@ -568,6 +594,9 @@ RLS is enabled on **every** table. Deny-by-default: a table with RLS enabled and
 | `activity_log` | ✅ | ✅ | ❌ | ❌ | **Append-only** (`FR-7.4`) — the absence of UPDATE/DELETE policies is the enforcement |
 | `generation_runs` | ✅ | ✅ | ✅ | ❌ | Users trigger generation, so they must open and close their own run records |
 | `rate_limits` | ❌ | ❌ | ❌ | ❌ | **No policies whatsoever.** Reachable only via a `SECURITY DEFINER` function |
+| `app_users` | Own row only | ❌ | ❌ | ❌ | Members learn their own role/AI permission; only the admin module (service role) writes, so access cannot be self-granted |
+| `app_settings` | ✅ | ❌ | ❌ | ❌ | Non-secret runtime config read during generation; admin module writes |
+| `prompt_instructions` | ✅ | ❌ | ❌ | ❌ | Read during generation; admin module appends; triggers forbid update/delete |
 
 The `rate_limits` row is the sharpest line in this table. If users could `UPDATE` their own quota rows, the spend control protecting `R4` would be self-service. Total RLS denial plus a definer function means the counter is only ever touched by trusted, audited code.
 
@@ -871,6 +900,14 @@ history show names. It returns names only for people already recorded as
 `authenticated` only. Stored attribution stays email; the app falls back to the
 email when no name exists or the lookup is unavailable. The isolated test
 database stubs only `auth.users(id, email, raw_user_meta_data)`.
+Migration `0015` adds the admin panel tables `app_users`, `app_settings`
+(seeded singleton of `NULL` overrides) and append-only `prompt_instructions`
+with RLS in the same file (§5.9–5.11, §7.3), plus
+`generation_runs.actor_email` stamped from the JWT. No existing policy is
+changed. Apply it **before** deploying the dependent code, and set
+`ADMIN_EMAILS` first: access now fails closed, so only owners, granted rows
+and unimported `ALLOWED_EMAILS` entries can sign in. `scripts/verify-database.sql`
+checks the new tables' RLS and that none has a member write policy.
 No other hosted target or automatic push/pull-request trigger is configured.
 
 #### Isolated behavioral tests and generated types

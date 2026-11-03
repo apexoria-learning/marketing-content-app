@@ -51,6 +51,92 @@ export type Database = {
           },
         ];
       };
+      app_settings: {
+        Row: {
+          ai_base_url: string | null;
+          ai_generation_enabled: boolean | null;
+          ai_model: string | null;
+          enabled_pillars:
+            Database["public"]["Enums"]["content_pillar"][] | null;
+          enabled_platforms: Database["public"]["Enums"]["platform"][] | null;
+          global_daily_ai_limit: number | null;
+          id: number;
+          news_feed_urls: string[] | null;
+          plan_day_of_month: number | null;
+          planning_horizon_months: number | null;
+          regen_daily_limit: number | null;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          ai_base_url?: string | null;
+          ai_generation_enabled?: boolean | null;
+          ai_model?: string | null;
+          enabled_pillars?:
+            Database["public"]["Enums"]["content_pillar"][] | null;
+          enabled_platforms?: Database["public"]["Enums"]["platform"][] | null;
+          global_daily_ai_limit?: number | null;
+          id?: number;
+          news_feed_urls?: string[] | null;
+          plan_day_of_month?: number | null;
+          planning_horizon_months?: number | null;
+          regen_daily_limit?: number | null;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          ai_base_url?: string | null;
+          ai_generation_enabled?: boolean | null;
+          ai_model?: string | null;
+          enabled_pillars?:
+            Database["public"]["Enums"]["content_pillar"][] | null;
+          enabled_platforms?: Database["public"]["Enums"]["platform"][] | null;
+          global_daily_ai_limit?: number | null;
+          id?: number;
+          news_feed_urls?: string[] | null;
+          plan_day_of_month?: number | null;
+          planning_horizon_months?: number | null;
+          regen_daily_limit?: number | null;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
+      app_users: {
+        Row: {
+          can_generate: boolean;
+          created_at: string;
+          created_by: string | null;
+          email: string;
+          is_active: boolean;
+          role: string;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          can_generate?: boolean;
+          created_at?: string;
+          created_by?: string | null;
+          email: string;
+          is_active?: boolean;
+          role?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          can_generate?: boolean;
+          created_at?: string;
+          created_by?: string | null;
+          email?: string;
+          is_active?: boolean;
+          role?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
       brand_profile: {
         Row: {
           audience_description: string;
@@ -260,6 +346,7 @@ export type Database = {
       };
       generation_runs: {
         Row: {
+          actor_email: string | null;
           content_item_id: string | null;
           error: string | null;
           estimated_cost_usd: number | null;
@@ -277,6 +364,7 @@ export type Database = {
         };
         ComputedFields: never;
         Insert: {
+          actor_email?: string | null;
           content_item_id?: string | null;
           error?: string | null;
           estimated_cost_usd?: number | null;
@@ -293,6 +381,7 @@ export type Database = {
           target_month?: string | null;
         };
         Update: {
+          actor_email?: string | null;
           content_item_id?: string | null;
           error?: string | null;
           estimated_cost_usd?: number | null;
@@ -349,6 +438,31 @@ export type Database = {
           title?: string;
           url?: string;
           url_hash?: string;
+        };
+        Relationships: [];
+      };
+      prompt_instructions: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          id: number;
+          instructions: string;
+          scope: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          id?: never;
+          instructions: string;
+          scope: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          id?: never;
+          instructions?: string;
+          scope?: string;
         };
         Relationships: [];
       };
