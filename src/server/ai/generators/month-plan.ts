@@ -3,32 +3,47 @@ import { z } from "zod";
 import type { AiRequest } from "../client";
 import { GenerationContextSchema, type GenerationContext } from "../schemas";
 import { PlanOutputSchema } from "../../../lib/schemas/planning";
-import { PillarSchema, type Pillar } from "../../../lib/schemas/content";
 import {
   isMonthWithinHorizon,
+  requiredPillars,
   validatePlanningRules,
+  type PlannablePillar,
   type PlanningFilters,
 } from "../../../lib/utils/planning-rules";
 import { monthBounds } from "../../../lib/utils/dates";
 import { AiOutputError } from "../validation";
-import { instructionMessages, versionedPrompt } from "../prompts";
+import {
+  instructionMessages,
+  pillarGuidanceMessages,
+  versionedPrompt,
+} from "../prompts";
 
-export const PLAN_PROMPT_VERSION = "month-plan-v1";
+export const PLAN_PROMPT_VERSION = "month-plan-v2";
 // A whole month is one non-streamed response, far larger than a single item.
 // The initial request plus its one repair must fit the 240s work budget.
 export const MONTH_PLAN_REQUEST_TIMEOUT_MS = 120000;
 
-function pillarRule(hasNews: boolean, pillars: readonly Pillar[]) {
-  if (PillarSchema.options.every((pillar) => pillars.includes(pillar)))
-    return hasNews
-      ? "Each of the ten pillars must appear at least twice. No pillar may repeat on adjacent dates."
-      : "Omit salesforce_news explicitly. Each of the other nine pillars must appear at least twice. No pillar may repeat on adjacent dates.";
-  const required = pillars.filter(
-    (pillar) => hasNews || pillar !== "salesforce_news",
-  );
-  return `Use only these pillars, each at least twice: ${JSON.stringify(required)}. Never use: ${JSON.stringify(
-    PillarSchema.options.filter((pillar) => !required.includes(pillar)),
-  )}. No pillar may repeat on adjacent dates.`;
+/** Catalogue pillar keys; news pillars only when news exists. Purposes and
+ * guidance are admin text, sent separately as subordinate reference data. */
+export function pillarRule(
+  hasNews: boolean,
+  pillars: readonly PlannablePillar[],
+) {
+  const required = requiredPillars(pillars, hasNews);
+  const omitted = pillars.filter((pillar) => !required.includes(pillar));
+  return [
+    `Use only these pillar keys, each at least twice: ${JSON.stringify(
+      required.map((pillar) => pillar.key),
+    )}.`,
+    omitted.length
+      ? `No verified news is available, so never use: ${JSON.stringify(
+          omitted.map((pillar) => pillar.key),
+        )}.`
+      : "",
+    "No pillar may repeat on adjacent dates.",
+  ]
+    .filter(Boolean)
+    .join(" ");
 }
 
 export async function generateMonthPlan(
@@ -91,6 +106,9 @@ export async function generateMonthPlan(
           `JSON schema: ${JSON.stringify(z.toJSONSchema(PlanOutputSchema))}`,
         ].join("\n"),
       },
+      ...pillarGuidanceMessages(
+        requiredPillars(input.filters.pillars, context.news.length > 0),
+      ),
       ...instructionMessages(context.instructions),
     ],
   };

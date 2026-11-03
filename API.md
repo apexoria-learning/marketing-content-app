@@ -263,7 +263,7 @@ reported on sign-in without claiming the remote session was revoked.
 | Strict objects | Unknown keys are **rejected**, not stripped — an unexpected field signals a client/server mismatch worth surfacing in development |
 | Explicit field picking | Validated objects are never spread into a database write |
 | Trim and bound | All free text is trimmed; every string field has a maximum length |
-| Enum coercion | `format`, `pillar`, `status` validate against the enums in `DATABASE.md` §4; `platform` validates as a catalogue key and the database foreign key/trigger decide whether it exists and is usable |
+| Enum coercion | `format`, `status` validate against the enums in `DATABASE.md` §4; `platform` and `pillar` validate as catalogue keys and the database foreign keys/triggers decide whether they exist and are usable |
 | Date validation | Dates parse as calendar dates in IST, then convert to UTC for storage |
 | Null vs absent | Absent means "do not change"; explicit `null` means "clear" |
 
@@ -406,9 +406,10 @@ successful plan the control is disabled ("Month planned") and cannot resubmit.
 **Owner-approved planning refinements (2026-11-01):** recent-idea similarity
 uses Unicode-normalized, case/punctuation-insensitive word-set Jaccard ≥0.70,
 including exact normalized matches. When verified news is unavailable, omit
-`salesforce_news` explicitly and require the other nine pillars at least twice;
-return/display the omission rather than inventing news. With sources present,
-all ten pillars remain required. `commit_month_plan` (migration `0012`) inserts
+every `requires_news` pillar explicitly (seeded: `salesforce_news`) and require
+the other enabled pillars at least twice; return/display the omission rather
+than inventing news. With sources present, every enabled catalogue pillar is
+required (`DATABASE.md` §5.14). `commit_month_plan` (migration `0012`) inserts
 the parent and all children in one RLS-constrained transaction; date coverage
 and child constraints reject incomplete plans without leaving a parent behind.
 
@@ -460,6 +461,7 @@ Writes a cookie only. No database access, no AI, no rate limit.
 | `updateAppSettings` | ✅ | ✅ + **admin** | — | — | app_settings |
 | `saveEditorialInstructions` | ✅ | ✅ + **admin** | — | — | prompt_instructions |
 | `savePlatform` / `reorderPlatform` | ✅ | ✅ + **admin** | — | — | platforms, platform_formats |
+| `savePillar` / `reorderPillar` | ✅ | ✅ + **admin** | — | — | pillars |
 
 ### 5.5 Admin (`US-17`)
 
@@ -470,10 +472,12 @@ Defined in `server/actions/admin.ts`, all via `runAdminAction` (§4.2). Each del
 | `grantUserAccess` | `email`, `role` (`member`\|`admin`), `can_generate` | `{ email, status: "granted" \| "updated" }` | Creates or reactivates a row |
 | `updateUserAccess` | `email` + at least one of `role`, `is_active`, `can_generate` | `{ email }` | A legacy `ALLOWED_EMAILS` entry gets its first row here, so a revoke beats the env list. Unknown people → `VALIDATION` "Grant access first" |
 | `importAllowlist` | `{}` | `{ imported }` | Inserts missing `ALLOWED_EMAILS` entries (owners excluded) as members; existing rows untouched |
-| `updateAppSettings` | Any subset of the `app_settings` overrides; `null` restores the env default | `{ updated_at }` | Revalidates every route (generation controls change) |
+| `updateAppSettings` | Any subset of the `app_settings` overrides (limits, AI switch, model, gateway, plan day, horizon, news feeds); `null` restores the env default. Platform and pillar enablement are catalogue fields, not settings | `{ updated_at }` | Revalidates every route (generation controls change) |
 | `saveEditorialInstructions` | `scope`, `instructions` (≤ 2,000; empty clears) | `{ version, changed }` | Appends a version only when the text differs |
 | `savePlatform` | `mode` (`create`\|`update`), `platform` { `key` (permanent), `label`, `is_enabled`, `colour_slot` 1–8, `icon` (from the icon set), `formats` ≥ 1, `allows_hashtags`, `max_hashtags` 0–30, `caption_max_chars` 50–10000 or null, `tone` ≤ 2,000, `guidance` ≤ 1,000 } | `{ key, status }` | Atomic via `save_platform`. Duplicate key, unknown platform, or a result with fewer than two enabled platform/format pairs → `VALIDATION`. Revalidates every route |
 | `reorderPlatform` | `key`, `direction` (`up`\|`down`) | `{ key }` | Swaps with the neighbour and renumbers `sort_order`; no-op at the edge |
+| `savePillar` | `mode` (`create`\|`update`), `pillar` { `key` (permanent), `label` ≤ 30, `description` 1–300, `guidance` ≤ 1,000, `requires_news`, `is_enabled` } | `{ key, status }` | Atomic via `save_pillar` (`US-19`). Duplicate key, unknown pillar, fewer than three enabled pillars that do not need news, or more than fourteen enabled → `VALIDATION`. Revalidates every route |
+| `reorderPillar` | `key`, `direction` (`up`\|`down`) | `{ key }` | As `reorderPlatform` |
 
 Guards (`VALIDATION`, user-safe message, nothing changed): `ADMIN_EMAILS` owners cannot be changed from the panel, and an admin cannot change their own access. Revocation needs no session purge: every page, action and middleware request re-reads the access row.
 
@@ -489,7 +493,7 @@ Reads happen in Server Components (§1.2). The contract is the URL.
 |---|---|---|---|
 | `/calendar` | `month` | `YYYY-MM` | current month (IST) |
 | | `platform` | a catalogue key (`^[a-z][a-z0-9_]{1,29}$`, `DATABASE.md` §5.12) | all |
-| | `pillar` | one of ten (`DATABASE.md` §4) | all |
+| | `pillar` | a catalogue pillar key (`DATABASE.md` §5.14); unknown keys match nothing | all |
 | | `status` | `idea` \| `ready` \| `posted` \| `skipped` | all |
 | `/create` | `format` | `carousel` \| `reel` \| `post` \| `story` \| `meme` \| `poll` | all |
 | | `platform` | as above | all |

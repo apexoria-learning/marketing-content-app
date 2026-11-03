@@ -17,7 +17,7 @@ export async function generateContent(
   signal?: AbortSignal,
 ) {
   const context = GenerationContextSchema.parse(input);
-  if (context.pillar === "salesforce_news" && !context.news.length) {
+  if (context.pillar_rules.requires_news && !context.news.length) {
     console.error("News generation refused without grounding.");
     throw new AiOutputError(["No news sources are available."]);
   }

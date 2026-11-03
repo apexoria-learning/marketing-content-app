@@ -75,15 +75,21 @@ const fixture = {
 describe("domain schemas and plain-text rendering", () => {
   it("matches all generated enum unions", () => {
     expectTypeOf<ContentFormat>().toEqualTypeOf<Enums<"content_format">>();
-    expectTypeOf<Pillar>().toEqualTypeOf<Enums<"content_pillar">>();
     expect(FormatSchema.options).toHaveLength(6);
-    expect(PillarSchema.options).toHaveLength(10);
   });
-  it("accepts any well-formed catalogue platform key and nothing else", () => {
-    for (const key of ["instagram", "youtube_shorts", "x2"])
-      expect(PlatformSchema.safeParse(key).success).toBe(true);
-    for (const key of ["Instagram", "x", "1abc", "<script>", "a-b", ""])
-      expect(PlatformSchema.safeParse(key).success).toBe(false);
+  it("accepts any well-formed catalogue platform or pillar key and nothing else", () => {
+    expectTypeOf<Pillar>().toEqualTypeOf<string>();
+    for (const schema of [PlatformSchema, PillarSchema]) {
+      for (const key of [
+        "instagram",
+        "youtube_shorts",
+        "x2",
+        "salesforce_news",
+      ])
+        expect(schema.safeParse(key).success).toBe(true);
+      for (const key of ["Instagram", "x", "1abc", "<script>", "a-b", ""])
+        expect(schema.safeParse(key).success).toBe(false);
+    }
   });
   it.each([
     {
@@ -235,7 +241,7 @@ describe("IST dates and validated URL defaults", () => {
       format: ["post"],
       scope: "injected",
       status: "unknown",
-      pillar: "unknown",
+      pillar: "News; drop table",
     });
     expect(result).toEqual({
       month: todayInIst().slice(0, 7),

@@ -3,13 +3,13 @@ import { PageHeader } from "@/components/shell/PageHeader";
 import { EmptyState } from "@/components/feedback/States";
 import { ContentCard } from "@/components/content/ContentCard";
 import { ActivityList } from "@/components/content/ActivityList";
-import { PILLAR_LABELS } from "@/components/content/PillarChip";
-import { PillarSchema, ContentPreviewSchema } from "@/lib/schemas/content";
+import { ContentPreviewSchema } from "@/lib/schemas/content";
 import { ReadFilters } from "@/features/content/ReadFilters";
 import { ScopeControl } from "@/features/content/ScopeControl";
 import { TrackedTick } from "@/features/content/TrackedTick";
 import { parseReadParams } from "@/lib/schemas/read-params";
 import { getActivity, getArchive } from "@/server/db/queries";
+import { getPillarDisplays } from "@/server/services/pillar-display";
 import { getPlatformDisplays } from "@/server/services/platform-display";
 
 export const metadata: Metadata = { title: "Archive" };
@@ -21,11 +21,15 @@ export default async function ArchivePage({
 }) {
   const raw = await searchParams;
   const params = parseReadParams(raw);
-  const platforms = await getPlatformDisplays();
+  const [platforms, pillars] = await Promise.all([
+    getPlatformDisplays(),
+    getPillarDisplays(),
+  ]);
   const { items, summary, nextCursor } = await getArchive(
     params,
     raw.cursor,
     platforms.map((platform) => platform.key),
+    pillars.map((pillar) => pillar.key),
   );
   const activity = await getActivity(items.map((item) => item.id));
   const next = new URLSearchParams({ scope: params.scope });
@@ -37,7 +41,12 @@ export default async function ArchivePage({
     <>
       <PageHeader title="Archive" />
       <ScopeControl params={params} mode="archive" />
-      <ReadFilters path="/archive" params={params} platforms={platforms} />
+      <ReadFilters
+        path="/archive"
+        params={params}
+        platforms={platforms}
+        pillars={pillars}
+      />
       <section aria-label="Archive summary" className="my-8 space-y-3">
         <h2 className="font-display text-h2 font-semibold">
           {summary.total} posted in this scope
@@ -55,10 +64,10 @@ export default async function ArchivePage({
             Counts by pillar
           </summary>
           <dl className="space-y-2 text-sm text-secondary">
-            {PillarSchema.options.map((pillar) => (
-              <div key={pillar} className="flex gap-2">
-                <dt>{PILLAR_LABELS[pillar]}</dt>
-                <dd>{summary.pillars[pillar]}</dd>
+            {pillars.map((pillar) => (
+              <div key={pillar.key} className="flex gap-2">
+                <dt>{pillar.label}</dt>
+                <dd>{summary.pillars[pillar.key] ?? 0}</dd>
               </div>
             ))}
           </dl>

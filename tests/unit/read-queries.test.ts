@@ -190,10 +190,16 @@ describe("archive query contracts", () => {
         return builder;
       },
     });
-    // One head-only count per catalogue platform key, as the page passes them.
+    // One head-only count per catalogue platform and pillar key, as the page
+    // passes them: 1 total + 3 platforms + 4 pillars + 1 page.
     const keys = ["instagram", "linkedin", "whatsapp"];
-    await getArchive(parseReadParams({ scope: "all" }), "bad", keys);
-    expect(calls).toHaveLength(15);
+    const pillars = ["salesforce_tips", "memes", "python_tips", "py_jobs"];
+    await getArchive(parseReadParams({ scope: "all" }), "bad", keys, pillars);
+    expect(calls).toHaveLength(9);
+    expect(calls[6]).toContainEqual({
+      name: "eq",
+      args: ["pillar", "python_tips"],
+    });
     const page = calls.at(-1);
     expect(page).toContainEqual({ name: "select", args: ["*", {}] });
     expect(calls[0]).toContainEqual({
@@ -214,6 +220,7 @@ describe("archive query contracts", () => {
       parseReadParams({ scope: "all" }),
       Buffer.from(JSON.stringify(cursor)).toString("base64url"),
       keys,
+      pillars,
     );
     expect(calls.at(-1)).toContainEqual({
       name: "or",

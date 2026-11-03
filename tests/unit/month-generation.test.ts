@@ -16,19 +16,21 @@ vi.mock("../../src/server/db/settings", () => ({
     aiModel: "@test/model",
     aiBaseUrl: "https://gateway.example.test/v1",
     planningHorizonMonths: 2,
-    enabledPillars: ["memes", "salesforce_tips", "career_guidance"],
   }),
   getActiveInstructions: async () => null,
 }));
-vi.mock("../../src/server/services/planning-scope", () => ({
-  loadPlanningScope: async () => ({
-    filters: {
-      platforms: [{ key: "linkedin", formats: ["post", "poll"] }],
-      pillars: ["memes", "salesforce_tips", "career_guidance"],
-    },
-    anchor: { platform: "linkedin", format: "post" },
-  }),
-}));
+vi.mock("../../src/server/services/planning-scope", async () => {
+  const { pillarsWith } = await import("./support/pillars");
+  return {
+    loadPlanningScope: async () => ({
+      filters: {
+        platforms: [{ key: "linkedin", formats: ["post", "poll"] }],
+        pillars: pillarsWith(["memes", "salesforce_tips", "career_guidance"]),
+      },
+      anchor: { platform: "linkedin", format: "post", pillar: "memes" },
+    }),
+  };
+});
 vi.mock("../../src/server/db/client", () => ({
   createUserDatabaseClient: async () => ({
     from: (table: string) => ({
@@ -89,7 +91,11 @@ it("plans only with the catalogue platforms and pillars an admin enabled", async
     horizonMonths: 2,
     filters: {
       platforms: [{ key: "linkedin", formats: ["post", "poll"] }],
-      pillars: ["memes", "salesforce_tips", "career_guidance"],
+      pillars: [
+        expect.objectContaining({ key: "salesforce_tips" }),
+        expect.objectContaining({ key: "memes" }),
+        expect.objectContaining({ key: "career_guidance" }),
+      ],
     },
   });
 });

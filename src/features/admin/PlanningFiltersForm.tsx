@@ -2,31 +2,16 @@
 
 import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/Button";
-import { Chip } from "@/components/ui/Chip";
 import { Textarea } from "@/components/ui/Input";
-import { PILLAR_LABELS } from "@/components/content/PillarChip";
-import { PillarSchema, type Pillar } from "@/lib/schemas/content";
-import {
-  AppSettingsUpdateSchema,
-  MIN_TOPIC_PILLARS,
-} from "@/lib/schemas/admin";
+import { AppSettingsUpdateSchema } from "@/lib/schemas/admin";
 import { updateAppSettings } from "@/server/actions/admin";
 import { useAdminAction } from "./use-admin-action";
 
+// Platforms and pillars are managed in their catalogues (Admin → Platforms,
+// Admin → Pillars); this form keeps the news sources for news pillars.
 export type PlanningFilterValues = {
-  enabledPillars: Pillar[];
   newsFeedUrls: string[];
 };
-
-function toggle<T>(values: readonly T[], value: T): T[] {
-  return values.includes(value)
-    ? values.filter((entry) => entry !== value)
-    : [...values, value];
-}
-
-function sameSet<T>(a: readonly T[], b: readonly T[]) {
-  return a.length === b.length && a.every((value) => b.includes(value));
-}
 
 export function PlanningFiltersForm({
   effective,
@@ -35,7 +20,6 @@ export function PlanningFiltersForm({
   effective: PlanningFilterValues;
   isOverridden: boolean;
 }) {
-  const [pillars, setPillars] = useState(effective.enabledPillars);
   const [feeds, setFeeds] = useState(effective.newsFeedUrls.join("\n"));
   const [localErrors, setLocalErrors] = useState<Record<string, string>>({});
   const { pending, error, fields, run } = useAdminAction();
@@ -44,9 +28,6 @@ export function PlanningFiltersForm({
     .map((line) => line.trim())
     .filter(Boolean);
   const changes = {
-    ...(sameSet(pillars, effective.enabledPillars)
-      ? {}
-      : { enabled_pillars: pillars }),
     ...(feedList.join("\n") === effective.newsFeedUrls.join("\n")
       ? {}
       : { news_feed_urls: feedList }),
@@ -71,7 +52,7 @@ export function PlanningFiltersForm({
     setLocalErrors({});
     run(
       () => updateAppSettings(parsed.data),
-      () => "Filters saved. New plans use them.",
+      () => "News feeds saved.",
     );
   }
 
@@ -80,40 +61,14 @@ export function PlanningFiltersForm({
     run(
       () =>
         updateAppSettings({
-          enabled_pillars: null,
           news_feed_urls: null,
         }),
-      () => "Filters reset to the environment defaults.",
+      () => "News feeds reset to the environment defaults.",
     );
   }
 
   return (
     <form onSubmit={submit} className="space-y-8" noValidate>
-      <fieldset className="space-y-3" disabled={pending}>
-        <legend className="mb-3 text-eyebrow font-semibold tracking-eyebrow text-secondary uppercase">
-          Content pillars
-        </legend>
-        <div className="flex flex-wrap gap-2">
-          {PillarSchema.options.map((pillar) => (
-            <Chip
-              key={pillar}
-              selected={pillars.includes(pillar)}
-              onClick={() => setPillars((value) => toggle(value, pillar))}
-            >
-              {PILLAR_LABELS[pillar]}
-            </Chip>
-          ))}
-        </div>
-        <p className="text-caption text-secondary">
-          Keep at least {MIN_TOPIC_PILLARS} pillars besides News so the planner
-          can avoid repeating a pillar on consecutive days.
-        </p>
-        {errors.enabled_pillars ? (
-          <p role="alert" className="text-caption text-danger">
-            {errors.enabled_pillars}
-          </p>
-        ) : null}
-      </fieldset>
       <Textarea
         label="News feeds"
         value={feeds}
@@ -130,7 +85,7 @@ export function PlanningFiltersForm({
       ) : null}
       <div className="flex flex-wrap gap-3">
         <Button type="submit" loading={pending} disabled={!hasChanges}>
-          Save filters
+          Save news feeds
         </Button>
         {isOverridden ? (
           <Button variant="ghost" disabled={pending} onClick={resetToDefaults}>

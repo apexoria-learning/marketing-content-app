@@ -90,7 +90,7 @@ These were agreed during discovery and are **fixed** for v1.
 ## 6. Content model concepts
 
 ### 6.1 Content pillars
-Every piece of content belongs to exactly one pillar. The planner rotates across all ten and avoids repeating a pillar on consecutive days.
+Every piece of content belongs to exactly one pillar. The planner rotates across every enabled pillar and avoids repeating a pillar on consecutive days. Pillars are an admin-managed catalogue (`US-19`); the ten below are the seeded defaults, and `salesforce_news` is the seeded pillar that requires verified news sources.
 
 | Pillar | Intent | Typical formats |
 |---|---|---|
@@ -125,7 +125,7 @@ Every item, regardless of format, carries:
 - **Hashtags** — platform-appropriate set (Instagram: 8–15; LinkedIn: 3–5; WhatsApp: none)
 - **CTA** — the specific action the viewer should take
 - **Design brief** — objective, visual direction, colour/mood guidance, typography emphasis, layout notes, asset dimensions, text-safe areas, and explicit "must include" / "must avoid" notes
-- **Source references** — URLs backing any factual claim (required for `salesforce_news`)
+- **Source references** — URLs backing any factual claim (required for news pillars such as `salesforce_news`)
 - **Metadata** — date, platform, pillar, format, status
 
 ## 7. Core user journeys
@@ -192,7 +192,7 @@ Every item, regardless of format, carries:
 - AC1: Admins see the user base (with access, active in 7/30 days, signed in without access, revoked) and AI token usage for the last 30 days by person, day and type.
 - AC2: Admins can grant, revoke and restore access, set the Member/Admin role and turn AI generation on or off per person. Changes take effect on the person's next request.
 - AC3: Admins can save versioned editorial instructions for content, planning and daily-tip prompts; built-in factual, privacy and schema rules always take precedence.
-- AC4: Admins can limit planning to chosen platforms and pillars (at least one platform and three non-news pillars) and edit news feeds.
+- AC4: Admins can edit news feeds. Which platforms and pillars new plans use is managed in their catalogues (`US-18`, `US-19`).
 - AC5: Admins can override AI generation on/off, daily limits, planning day/horizon, model alias and gateway URL; clearing an override restores the environment value. The gateway API key is never shown or editable.
 - AC6: Owners in `ADMIN_EMAILS` cannot be changed from the panel, and no admin can change their own access.
 
@@ -201,6 +201,12 @@ Every item, regardless of format, carries:
 - AC2: Admins can edit, reorder and retire platforms. Retired platforms receive no new plans but their existing content keeps showing correctly; platforms are never deleted.
 - AC3: Badges, filters, calendar legend, archive counts, planning and generation rules all come from the catalogue; nothing lists platforms in code.
 - AC4: The app refuses changes that would leave fewer than two enabled platform/format combinations, because months could no longer be planned.
+
+**US-19** — As the owner, I want to add and manage content pillars from the admin panel, so that the content mix can match another business or industry without a code change.
+- AC1: Admins can add a pillar with a permanent key, short name, purpose (used by the AI planner), optional AI guidance and a "needs verified news" flag.
+- AC2: Admins can edit, reorder and retire pillars. Retired pillars receive no new plans but their existing content keeps showing correctly; pillars are never deleted.
+- AC3: Chips, filters, archive counts, planning and generation rules all come from the catalogue; nothing lists pillars in code, and any pillar flagged as needing news must cite a supplied source.
+- AC4: The app refuses changes that would leave fewer than three enabled pillars that do not need news, or more than fourteen enabled pillars, because months could no longer be planned.
 
 ### Today's Plan
 
@@ -261,7 +267,7 @@ Every item, regardless of format, carries:
 - AC4: Regeneration count is tracked and rate-limited per user per day.
 
 **US-12** — As a founder, I want news-based content to be factual, so that I keep credibility with a technical audience.
-- AC1: `salesforce_news` items must carry at least one source URL.
+- AC1: News-pillar items (seeded: `salesforce_news`) must carry at least one source URL.
 - AC2: Source URLs are drawn from ingested feed items, not invented by the model.
 - AC3: Source links are visible and tappable in the item detail view.
 
@@ -431,7 +437,7 @@ Every item, regardless of format, carries:
 | S6 | Item detail | `/item/[id]` | Everything about one piece | Hook, caption block, slides/script, hashtags, CTA, design brief, sources, copy actions, regenerate, posted toggle |
 | S7 | **Archive** | `/archive` | History and review | Month filter, platform/pillar/format filters, counts, posted list with notes |
 | S8 | Settings | `/settings` | Configuration | Brand profile editor, manual month generation, generation run log, install hint, theme, sign out |
-| S9 | Admin | `/admin` (+ `/users`, `/platforms`, `/prompts`, `/filters`, `/settings`) | Owner controls (`US-17`, `US-18`) | Usage and user-base overview, access management, platform catalogue, editorial instructions, planning filters, runtime settings |
+| S9 | Admin | `/admin` (+ `/users`, `/platforms`, `/pillars`, `/prompts`, `/filters`, `/settings`) | Owner controls (`US-17`–`US-19`) | Usage and user-base overview, access management, platform and pillar catalogues, editorial instructions, news feeds, runtime settings |
 
 Bottom navigation exposes S3, S4, S5, S7. Settings is reached from the header. Admin is reached from the Today header and shown only to admins. Item detail is reached from S3, S4, S5 and S7.
 

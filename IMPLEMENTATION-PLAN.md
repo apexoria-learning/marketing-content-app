@@ -290,10 +290,21 @@ with the two-step push (migration commit → apply → app commit):
    identical to before. Validated against disposable local PostgreSQL 17 (110
    database tests) plus 617 total tests, typecheck, lint and production build;
    generated types hand-written to match the generator, pending CI drift check.
-   Not yet committed or deployed; requires `0015` applied first.
-2. **Pillar catalogue — not started.** Same pattern for the ten pillars, with a
-   "requires news sources" flag replacing `salesforce_news` special cases and a
-   feasibility check of enabled pillars against monthly slots.
+   Committed and pushed (`af88ead` migration, `21b6027` app); requires `0015`
+   applied first.
+2. **Pillar catalogue — built 2026-11-03 (`US-19`, migration `0017`).**
+   Admin-managed pillars (key, short label, purpose, AI guidance, "needs news"
+   flag, enable/retire, order) replace the enum, every `salesforce_news` special
+   case (planner, generator, validator, item page, database check) and the UI
+   label constants. The Filters page now holds only news feeds (relabelled
+   *News*). Plannability: ≥ 3 enabled pillars that do not need news, ≤ 14
+   enabled. Prompts now carry each pillar's purpose (`content-v2`,
+   `month-plan-v2`, `day-plan-v2`). Seeded data is identical to before.
+   Validated against disposable local PostgreSQL 17 (121 database tests) plus
+   658 total tests, typecheck, lint and production build; generated types
+   hand-written to match the generator, pending CI drift check. Migration
+   `46a1bdf` applied to the shared database 2026-11-04 (after `0016`); app
+   change committed and deployed after it.
 3. **Industry-neutral business profile — not started.** Generic profile
    (industry, offerings with a configurable label, audience, offers, do/don't,
    links, time zone, language), an Admin → Business page (supersedes the

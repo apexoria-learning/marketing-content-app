@@ -22,6 +22,8 @@ import { TrackedTick } from "@/features/content/TrackedTick";
 import { ItemActions } from "@/features/content/ItemActions";
 import { GenerationControl } from "@/features/content/GenerationControl";
 import { getViewerCapabilities } from "@/server/services/viewer-capabilities";
+import { getPillarDisplays } from "@/server/services/pillar-display";
+import { pillarDisplayFor } from "@/lib/schemas/pillars";
 import { displayDate, displayTimestamp } from "@/lib/utils/dates";
 import { hasHydratedContent } from "@/lib/utils/status";
 import { getActivity, getItem, withPosterNames } from "@/server/db/queries";
@@ -43,6 +45,7 @@ export default async function ItemPage({
   const postedByName =
     (await withPosterNames([item]))[0]?.posted_by_name ?? null;
   const { canGenerate } = await getViewerCapabilities();
+  const pillar = pillarDisplayFor(await getPillarDisplays(), item.pillar);
   return (
     <>
       <PageHeader
@@ -127,10 +130,7 @@ export default async function ItemPage({
         ) : null}
         {item.cta ? <CopyBlock label="Call to action" text={item.cta} /> : null}
         {item.design_brief ? <BriefSection brief={item.design_brief} /> : null}
-        <SourceList
-          sources={item.source_refs}
-          isNews={item.pillar === "salesforce_news"}
-        />
+        <SourceList sources={item.source_refs} isNews={pillar.requires_news} />
         <ItemActions
           item={ItemControlsSchema.parse({
             ...item,

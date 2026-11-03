@@ -21,12 +21,16 @@ import { loadGenerationContext } from "./generation-context";
 import { gatewayConfiguration } from "./gateway-configuration";
 import { loadPlanningScope } from "./planning-scope";
 import { generateItem } from "./item-generation";
-import { generateDayPlan } from "../ai/generators/day-plan";
+import {
+  DAY_PLAN_PROMPT_VERSION,
+  generateDayPlan,
+} from "../ai/generators/day-plan";
 import { ActionFailure } from "./service-error";
 import { isMonthWithinHorizon } from "../../lib/utils/planning-rules";
 import {
   CONTENT_GENERATION_BUDGET_MS,
   CONTENT_REQUEST_TIMEOUT_MS,
+  PROMPT_VERSION,
 } from "../ai/prompts";
 
 export async function getHydrationAllowance(
@@ -93,7 +97,7 @@ export async function generateContentItemWithClient(
           kind: regenerate ? "item_regeneration" : "item_hydration",
           content_item_id: itemId,
           model: config.aiModel,
-          prompt_version: "content-v1",
+          prompt_version: PROMPT_VERSION,
         },
         null,
       ),
@@ -141,10 +145,10 @@ export async function generateDay(date: string, count: number) {
   if (error) throw error;
   if (z.number().int().nonnegative().parse(existing) + count > 2)
     throw new ActionFailure("VALIDATION", "This day has no remaining slots.");
-  const { filters, anchor } = await loadPlanningScope(config);
+  const { filters, anchor } = await loadPlanningScope();
   const context = await loadGenerationContext(
     client,
-    { ...anchor, pillar: "salesforce_tips", idea: `Plan content for ${date}` },
+    { ...anchor, idea: `Plan content for ${date}` },
     today,
     undefined,
     (await getActiveInstructions(client, "planning")) ?? undefined,
@@ -156,7 +160,7 @@ export async function generateDay(date: string, count: number) {
       kind: "month_skeleton",
       target_month: `${date.slice(0, 7)}-01`,
       model: config.aiModel,
-      prompt_version: "day-plan-v1",
+      prompt_version: DAY_PLAN_PROMPT_VERSION,
     },
     null,
   );

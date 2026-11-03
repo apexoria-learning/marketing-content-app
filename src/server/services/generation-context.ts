@@ -35,31 +35,48 @@ export async function loadGenerationContext(
   steer?: string,
   instructions?: GenerationContext["instructions"],
 ) {
-  const [brandResult, platformResult, newsResult, recentResult, historyResult] =
-    await Promise.all([
-      client.from("brand_profile").select("*").eq("id", 1).single(),
-      client
-        .from("platforms")
-        .select(
-          "label,allows_hashtags,max_hashtags,caption_max_chars,guidance,tone",
-        )
-        .eq("key", slot.platform)
-        .maybeSingle(),
-      client
-        .from("news_items")
-        .select("title,url,source,summary")
-        .order("published_at", { ascending: false, nullsFirst: false })
-        .limit(20),
-      loadRecentIdeas(client, today),
-      client
-        .from("content_items")
-        .select("pillar")
-        .gte("scheduled_date", shiftDate(today, -60))
-        .lt("scheduled_date", today)
-        .order("scheduled_date", { ascending: false })
-        .limit(120),
-    ]);
-  for (const result of [brandResult, platformResult, newsResult, historyResult])
+  const [
+    brandResult,
+    platformResult,
+    pillarResult,
+    newsResult,
+    recentResult,
+    historyResult,
+  ] = await Promise.all([
+    client.from("brand_profile").select("*").eq("id", 1).single(),
+    client
+      .from("platforms")
+      .select(
+        "label,allows_hashtags,max_hashtags,caption_max_chars,guidance,tone",
+      )
+      .eq("key", slot.platform)
+      .maybeSingle(),
+    client
+      .from("pillars")
+      .select("label,description,guidance,requires_news")
+      .eq("key", slot.pillar)
+      .maybeSingle(),
+    client
+      .from("news_items")
+      .select("title,url,source,summary")
+      .order("published_at", { ascending: false, nullsFirst: false })
+      .limit(20),
+    loadRecentIdeas(client, today),
+    client
+      .from("content_items")
+      .select("pillar")
+      .gte("scheduled_date", shiftDate(today, -60))
+      .lt("scheduled_date", today)
+      .order("scheduled_date", { ascending: false })
+      .limit(120),
+  ]);
+  for (const result of [
+    brandResult,
+    platformResult,
+    pillarResult,
+    newsResult,
+    historyResult,
+  ])
     if (result.error) throw result.error;
   const brand = z
     .object({
@@ -78,6 +95,12 @@ export async function loadGenerationContext(
       "VALIDATION",
       "Platform is not in the catalogue.",
       "This platform no longer exists. Nothing was changed.",
+    );
+  if (!pillarResult.data)
+    throw new ActionFailure(
+      "VALIDATION",
+      "Pillar is not in the catalogue.",
+      "This pillar no longer exists. Nothing was changed.",
     );
   const { tone, ...platformRules } = platformResult.data;
   return GenerationContextSchema.parse({
@@ -100,6 +123,7 @@ export async function loadGenerationContext(
       links: brand.links,
     },
     platform_rules: platformRules,
+    pillar_rules: pillarResult.data,
     news: newsResult.data,
     recent_ideas: recentResult,
     pillar_history: z

@@ -16,8 +16,10 @@ import {
 import {
   grantAccess,
   importEnvironmentAllowlist,
+  movePillar,
   movePlatform,
   saveInstructions,
+  savePillarEntry,
   savePlatformEntry,
   updateAccess,
   updateSettings,
@@ -28,13 +30,19 @@ import {
   type MovePlatformInput,
   type SavePlatformInput,
 } from "../../lib/schemas/platforms";
+import {
+  MovePillarInputSchema,
+  SavePillarInputSchema,
+  type MovePillarInput,
+  type SavePillarInput,
+} from "../../lib/schemas/pillars";
 import { runAdminAction } from "./run-action";
 
 function revalidateAdmin(): void {
   revalidatePath("/admin", "layout");
 }
 
-// Runtime settings and the platform catalogue change every screen.
+// Runtime settings and the platform/pillar catalogues change every screen.
 function revalidateEverything(): void {
   revalidatePath("/", "layout");
 }
@@ -53,6 +61,24 @@ export async function reorderPlatform(input: MovePlatformInput) {
     input,
     MovePlatformInputSchema,
     (value, admin) => movePlatform(admin, value),
+    revalidateEverything,
+  );
+}
+
+export async function savePillar(input: SavePillarInput) {
+  return runAdminAction(
+    input,
+    SavePillarInputSchema,
+    (value, admin) => savePillarEntry(admin, value),
+    revalidateEverything,
+  );
+}
+
+export async function reorderPillar(input: MovePillarInput) {
+  return runAdminAction(
+    input,
+    MovePillarInputSchema,
+    (value, admin) => movePillar(admin, value),
     revalidateEverything,
   );
 }

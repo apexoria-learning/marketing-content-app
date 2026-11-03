@@ -1,8 +1,5 @@
-import {
-  PillarSchema,
-  type ContentFormat,
-  type Pillar,
-} from "../schemas/content";
+import type { ContentFormat } from "../schemas/content";
+import type { PillarRules } from "../schemas/pillars";
 import {
   PlanMonthInputSchema,
   PlanOutputSchema,
@@ -16,14 +13,38 @@ export type PlannablePlatform = {
   formats: readonly ContentFormat[];
 };
 
-/** Enabled platforms (catalogue) and pillars (DATABASE.md §5.10). */
+/** An enabled catalogue pillar and the rules planning needs (§5.14). */
+export type PlannablePillar = PillarRules & { key: string };
+
+/** Enabled catalogue platforms and pillars, in catalogue order. */
 export type PlanningFilters = {
   platforms: readonly PlannablePlatform[];
-  pillars: readonly Pillar[];
+  pillars: readonly PlannablePillar[];
 };
 
 function platformOf(key: string, filters: PlanningFilters) {
   return filters.platforms.find((platform) => platform.key === key);
+}
+
+function pillarOf(key: string, filters: PlanningFilters) {
+  return filters.pillars.find((pillar) => pillar.key === key);
+}
+
+/** News pillars cannot be planned without verified news (FR-3.5). */
+export function needsUnavailableNews(
+  pillar: string,
+  filters: PlanningFilters,
+  hasNews: boolean,
+) {
+  return !hasNews && pillarOf(pillar, filters)?.requires_news === true;
+}
+
+/** The enabled pillars a plan must cover, given news availability. */
+export function requiredPillars(
+  pillars: readonly PlannablePillar[],
+  hasNews: boolean,
+) {
+  return pillars.filter((pillar) => hasNews || !pillar.requires_news);
 }
 
 export function isCompatiblePlannedSlot(
@@ -41,7 +62,7 @@ export function isSlotAllowedByFilters(
 ) {
   return (
     platformOf(item.platform, filters) !== undefined &&
-    filters.pillars.includes(item.pillar)
+    pillarOf(item.pillar, filters) !== undefined
   );
 }
 
@@ -101,7 +122,9 @@ export function validatePlanningRules(
   );
   const violations: string[] = [];
   const byDate = new Map<string, PlannedSlot[]>();
-  const counts = new Map(PillarSchema.options.map((pillar) => [pillar, 0]));
+  const counts = new Map(
+    requiredPillars(filters.pillars, hasNews).map((pillar) => [pillar.key, 0]),
+  );
   const keys = new Set<string>();
   const { start, end } = monthBounds(month);
   for (const item of items) {
@@ -115,7 +138,8 @@ export function validatePlanningRules(
     const day = byDate.get(item.scheduled_date) ?? [];
     day.push(item);
     byDate.set(item.scheduled_date, day);
-    counts.set(item.pillar, (counts.get(item.pillar) ?? 0) + 1);
+    if (counts.has(item.pillar))
+      counts.set(item.pillar, (counts.get(item.pillar) ?? 0) + 1);
     if (!platformOf(item.platform, filters))
       violations.push(
         `platform: ${item.platform} is disabled on ${item.scheduled_date}`,
@@ -128,9 +152,9 @@ export function validatePlanningRules(
       violations.push(
         `idea: near-duplicate of a recent post on ${item.scheduled_date}`,
       );
-    if (!hasNews && item.pillar === "salesforce_news")
+    if (needsUnavailableNews(item.pillar, filters, hasNews))
       violations.push(`pillar: news is unavailable on ${item.scheduled_date}`);
-    if (!filters.pillars.includes(item.pillar))
+    if (!pillarOf(item.pillar, filters))
       violations.push(
         `pillar: ${item.pillar} is disabled on ${item.scheduled_date}`,
       );
@@ -157,8 +181,6 @@ export function validatePlanningRules(
       violations.push(`format: consecutive day repeat on ${date}`);
   }
   for (const [pillar, count] of counts) {
-    if (!hasNews && pillar === "salesforce_news") continue;
-    if (!filters.pillars.includes(pillar)) continue;
     if (count < 2)
       violations.push(`pillar: ${pillar} must appear at least twice`);
   }

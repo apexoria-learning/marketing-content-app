@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import type { ContentItem } from "@/lib/schemas/content";
 import { displayDate } from "@/lib/utils/dates";
 import { PlatformName } from "./PlatformBadge";
-import { PILLAR_LABELS } from "./PillarChip";
+import { PillarName } from "./PillarChip";
 import { Icon } from "../ui/Icon";
 import { cx } from "@/lib/utils/cx";
 export function QueueRow({
@@ -42,7 +42,7 @@ export function QueueRow({
         >
           {displayDate(item.scheduled_date)} ·{" "}
           <PlatformName platform={item.platform} /> ·{" "}
-          {PILLAR_LABELS[item.pillar]}
+          <PillarName pillar={item.pillar} />
           {overdue ? " · Overdue" : ""}
         </p>
       </Link>

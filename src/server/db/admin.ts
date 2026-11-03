@@ -20,8 +20,10 @@ import type {
   PlatformInput,
   PlatformRecord,
 } from "../../lib/schemas/platforms";
+import type { PillarInput, PillarRecord } from "../../lib/schemas/pillars";
 import { env } from "../config/env";
 import type { Database, TablesUpdate } from "./database.types";
+import { loadPillarCatalogue } from "./pillars";
 import { loadPlatformCatalogue } from "./platforms";
 
 // Approved, scoped service_role use (ARCHITECTURE.md §6.3): callers are admin
@@ -196,7 +198,8 @@ export async function updateSettingsOverrides(
   const client = createAdminServiceRoleClient();
   const update: TablesUpdate<"app_settings"> = { updated_by: actorEmail };
   // Fields are picked explicitly; a validated object is never spread into a
-  // write (API.md §2.4). Platform enablement lives in the catalogue (§5.12).
+  // write (API.md §2.4). Platform and pillar enablement live in their
+  // catalogues (§5.12, §5.14).
   for (const field of [
     "ai_generation_enabled",
     "regen_daily_limit",
@@ -206,7 +209,6 @@ export async function updateSettingsOverrides(
     "ai_model",
     "ai_base_url",
     "news_feed_urls",
-    "enabled_pillars",
   ] as const) {
     const value = changes[field];
     if (value !== undefined) Object.assign(update, { [field]: value });
@@ -340,6 +342,46 @@ export async function setPlatformSortOrder(
   const client = createAdminServiceRoleClient();
   const { error } = await client
     .from("platforms")
+    .update({ sort_order: sortOrder, updated_by: actorEmail })
+    .eq("key", key);
+  if (error) throw error;
+}
+
+export async function listPillars(): Promise<PillarRecord[]> {
+  return loadPillarCatalogue(createAdminServiceRoleClient());
+}
+
+/** Writes the pillar and re-checks plannability in one transaction (0017). */
+export async function savePillar(
+  pillar: PillarInput,
+  create: boolean,
+  actorEmail: string,
+): Promise<{ key: string }> {
+  const client = createAdminServiceRoleClient();
+  const { data, error } = await client.rpc("save_pillar", {
+    p_pillar: {
+      key: pillar.key,
+      label: pillar.label,
+      description: pillar.description,
+      guidance: pillar.guidance,
+      requires_news: pillar.requires_news,
+      is_enabled: pillar.is_enabled,
+    },
+    p_create: create,
+    p_actor: actorEmail,
+  });
+  if (error) throw error;
+  return z.object({ key: z.string() }).parse(data);
+}
+
+export async function setPillarSortOrder(
+  key: string,
+  sortOrder: number,
+  actorEmail: string,
+): Promise<void> {
+  const client = createAdminServiceRoleClient();
+  const { error } = await client
+    .from("pillars")
     .update({ sort_order: sortOrder, updated_by: actorEmail })
     .eq("key", key);
   if (error) throw error;

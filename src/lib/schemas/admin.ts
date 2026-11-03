@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { PillarSchema } from "./content";
 
 // Admin panel contracts (API.md §5.5). Single definition for both the
 // client-side pre-check and the server action.
@@ -89,23 +88,8 @@ export const FeedUrlSchema = z
     return url.protocol === "https:" && !url.username && !url.password;
   }, "Feeds must be HTTPS addresses without credentials.");
 
-// News can be omitted when feeds are empty, so three other pillars must remain
-// for the no-adjacent-repeat planning rule (ARCHITECTURE.md §4.4).
-export const MIN_TOPIC_PILLARS = 3;
-
 const isUnique = (values: readonly string[]) =>
   new Set(values).size === values.length;
-
-export const EnabledPillarsSchema = z
-  .array(PillarSchema)
-  .max(PillarSchema.options.length)
-  .refine(isUnique, "Each pillar may appear once.")
-  .refine(
-    (pillars) =>
-      pillars.filter((pillar) => pillar !== "salesforce_news").length >=
-      MIN_TOPIC_PILLARS,
-    `Keep at least ${MIN_TOPIC_PILLARS} pillars other than News.`,
-  );
 
 export const AppSettingsUpdateSchema = z
   .object({
@@ -134,7 +118,6 @@ export const AppSettingsUpdateSchema = z
       .refine(isUnique, "Each feed may appear once.")
       .nullable()
       .optional(),
-    enabled_pillars: EnabledPillarsSchema.nullable().optional(),
   })
   .strict()
   .refine(
@@ -152,7 +135,6 @@ export const AppSettingsRowSchema = z.object({
   ai_model: z.string().nullable(),
   ai_base_url: z.string().nullable(),
   news_feed_urls: z.array(z.string()).nullable(),
-  enabled_pillars: z.array(PillarSchema).nullable(),
   updated_at: z.string(),
   updated_by: z.string().nullable(),
 });

@@ -66,7 +66,7 @@ export function validateGeneratedContent(
       ? [{ title: source.title, source: source.source, url: source.url }]
       : [];
   });
-  if (context.pillar === "salesforce_news" && !content.source_refs.length)
+  if (context.pillar_rules.requires_news && !content.source_refs.length)
     issues.push("source_refs: news content requires a supplied source URL");
   if (issues.length) throw new AiOutputError(issues);
   return content;

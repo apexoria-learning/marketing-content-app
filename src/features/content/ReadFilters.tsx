@@ -1,12 +1,8 @@
 import Link from "next/link";
-import {
-  PillarSchema,
-  FormatSchema,
-  StatusSchema,
-} from "@/lib/schemas/content";
+import { FormatSchema, StatusSchema } from "@/lib/schemas/content";
 import type { ReadParams } from "@/lib/schemas/read-params";
 import type { PlatformDisplay } from "@/lib/schemas/platforms";
-import { PILLAR_LABELS } from "@/components/content/PillarChip";
+import type { PillarDisplay } from "@/lib/schemas/pillars";
 import { FORMAT_LABELS } from "@/components/content/FormatChip";
 import { Button } from "@/components/ui/Button";
 
@@ -14,11 +10,14 @@ export function ReadFilters({
   path,
   params,
   platforms,
+  pillars = [],
 }: {
   path: "/calendar" | "/create" | "/archive";
   params: ReadParams;
   /** Catalogue platforms, including retired ones that still have content. */
   platforms: readonly Pick<PlatformDisplay, "key" | "label">[];
+  /** Catalogue pillars, likewise; unused on Create, which has no pillar filter. */
+  pillars?: readonly Pick<PillarDisplay, "key" | "label">[];
 }) {
   const selects = [
     {
@@ -35,8 +34,10 @@ export function ReadFilters({
           {
             name: "pillar",
             label: "Pillar",
-            values: PillarSchema.options,
-            labels: PILLAR_LABELS,
+            values: pillars.map((pillar) => pillar.key),
+            labels: Object.fromEntries(
+              pillars.map((pillar) => [pillar.key, pillar.label]),
+            ),
           },
         ]),
     ...(path === "/calendar"

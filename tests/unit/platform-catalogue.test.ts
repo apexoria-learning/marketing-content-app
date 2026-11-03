@@ -2,12 +2,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-const mocks = vi.hoisted(() => ({ catalogue: vi.fn() }));
+const mocks = vi.hoisted(() => ({ catalogue: vi.fn(), pillars: vi.fn() }));
 vi.mock("server-only", () => ({}));
 vi.mock("../../src/server/config/env", () => ({ env: {} }));
 vi.mock("../../src/server/db/platforms", async (original) => ({
   ...(await original<typeof import("../../src/server/db/platforms")>()),
   getPlatformCatalogue: mocks.catalogue,
+}));
+vi.mock("../../src/server/db/pillars", async (original) => ({
+  ...(await original<typeof import("../../src/server/db/pillars")>()),
+  getPillarCatalogue: mocks.pillars,
 }));
 
 import {
@@ -23,6 +27,7 @@ import {
 import { loadPlanningScope } from "../../src/server/services/planning-scope";
 import { PlatformBadge } from "../../src/components/content/PlatformBadge";
 import { PlatformCatalogueProvider } from "../../src/components/content/PlatformCatalogue";
+import { SEEDED_PILLARS } from "./support/pillars";
 
 function record(overrides: Partial<PlatformRecord> = {}): PlatformRecord {
   return {
@@ -132,27 +137,39 @@ describe("platform input contract", () => {
 });
 
 describe("planning scope", () => {
-  it("anchors context on the first enabled platform and its first format", async () => {
+  beforeEach(() => {
+    mocks.pillars.mockResolvedValue(
+      SEEDED_PILLARS.map((pillar, index) => ({
+        ...pillar,
+        is_enabled: true,
+        sort_order: index + 1,
+        updated_at: "2026-11-03T00:00:00Z",
+        updated_by: null,
+      })),
+    );
+  });
+
+  it("anchors context on the first enabled platform, format and topic pillar", async () => {
     mocks.catalogue.mockResolvedValue([
       record({ key: "retired", is_enabled: false, formats: ["poll"] }),
       record({ key: "threads", formats: ["post", "story"] }),
     ]);
-    await expect(
-      loadPlanningScope({ enabledPillars: ["memes"] }),
-    ).resolves.toEqual({
+    await expect(loadPlanningScope()).resolves.toEqual({
       filters: {
         platforms: [{ key: "threads", formats: ["post", "story"] }],
-        pillars: ["memes"],
+        pillars: SEEDED_PILLARS,
       },
-      anchor: { platform: "threads", format: "post" },
+      anchor: {
+        platform: "threads",
+        format: "post",
+        pillar: "salesforce_tips",
+      },
     });
   });
 
   it("fails closed with guidance when nothing is plannable", async () => {
     mocks.catalogue.mockResolvedValue([record({ formats: ["post"] })]);
-    await expect(
-      loadPlanningScope({ enabledPillars: ["memes"] }),
-    ).rejects.toMatchObject({
+    await expect(loadPlanningScope()).rejects.toMatchObject({
       code: "VALIDATION",
       userMessage:
         "Enable at least two platform formats in Admin → Platforms. Nothing was changed.",

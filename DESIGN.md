@@ -291,7 +291,7 @@ Icon + label. Variants: `dot` (8px coloured dot, calendar only), `compact` (icon
 Always colour **and** icon **and** — in `full` — text. Label, colour slot and glyph come from the platform catalogue via `PlatformCatalogueProvider`; an unknown key renders its humanised key in neutral `surface-2` with the generic glyph. `PlatformName` renders the label as plain text (queue rows, legends).
 
 **PillarChip**
-`r-pill`, `surface-2`, `border`, `eyebrow` text, no colour coding (ten pillars cannot be colour-coded legibly). Each pillar has a fixed short label: *Tips, News, Meme, Interview, Success, Promo, Career, BTS, Myths, Poll*.
+`r-pill`, `surface-2`, `border`, `eyebrow` text, no colour coding (up to fourteen pillars cannot be colour-coded legibly). The short label comes from the pillar catalogue via `PillarCatalogueProvider` (seeded: *Tips, News, Meme, Interview, Success, Promo, Career, BTS, Myths, Poll*); an unknown key renders its humanised key. `PillarName` renders the label as plain text (queue rows).
 
 **FormatChip**
 `r-sm`, icon + `eyebrow` label: Carousel, Reel, Post, Story, Meme, Poll. Carries a format glyph; no colour.
@@ -700,9 +700,10 @@ Admins only (members get the not-found screen). `PageHeader` with back chevron, 
 1. **Overview** — two-column stat tiles (`surface-1`, `r-lg`, `h2` tabular numerals) for people (with access, active 7/30 days, signed in without access) and 30-day AI usage; then usage by person, by day and by type as compact rows. No charts. A neutral banner when AI generation is off. Empty usage uses `EmptyState`.
 2. **Users** — grant form (email `Input`, Member/Admin `SegmentedControl`, AI `Checkbox`, the screen's one `primary` button), an accent banner offering to import `ALLOWED_EMAILS`, then groups: *Signed in without access*, *With access*, *Revoked*. Each row shows name, email, badges and last activity, with a `secondary` **Manage**/**Grant access** button opening a `BottomSheet`. Revoking needs an inline danger confirmation inside the sheet. Owners and the signed-in admin show a note instead of a button.
 3. **Prompts** — scope `SegmentedControl` (Content · Planning · Daily tip), a `Textarea` with a character counter, the active version line, and an immutable history list with **Use this text**. Copy states that built-in rules always apply first.
-4. **Filters** — pillar toggle `Chip`s, a news-feed `Textarea` (one URL per line), **Save filters** and **Reset to defaults**. Platforms are managed on their own section.
+4. **News** (`/admin/filters`) — a news-feed `Textarea` (one URL per line), **Save news feeds** and **Reset to defaults**. Platforms and pillars are managed on their own sections.
 5. **Platforms** — a primary **Add platform** button, then the catalogue in display order: a slot-coloured glyph tile, label (· *Retired* when disabled), formats and hashtag/caption rule, up/down `icon` buttons to reorder and a `secondary` **Edit**. Add/Edit open a `BottomSheet` form: name, permanent key (create only, suggested from the name), *Use in new plans* `Checkbox`, colour-slot and glyph `Chip`s, format `Chip`s, hashtag `Checkbox` + maximum, optional caption limit, tone and AI-guidance `Textarea`s. Platforms are retired, never deleted.
-6. **Settings** — AI generation `Checkbox`, limit/planning/provider `Input`s with "Custom value · Use default" helpers. Changing the model or gateway asks for confirmation in a `BottomSheet`. The API key is never shown.
+6. **Pillars** — same layout as Platforms without the glyph tile: label (· *Needs news*, · *Retired*), purpose as the caption line, reorder buttons and **Edit**. The form has name, permanent key (create only), purpose `Textarea`, *Needs verified news* and *Use in new plans* `Checkbox`es and an AI-guidance `Textarea`. Pillars are retired, never deleted.
+7. **Settings** — AI generation `Checkbox`, limit/planning/provider `Input`s with "Custom value · Use default" helpers. Changing the model or gateway asks for confirmation in a `BottomSheet`. The API key is never shown.
 
 Loading uses the shape-accurate `ScreenLoading surface="Admin"` skeleton; failures use `ErrorState` inside the admin segment so navigation keeps working.
 

@@ -9,7 +9,10 @@ import { loadGenerationContext } from "./generation-context";
 import { createRecordedAiClient } from "./recorded-ai";
 import { gatewayConfiguration } from "./gateway-configuration";
 import { loadPlanningScope } from "./planning-scope";
-import { MONTH_PLAN_REQUEST_TIMEOUT_MS } from "../ai/generators/month-plan";
+import {
+  MONTH_PLAN_REQUEST_TIMEOUT_MS,
+  PLAN_PROMPT_VERSION,
+} from "../ai/generators/month-plan";
 import { consumeGenerationBudget } from "../security";
 import { isMonthWithinHorizon } from "../../lib/utils/planning-rules";
 import type { ActionResult } from "../../lib/schemas/action-result";
@@ -48,7 +51,7 @@ export async function getMonthPlanAllowance(
 export async function generateMonth(month: string) {
   const client = await createUserDatabaseClient();
   const config = await getRuntimeConfig();
-  const { filters, anchor } = await loadPlanningScope(config);
+  const { filters, anchor } = await loadPlanningScope();
   return planMonth(
     {
       month,
@@ -69,7 +72,7 @@ export async function generateMonth(month: string) {
       loadContext: async () =>
         loadGenerationContext(
           client,
-          { ...anchor, pillar: "salesforce_tips", idea: "Plan the month" },
+          { ...anchor, idea: "Plan the month" },
           todayInIst(),
           undefined,
           (await getActiveInstructions(client, "planning")) ?? undefined,
@@ -83,7 +86,7 @@ export async function generateMonth(month: string) {
           kind: "month_skeleton",
           target_month: `${month}-01`,
           model: config.aiModel,
-          prompt_version: "month-plan-v1",
+          prompt_version: PLAN_PROMPT_VERSION,
         },
         null,
       ),

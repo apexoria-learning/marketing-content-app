@@ -11,10 +11,18 @@ import {
   isCompatiblePlannedSlot,
   isSlotAllowedByFilters,
   areSimilarIdeas,
+  needsUnavailableNews,
+  requiredPillars,
   type PlanningFilters,
 } from "../../../lib/utils/planning-rules";
 import { AiOutputError } from "../validation";
-import { instructionMessages, versionedPrompt } from "../prompts";
+import {
+  instructionMessages,
+  pillarGuidanceMessages,
+  versionedPrompt,
+} from "../prompts";
+
+export const DAY_PLAN_PROMPT_VERSION = "day-plan-v2";
 
 export async function generateDayPlan(
   input: {
@@ -32,7 +40,7 @@ export async function generateDayPlan(
   });
   const context = GenerationContextSchema.parse(input.context);
   // Instructions are sent as their own subordinate message, never as data;
-  // the context's placeholder slot and its platform rules are irrelevant here.
+  // the context's placeholder slot and its platform/pillar rules are irrelevant.
   const { instructions } = context;
   const referenceData = {
     brand: context.brand,
@@ -43,6 +51,10 @@ export async function generateDayPlan(
   const schema = z
     .object({ items: z.array(PlannedSlotSchema).length(count) })
     .strict();
+  const pillars = requiredPillars(
+    input.filters.pillars,
+    context.news.length > 0,
+  );
   const filterRule = ` Use only these platforms, each with only its listed formats: ${JSON.stringify(
     Object.fromEntries(
       input.filters.platforms.map((platform) => [
@@ -50,7 +62,9 @@ export async function generateDayPlan(
         platform.formats,
       ]),
     ),
-  )}; and only these pillars: ${JSON.stringify(input.filters.pillars)}.`;
+  )}; and only these pillar keys: ${JSON.stringify(
+    pillars.map((pillar) => pillar.key),
+  )}.`;
   const prompt: AiRequest = {
     max_tokens: 2048,
     messages: [
@@ -60,8 +74,9 @@ export async function generateDayPlan(
       },
       {
         role: "user",
-        content: `Return ${count} idea slots for ${date}, starting at 1. Avoid recent ideas. Do not repeat any pillar or format from the adjacent days: ${JSON.stringify(input.adjacentSlots ?? [])}. ${context.news.length ? "News must use supplied sources." : "Omit salesforce_news."}${filterRule} Return JSON: ${JSON.stringify(z.toJSONSchema(schema))}`,
+        content: `Return ${count} idea slots for ${date}, starting at 1. Avoid recent ideas. Do not repeat any pillar or format from the adjacent days: ${JSON.stringify(input.adjacentSlots ?? [])}. ${context.news.length ? "News pillars must use supplied sources." : "No news is available."}${filterRule} Return JSON: ${JSON.stringify(z.toJSONSchema(schema))}`,
       },
+      ...pillarGuidanceMessages(pillars),
       ...instructionMessages(instructions),
     ],
   };
@@ -82,7 +97,11 @@ export async function generateDayPlan(
           (item) =>
             !isCompatiblePlannedSlot(item, input.filters) ||
             !isSlotAllowedByFilters(item, input.filters) ||
-            (!context.news.length && item.pillar === "salesforce_news") ||
+            needsUnavailableNews(
+              item.pillar,
+              input.filters,
+              context.news.length > 0,
+            ) ||
             input.adjacentSlots?.some(
               (adjacent) =>
                 adjacent.pillar === item.pillar ||
@@ -114,7 +133,10 @@ export async function generateDayPlan(
       if (!violations.length)
         return {
           items: parsed.data.items,
-          prompt_version: versionedPrompt("day-plan-v1", instructions),
+          prompt_version: versionedPrompt(
+            DAY_PLAN_PROMPT_VERSION,
+            instructions,
+          ),
         };
     }
     if (attempt === 1) {

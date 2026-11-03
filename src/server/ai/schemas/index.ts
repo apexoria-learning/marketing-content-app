@@ -74,6 +74,15 @@ export const GenerationContextSchema = z
         guidance: z.string().trim().max(1000),
       })
       .strict(),
+    // Catalogue rules for the slot's pillar (DATABASE.md §5.14).
+    pillar_rules: z
+      .object({
+        label: z.string().trim().min(1).max(30),
+        description: z.string().trim().min(1).max(300),
+        guidance: z.string().trim().max(1000),
+        requires_news: z.boolean(),
+      })
+      .strict(),
     steer: z.string().trim().max(500).optional(),
     // Owner editorial instructions (DATABASE.md §5.11); subordinate to rules.
     instructions: z

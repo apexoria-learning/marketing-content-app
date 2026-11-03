@@ -5,6 +5,18 @@ vi.mock("server-only", () => ({}));
 import { loadGenerationContext } from "../../src/server/services/generation-context";
 
 // PostgREST answers maybeSingle() with an array; one catalogue row per key.
+function pillarRow(url: URL) {
+  const key = url.searchParams.get("key")?.replace("eq.", "");
+  return [
+    {
+      label: key === "interview_questions" ? "Interview" : "Tips",
+      description: "Catalogue purpose",
+      guidance: "",
+      requires_news: false,
+    },
+  ];
+}
+
 function platformRow(url: URL) {
   const key = url.searchParams.get("key")?.replace("eq.", "");
   return [
@@ -32,6 +44,8 @@ it("includes every posted idea in the 60-day window without leaking brand audit 
           let result: unknown = [];
           if (url.pathname.endsWith("/platforms")) {
             result = platformRow(url);
+          } else if (url.pathname.endsWith("/pillars")) {
+            result = pillarRow(url);
           } else if (url.pathname.endsWith("/brand_profile")) {
             result = {
               business_name: "Apexoria",
@@ -90,21 +104,23 @@ it("accepts a whole content item and keeps only its slot fields (live item-gener
         const url = new URL(String(input));
         const result = url.pathname.endsWith("/platforms")
           ? platformRow(url)
-          : url.pathname.endsWith("/brand_profile")
-            ? {
-                business_name: "Apexoria",
-                business_description: "Training",
-                audience_description: "Learners",
-                courses: [],
-                current_offers: null,
-                tone_instagram: "Helpful",
-                tone_linkedin: "Professional",
-                tone_whatsapp: "Friendly",
-                do_list: [],
-                dont_list: [],
-                links: {},
-              }
-            : [];
+          : url.pathname.endsWith("/pillars")
+            ? pillarRow(url)
+            : url.pathname.endsWith("/brand_profile")
+              ? {
+                  business_name: "Apexoria",
+                  business_description: "Training",
+                  audience_description: "Learners",
+                  courses: [],
+                  current_offers: null,
+                  tone_instagram: "Helpful",
+                  tone_linkedin: "Professional",
+                  tone_whatsapp: "Friendly",
+                  do_list: [],
+                  dont_list: [],
+                  links: {},
+                }
+              : [];
         return new Response(JSON.stringify(result), {
           headers: { "Content-Type": "application/json" },
         });
@@ -138,6 +154,12 @@ it("accepts a whole content item and keeps only its slot fields (live item-gener
     max_hashtags: 30,
     caption_max_chars: null,
     guidance: "",
+  });
+  expect(context.pillar_rules).toEqual({
+    label: "Interview",
+    description: "Catalogue purpose",
+    guidance: "",
+    requires_news: false,
   });
   expect(context).not.toHaveProperty("id");
   expect(context).not.toHaveProperty("status");

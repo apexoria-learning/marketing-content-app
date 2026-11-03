@@ -59,22 +59,17 @@ describe("admin input contracts", () => {
     ).toBe(true);
   });
 
-  it("keeps planning feasible: three non-news pillars", () => {
-    // Platforms moved to the catalogue (0016); the old override is rejected.
+  it("rejects the retired platform and pillar overrides", () => {
+    // Platforms (0016) and pillars (0017) moved to their catalogues.
     expect(
       AppSettingsUpdateSchema.safeParse({ enabled_platforms: ["linkedin"] })
         .success,
     ).toBe(false);
     expect(
       AppSettingsUpdateSchema.safeParse({
-        enabled_pillars: ["salesforce_news", "memes", "salesforce_tips"],
-      }).success,
-    ).toBe(false);
-    expect(
-      AppSettingsUpdateSchema.safeParse({
         enabled_pillars: ["memes", "salesforce_tips", "career_guidance"],
       }).success,
-    ).toBe(true);
+    ).toBe(false);
   });
 
   it("only accepts credential-free HTTPS v1 gateways and HTTPS feeds", () => {
@@ -159,7 +154,6 @@ describe("runtime configuration", () => {
     ai_model: null,
     ai_base_url: null,
     news_feed_urls: null,
-    enabled_pillars: null,
     updated_at: "2026-11-01T00:00:00Z",
     updated_by: null,
   };
@@ -176,10 +170,9 @@ describe("runtime configuration", () => {
         "https://b.example.test/feed",
       ],
     });
-    expect(runtimeDefaults(env).enabledPillars).toHaveLength(10);
   });
 
-  it("applies admin overrides, including false and empty lists, in canonical order", () => {
+  it("applies admin overrides, including false and empty lists", () => {
     const config = resolveRuntimeConfig(
       { ...env, AI_GENERATION_ENABLED: "true" },
       {
@@ -188,7 +181,6 @@ describe("runtime configuration", () => {
         regen_daily_limit: 5,
         ai_model: "@admin/model",
         news_feed_urls: [],
-        enabled_pillars: ["memes", "salesforce_tips", "career_guidance"],
       },
     );
     expect(config).toMatchObject({
@@ -198,7 +190,6 @@ describe("runtime configuration", () => {
       aiModel: "@admin/model",
       aiBaseUrl: "https://env.example.test/v1",
       newsFeedUrls: [],
-      enabledPillars: ["salesforce_tips", "memes", "career_guidance"],
     });
   });
 

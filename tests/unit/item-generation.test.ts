@@ -3,6 +3,7 @@ vi.mock("server-only", () => ({}));
 import { generateItem } from "../../src/server/services/item-generation";
 import { ContentItemSchema } from "../../src/lib/schemas/content";
 import { AiOutputError } from "../../src/server/ai/validation";
+import { pillarRulesFor } from "./support/pillars";
 
 const item = ContentItemSchema.parse({
   id: "c862f630-7968-4b35-b048-9b7e9183fef1",
@@ -85,6 +86,7 @@ function dependencies() {
         caption_max_chars: null,
         guidance: "",
       },
+      pillar_rules: pillarRulesFor("salesforce_tips"),
     }),
     generate: vi.fn().mockResolvedValue({ content: JSON.stringify(content) }),
     save: vi.fn().mockResolvedValue({ ...item, ...content }),
@@ -123,7 +125,7 @@ describe("item generation lifecycle", () => {
     expect(deps.save).toHaveBeenCalledWith({
       item,
       content,
-      prompt_version: "content-v1",
+      prompt_version: "content-v2",
       regenerate: true,
     });
   });

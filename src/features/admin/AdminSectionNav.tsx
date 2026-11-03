@@ -8,8 +8,9 @@ export const ADMIN_SECTIONS = [
   { key: "overview", label: "Overview", href: "/admin" },
   { key: "users", label: "Users", href: "/admin/users" },
   { key: "platforms", label: "Platforms", href: "/admin/platforms" },
+  { key: "pillars", label: "Pillars", href: "/admin/pillars" },
   { key: "prompts", label: "Prompts", href: "/admin/prompts" },
-  { key: "filters", label: "Filters", href: "/admin/filters" },
+  { key: "filters", label: "News", href: "/admin/filters" },
   { key: "settings", label: "Settings", href: "/admin/settings" },
 ] as const;
 

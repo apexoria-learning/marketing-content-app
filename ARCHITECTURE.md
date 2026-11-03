@@ -179,8 +179,8 @@ Four boxes. One deployable. No internal network to secure.
 | `AppShell`, `BottomNav`, `PwaControls` | Per-tab scroll restoration, route motion, long-background resume, navigation state, install/update/connectivity APIs and acknowledged cache purge before sign-out |
 | `CalendarView`, `ScopeControl` | Day-sheet state, month swipe/chevrons, and URL-based segment selection |
 | `TrackedTick`, `ItemActions`, `usePosting` | Optimistic status changes, shared Today tick/button/ring state, reversible tracking and note/skip sheet submission |
-| `GrantAccessForm`, `UserAccessRow`, `ImportAllowlistControl`, `InstructionsEditor`, `PlanningFiltersForm`, `RuntimeSettingsForm`, `PlatformManager`, `PlatformForm`, `AdminSectionNav`, `useAdminAction` | Admin panel form state, confirmation sheets, action feedback and scrolling the active section link into view (`features/admin`, `US-17`, `US-18`); data stays server-rendered |
-| `PlatformCatalogueProvider`, `PlatformBadge`, `PlatformName` | The `(app)` layout loads the platform catalogue's display fields once per request and provides them by context, so badges and labels in both server- and client-rendered trees never hard-code platforms |
+| `GrantAccessForm`, `UserAccessRow`, `ImportAllowlistControl`, `InstructionsEditor`, `PlanningFiltersForm`, `RuntimeSettingsForm`, `PlatformManager`, `PlatformForm`, `PillarManager`, `PillarForm`, `AdminSectionNav`, `useAdminAction` | Admin panel form state, confirmation sheets, action feedback and scrolling the active section link into view (`features/admin`, `US-17`–`US-19`); data stays server-rendered |
+| `PlatformCatalogueProvider`, `PlatformBadge`, `PlatformName`, `PillarCatalogueProvider`, `PillarChip`, `PillarName` | The `(app)` layout loads the platform and pillar catalogues' display fields once per request and provides them by context, so badges, chips and labels in both server- and client-rendered trees never hard-code platforms or pillars |
 
 Everything else — page shells, `ContentCard` content, `SlideList`, `ScriptList`, `BriefSection`, `CalendarGrid`, `QueueRow`, `TipCard`, archive lists — renders on the server.
 
@@ -337,8 +337,9 @@ Models are persuadable, not reliable. Constraints that matter are enforced by co
 
 Owner-approved refinements: normalize idea words with Unicode NFKC and compare
 word-set Jaccard similarity at ≥0.70, including exact normalized matches.
-When news grounding is absent, omit the news pillar explicitly and require
-coverage of the remaining nine; retain all-ten coverage when sources exist.
+When news grounding is absent, omit every `requires_news` pillar explicitly
+and require coverage of the remaining enabled pillars; require every enabled
+pillar when sources exist.
 See API.md §5.2. Month persistence uses the invoker/RLS-constrained
 `commit_month_plan` transaction, not sequential parent/child writes.
 
@@ -349,6 +350,13 @@ validator as `PlanningFilters`, and fail closed with guidance when fewer than
 two enabled platform/format pairs exist. A slot on a disabled or unknown
 platform, or with a format the platform does not support, is a violation;
 the database trigger re-checks the same rules on insert.
+
+Pillars follow the same pattern (`DATABASE.md` §5.14). The planning scope also
+loads the enabled catalogue pillars with their purpose, guidance and
+`requires_news` flag, anchors context on the first enabled pillar that does not
+need news, and fails closed when fewer than three such pillars (or more than
+fourteen enabled pillars) exist. A slot on a disabled or unknown pillar, or on
+a news pillar without news, is a violation; no code names a specific pillar.
 
 ### 4.5 The daily cron
 
@@ -415,7 +423,7 @@ Variable-shaped payloads (carousel slides vs. reel scripts vs. poll options) are
 | `scheduled_date` | `date` | Indexed |
 | `platform` | `text` | FK → admin-managed `platforms(key)`; format/hashtag rules from the catalogue (`DATABASE.md` §5.12–5.13) |
 | `format` | `text` | `CHECK IN ('carousel','reel','post','story','meme','poll')` |
-| `pillar` | `text` | `CHECK` against the ten pillars (`PRD §6.1`) |
+| `pillar` | `text` | FK → admin-managed `pillars(key)`; news-sourcing rule from the catalogue (`DATABASE.md` §5.14) |
 | `title`, `hook`, `caption`, `cta` | `text` | |
 | `body` | `jsonb` | Slides / script / frame / poll — shape determined by `format` |
 | `hashtags` | `text[]` | |
@@ -543,6 +551,7 @@ Everything else is a Server Action. There is no public REST API, no API versioni
 | `updateAppSettings` | runtime overrides, planning filters | No | Admin only; `null` restores the environment value |
 | `saveEditorialInstructions` | scope, text ≤ 2,000 | No | Admin only; appends a version |
 | `savePlatform`, `reorderPlatform` | catalogue platform fields / key + direction | No | Admin only; atomic `save_platform`; keeps ≥ 2 enabled platform/format pairs |
+| `savePillar`, `reorderPillar` | catalogue pillar fields / key + direction | No | Admin only; atomic `save_pillar`; keeps ≥ 3 enabled pillars without news and ≤ 14 enabled |
 
 **Uniform contract.** Every action returns a discriminated result — success with typed data, or failure with a stable error code and a user-safe message. Actions never throw across the client boundary, because thrown errors in production are reduced to an opaque digest and the UI cannot render the specific recovery guidance `DESIGN.md §9.3` requires.
 
@@ -604,13 +613,13 @@ Six layers, assembled in a fixed order so that caching and reasoning both behave
 | Layer | Contents | Volatility |
 |---|---|---|
 | **System** | Role, brand profile, platform tone rules, do/don't lists, hard constraints | Changes when the brand profile changes |
-| **Context** | Recent `news_items` (News pillar only), pillar usage history, last 60 days of posted ideas | Changes daily |
-| **Task** | The specific instruction and the exact output schema; enabled platforms with their formats and enabled pillars for planning; the item's platform rules (label, hashtag limit, caption limit) from the catalogue for content | Fixed per generator |
-| **Platform guidance** | The platform's admin-written guidance (≤ 1,000 chars), sent as its own message explicitly subordinate to the rules above | Per catalogue edit |
+| **Context** | Recent `news_items` (`requires_news` pillars only), pillar usage history, last 60 days of posted ideas | Changes daily |
+| **Task** | The specific instruction and the exact output schema; enabled platforms with their formats and enabled pillar keys for planning; the item's platform rules (label, hashtag limit, caption limit) and the built-in news-sourcing rule for news pillars from the catalogues for content | Fixed per generator |
+| **Platform and pillar guidance** | The platform's admin-written guidance and the pillars' admin-written names, purposes and guidance (planners receive every plannable pillar's), JSON-encoded in their own messages explicitly subordinate to the rules above | Per catalogue edit |
 | **Editorial instructions** | Admin-authored house style per scope (`content`, `planning`, `daily_tip`; `DATABASE.md` §5.11), ≤ 2,000 chars, sent as its own message explicitly subordinate to the factual, privacy, platform and schema rules | Per saved version |
 | **Steer** | Optional user instruction from the regeneration sheet | Per request |
 
-Every prompt carries a `prompt_version`, persisted on the row it produced (`NFR-7.2`). When editorial instructions are active the version gains a `+i<version>` suffix (e.g. `content-v1+i4`), so output changes stay attributable. Admin planning filters are enforced again by the deterministic validator (§4.4), never trusted to the prompt alone.
+Every prompt carries a `prompt_version`, persisted on the row it produced (`NFR-7.2`). When editorial instructions are active the version gains a `+i<version>` suffix (e.g. `content-v2+i4`; `v2` added catalogue pillar rules), so output changes stay attributable. Admin planning filters are enforced again by the deterministic validator (§4.4), never trusted to the prompt alone.
 
 ### 9.3 Structured output and validation
 
@@ -991,7 +1000,7 @@ Mapping directly to `PRD §17`:
 - **Monthly:** planning runs automatically on `PLAN_DAY_OF_MONTH`; the manual trigger exists as a fallback.
 - **Rollback:** Vercel instant rollback for application code. Data is never destructively migrated in v1, so a code rollback is always safe.
 - **Adding a user:** grant access in `/admin/users` (role and AI permission included). If the Google consent screen is in testing mode, also add the account as a Cloud Console test user. No deployment required.
-- **Changing feed sources, filters, prompts or tuning limits:** `/admin/filters`, `/admin/prompts` and `/admin/settings`; changes apply to the next request. Environment variables remain the defaults.
+- **Changing feed sources, platforms, pillars, prompts or tuning limits:** `/admin/filters` (news), `/admin/platforms`, `/admin/pillars`, `/admin/prompts` and `/admin/settings`; changes apply to the next request. Environment variables remain the defaults.
 - **Adding or retiring a platform:** `/admin/platforms`. No migration or deployment; a new custom glyph is the only part that needs code.
 
 ---

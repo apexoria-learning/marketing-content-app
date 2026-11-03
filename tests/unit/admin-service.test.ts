@@ -11,6 +11,9 @@ const db = vi.hoisted(() => ({
   listPlatforms: vi.fn(),
   savePlatform: vi.fn(),
   setPlatformSortOrder: vi.fn(),
+  listPillars: vi.fn(),
+  savePillar: vi.fn(),
+  setPillarSortOrder: vi.fn(),
 }));
 vi.mock("server-only", () => ({}));
 vi.mock("../../src/server/config/env", () => ({
@@ -25,8 +28,10 @@ import type { AdminActor } from "../../src/server/auth";
 import {
   grantAccess,
   importEnvironmentAllowlist,
+  movePillar,
   movePlatform,
   saveInstructions,
+  savePillarEntry,
   savePlatformEntry,
   updateAccess,
   updateSettings,
@@ -253,5 +258,105 @@ describe("platform catalogue management", () => {
   it("does nothing when a platform is already at the edge", async () => {
     await movePlatform(admin, { key: "instagram", direction: "up" });
     expect(db.setPlatformSortOrder).not.toHaveBeenCalled();
+  });
+});
+
+describe("pillar catalogue management", () => {
+  const topic = (key: string, overrides = {}) => ({
+    key,
+    is_enabled: true,
+    requires_news: false,
+    ...overrides,
+  });
+  const input = {
+    key: "python_tips",
+    label: "Py tips",
+    description: "Small Python lessons",
+    guidance: "",
+    requires_news: false,
+    is_enabled: true,
+  };
+
+  beforeEach(() => {
+    db.listPillars.mockResolvedValue([
+      topic("salesforce_tips"),
+      topic("salesforce_news", { requires_news: true }),
+      topic("memes"),
+      topic("career_guidance"),
+    ]);
+  });
+
+  it("creates a new pillar with attribution", async () => {
+    expect(
+      await savePillarEntry(admin, { mode: "create", pillar: input }),
+    ).toEqual({ key: "python_tips", status: "created" });
+    expect(db.savePillar).toHaveBeenCalledWith(
+      input,
+      true,
+      "admin@example.test",
+    );
+  });
+
+  it("refuses duplicate keys and edits to unknown pillars", async () => {
+    expect(
+      await refusal(
+        savePillarEntry(admin, {
+          mode: "create",
+          pillar: { ...input, key: "memes" },
+        }),
+      ),
+    ).toContain("already exists");
+    expect(
+      await refusal(savePillarEntry(admin, { mode: "update", pillar: input })),
+    ).toContain("no longer exists");
+    expect(db.savePillar).not.toHaveBeenCalled();
+  });
+
+  it("refuses retiring a topic pillar or flagging it as news below three topic pillars", async () => {
+    for (const change of [{ is_enabled: false }, { requires_news: true }])
+      expect(
+        await refusal(
+          savePillarEntry(admin, {
+            mode: "update",
+            pillar: { ...input, key: "memes", ...change },
+          }),
+        ),
+      ).toBe(
+        "Keep at least 3 enabled pillars that do not need news. Months must stay plannable. Nothing was changed.",
+      );
+    expect(db.savePillar).not.toHaveBeenCalled();
+  });
+
+  it("refuses enabling a fifteenth pillar", async () => {
+    db.listPillars.mockResolvedValue(
+      Array.from({ length: 14 }, (_, index) => topic(`pillar_${index}`)),
+    );
+    expect(
+      await refusal(savePillarEntry(admin, { mode: "create", pillar: input })),
+    ).toContain("Enable at most 14 pillars.");
+    expect(
+      await savePillarEntry(admin, {
+        mode: "create",
+        pillar: { ...input, is_enabled: false },
+      }),
+    ).toEqual({ key: "python_tips", status: "created" });
+  });
+
+  it("swaps display order with the neighbour and renumbers", async () => {
+    await movePillar(admin, { key: "memes", direction: "down" });
+    expect(db.setPillarSortOrder.mock.calls).toEqual([
+      ["salesforce_tips", 1, "admin@example.test"],
+      ["salesforce_news", 2, "admin@example.test"],
+      ["career_guidance", 3, "admin@example.test"],
+      ["memes", 4, "admin@example.test"],
+    ]);
+  });
+
+  it("does nothing at the edge and refuses unknown pillars", async () => {
+    await movePillar(admin, { key: "career_guidance", direction: "down" });
+    expect(db.setPillarSortOrder).not.toHaveBeenCalled();
+    expect(
+      await refusal(movePillar(admin, { key: "gone", direction: "up" })),
+    ).toContain("This pillar no longer exists.");
   });
 });

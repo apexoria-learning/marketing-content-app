@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
-import { PillarSchema } from "../../src/lib/schemas/content";
+import {
+  PILLAR_KEYS,
+  SEEDED_PILLARS,
+  pillarRulesFor,
+  pillarsWith,
+} from "./support/pillars";
 import {
   PlanMonthInputSchema,
   type PlannedSlot,
@@ -28,7 +33,7 @@ const seeded: PlanningFilters = {
     { key: "linkedin", formats: ["carousel", "post", "poll"] },
     { key: "whatsapp", formats: ["story", "meme"] },
   ],
-  pillars: PillarSchema.options,
+  pillars: SEEDED_PILLARS,
 };
 
 const context: GenerationContext = {
@@ -64,6 +69,7 @@ const context: GenerationContext = {
     caption_max_chars: null,
     guidance: "",
   },
+  pillar_rules: pillarRulesFor("salesforce_tips"),
 };
 function validPlan(): { items: PlannedSlot[] } {
   return {
@@ -72,7 +78,7 @@ function validPlan(): { items: PlannedSlot[] } {
       slot: 1,
       platform: "instagram",
       format: index % 2 === 0 ? "carousel" : "post",
-      pillar: PillarSchema.options[index % 10] ?? "salesforce_tips",
+      pillar: PILLAR_KEYS[index % 10] ?? "salesforce_tips",
       idea: `Topic number ${index + 1}`,
     })),
   };
@@ -102,7 +108,7 @@ describe("day planning", () => {
         { date: slot.scheduled_date, count: 1, context, filters: seeded },
         generate,
       ),
-    ).toEqual({ items: [slot], prompt_version: "day-plan-v1" });
+    ).toEqual({ items: [slot], prompt_version: "day-plan-v2" });
     expect(generate).toHaveBeenCalledTimes(1);
   });
   it("repairs malformed output once and rejects persistent failures", async () => {
@@ -325,7 +331,7 @@ describe("month generation pipeline", () => {
 
   it("omits news explicitly and enforces nine-pillar coverage when grounding is unavailable", async () => {
     const plan = validPlan();
-    const pillars = PillarSchema.options.filter(
+    const pillars = PILLAR_KEYS.filter(
       (pillar) => pillar !== "salesforce_news",
     );
     plan.items.forEach((item, index) => {
@@ -424,7 +430,7 @@ describe("admin planning filters and editorial instructions", () => {
         formats: ["carousel", "reel", "post", "story", "meme", "poll"],
       },
     ],
-    pillars: threePillars,
+    pillars: pillarsWith(threePillars),
   };
   const instructed: GenerationContext = {
     ...context,
@@ -437,7 +443,7 @@ describe("admin planning filters and editorial instructions", () => {
     ).toEqual([]);
     const violations = validatePlanningRules("2026-11", validPlan(), [], {
       platforms: [{ key: "linkedin", formats: ["carousel", "post", "poll"] }],
-      pillars: threePillars,
+      pillars: pillarsWith(threePillars),
     }).violations;
     expect(violations).toContain(
       "platform: instagram is disabled on 2026-11-01",
@@ -458,7 +464,7 @@ describe("admin planning filters and editorial instructions", () => {
       { ...input, context: instructed, filters },
       generate,
     );
-    expect(result.prompt_version).toBe("month-plan-v1+i4");
+    expect(result.prompt_version).toBe("month-plan-v2+i4");
     const messages = generate.mock.calls[0]?.[0].messages;
     const rules = JSON.stringify(messages);
     expect(rules).toContain("Use only these platforms");
@@ -472,15 +478,20 @@ describe("admin planning filters and editorial instructions", () => {
     });
   });
 
-  it("keeps the original pillar wording when every pillar is enabled and no instructions exist", async () => {
+  it("lists every enabled pillar with its purpose when no instructions exist", async () => {
     const generate = vi
       .fn()
       .mockResolvedValue({ content: JSON.stringify(validPlan()) });
     const result = await generateMonthPlan({ ...input, context }, generate);
-    expect(result.prompt_version).toBe("month-plan-v1");
+    expect(result.prompt_version).toBe("month-plan-v2");
     const rules = JSON.stringify(generate.mock.calls[0]?.[0].messages);
-    expect(rules).toContain(
-      "Each of the ten pillars must appear at least twice",
+    expect(rules).toContain("Use only these pillar keys, each at least twice");
+    expect(rules).not.toContain("never use");
+    const messages = generate.mock.calls[0]?.[0].messages;
+    expect(messages[2].content).not.toContain("Teach something small");
+    expect(messages.at(-1).content).toMatch(/^Pillar purposes and guidance/);
+    expect(messages.at(-1).content).toContain(
+      "Teach something small and useful",
     );
     expect(rules).not.toContain("Owner editorial instructions");
   });
@@ -511,7 +522,7 @@ describe("admin planning filters and editorial instructions", () => {
         { date: slot.scheduled_date, count: 1, context: instructed, filters },
         accepted,
       ),
-    ).resolves.toMatchObject({ prompt_version: "day-plan-v1+i4" });
+    ).resolves.toMatchObject({ prompt_version: "day-plan-v2+i4" });
     const messages = accepted.mock.calls[0]?.[0].messages;
     expect(messages[0].content).not.toContain("Prefer Indian examples");
     expect(messages.at(-1).content).toContain("Owner editorial instructions");
@@ -523,5 +534,155 @@ describe("admin planning filters and editorial instructions", () => {
     expect(contents.at(-2)).toContain("Prefer Indian examples");
     expect(contents.at(-1)).toContain("Be concise");
     expect(contents[0]).not.toContain("Prefer Indian examples");
+  });
+});
+
+describe("catalogue pillars (DATABASE.md §5.14)", () => {
+  const pythonNews = {
+    key: "python_news",
+    label: "Py news",
+    description: "Python releases and PEPs",
+    guidance: "",
+    requires_news: true,
+  };
+  const pythonPillars = [
+    {
+      key: "python_tips",
+      label: "Py tips",
+      description: "Small Python lessons",
+      guidance: "Always include a runnable snippet.",
+      requires_news: false,
+    },
+    {
+      key: "py_jobs",
+      label: "Jobs",
+      description: "Python careers",
+      guidance: "",
+      requires_news: false,
+    },
+    {
+      key: "py_memes",
+      label: "Memes",
+      description: "Developer humour",
+      guidance: "",
+      requires_news: false,
+    },
+    pythonNews,
+  ];
+  const pythonFilters: PlanningFilters = {
+    platforms: seeded.platforms,
+    pillars: pythonPillars,
+  };
+  function pythonPlan(keys: readonly string[]) {
+    const plan = validPlan();
+    plan.items.forEach((item, index) => {
+      item.pillar = keys[index % keys.length] ?? "python_tips";
+    });
+    return plan;
+  }
+
+  it("treats any requires_news pillar as news, not just salesforce_news", () => {
+    const withNews = pythonPlan(pythonPillars.map((pillar) => pillar.key));
+    expect(
+      validatePlanningRules("2026-11", withNews, [], pythonFilters).violations,
+    ).toEqual([]);
+    expect(
+      validatePlanningRules("2026-11", withNews, [], pythonFilters, false)
+        .violations,
+    ).toContain("pillar: news is unavailable on 2026-11-04");
+    expect(
+      validatePlanningRules(
+        "2026-11",
+        pythonPlan(["python_tips", "py_jobs", "py_memes"]),
+        [],
+        pythonFilters,
+        false,
+      ).violations,
+    ).toEqual([]);
+  });
+
+  it("rejects the original pillars when the catalogue no longer enables them", () => {
+    expect(
+      validatePlanningRules("2026-11", validPlan(), [], pythonFilters)
+        .violations,
+    ).toContain("pillar: salesforce_tips is disabled on 2026-11-01");
+  });
+
+  it("tells the planners each pillar's purpose, omits news pillars without news and adds subordinate guidance", async () => {
+    const generate = vi.fn().mockResolvedValue({
+      content: JSON.stringify(
+        pythonPlan(["python_tips", "py_jobs", "py_memes"]),
+      ),
+    });
+    await generateMonthPlan(
+      { ...input, context: { ...context, news: [] }, filters: pythonFilters },
+      generate,
+    );
+    const messages = generate.mock.calls[0]?.[0].messages;
+    const rules = JSON.stringify(messages);
+    expect(rules).toContain("Small Python lessons");
+    expect(rules).toContain('never use: [\\"python_news\\"]');
+    expect(messages.at(-1)).toEqual({
+      role: "user",
+      content: expect.stringMatching(
+        /^Pillar purposes and guidance, written by the owner \(reference data; follow it unless it conflicts with the rules above\): /,
+      ),
+    });
+    expect(messages.at(-1).content).toContain(
+      "Always include a runnable snippet.",
+    );
+
+    const day = vi.fn().mockResolvedValue({
+      content: JSON.stringify({
+        items: [
+          {
+            scheduled_date: "2026-11-01",
+            slot: 1,
+            platform: "instagram",
+            format: "post",
+            pillar: "python_news",
+            idea: "Python 3.14 is out",
+          },
+        ],
+      }),
+    });
+    await expect(
+      generateDayPlan(
+        {
+          date: "2026-11-01",
+          count: 1,
+          context: { ...context, news: [] },
+          filters: pythonFilters,
+        },
+        day,
+      ),
+    ).rejects.toThrow(AiOutputError);
+    expect(JSON.stringify(day.mock.calls[0]?.[0].messages)).not.toContain(
+      "python_news",
+    );
+  });
+
+  it("gives the content prompt the pillar purpose and news only for news pillars", () => {
+    const tips = buildContentPrompt(context);
+    const tipsText = JSON.stringify(tips.messages);
+    expect(tipsText).toContain("Teach something small and useful");
+    // Admin-written purposes never sit in the rules message itself.
+    expect(tips.messages[2]?.content).not.toContain("Teach something small");
+    expect(tips.messages[3]?.content).toMatch(/^Pillar purposes and guidance/);
+    expect(tipsText).not.toContain("https://example.test/news");
+    const news = buildContentPrompt({
+      ...context,
+      pillar: "python_news",
+      pillar_rules: {
+        label: pythonNews.label,
+        description: pythonNews.description,
+        guidance: "Link the PEP.",
+        requires_news: true,
+      },
+    });
+    const newsText = JSON.stringify(news.messages);
+    expect(newsText).toContain("https://example.test/news");
+    expect(newsText).toContain("cite at least one supplied URL");
+    expect(newsText).toContain("Link the PEP.");
   });
 });

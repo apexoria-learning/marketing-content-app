@@ -1,4 +1,3 @@
-import { PillarSchema, type Pillar } from "../../lib/schemas/content";
 import type { AppSettingsRow } from "../../lib/schemas/admin";
 import type { Env } from "./env-schema";
 
@@ -11,7 +10,6 @@ export type RuntimeConfig = {
   aiModel: string;
   aiBaseUrl: string;
   newsFeedUrls: string[];
-  enabledPillars: Pillar[];
 };
 
 export type RuntimeEnv = Pick<
@@ -38,14 +36,13 @@ export function runtimeDefaults(env: RuntimeEnv): RuntimeConfig {
     newsFeedUrls: env.NEWS_FEED_URLS.split(",")
       .map((url) => url.trim())
       .filter(Boolean),
-    enabledPillars: [...PillarSchema.options],
   };
 }
 
 /**
  * Admin overrides (DATABASE.md §5.10) win over environment defaults; a NULL
- * override means "use the environment value". Lists keep canonical order so
- * prompts and validation are deterministic.
+ * override means "use the environment value". Platform and pillar enablement
+ * live in their catalogues (§5.12, §5.14), not here.
  */
 export function resolveRuntimeConfig(
   env: RuntimeEnv,
@@ -53,7 +50,6 @@ export function resolveRuntimeConfig(
 ): RuntimeConfig {
   const defaults = runtimeDefaults(env);
   if (!overrides) return defaults;
-  const pillars = overrides.enabled_pillars;
   return {
     aiGenerationEnabled:
       overrides.ai_generation_enabled ?? defaults.aiGenerationEnabled,
@@ -66,9 +62,5 @@ export function resolveRuntimeConfig(
     aiModel: overrides.ai_model ?? defaults.aiModel,
     aiBaseUrl: overrides.ai_base_url ?? defaults.aiBaseUrl,
     newsFeedUrls: overrides.news_feed_urls ?? defaults.newsFeedUrls,
-
-    enabledPillars: pillars
-      ? PillarSchema.options.filter((value) => pillars.includes(value))
-      : defaults.enabledPillars,
   };
 }

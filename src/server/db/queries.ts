@@ -202,6 +202,7 @@ export async function getArchive(
   params: ReadParams,
   rawCursor: unknown,
   platformKeys: readonly string[],
+  pillarKeys: readonly string[],
 ) {
   const client = await createUserDatabaseClient();
   function filteredQuery(countOnly = false) {
@@ -242,7 +243,7 @@ export async function getArchive(
       ),
     ),
     Promise.all(
-      PillarSchema.options.map(
+      pillarKeys.map(
         async (pillar) =>
           [
             pillar,

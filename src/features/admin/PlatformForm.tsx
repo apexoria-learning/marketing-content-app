@@ -18,6 +18,7 @@ import {
   type PlatformRecord,
 } from "@/lib/schemas/platforms";
 import { cx } from "@/lib/utils/cx";
+import { suggestCatalogueKey } from "@/lib/utils/catalogue-key";
 import { savePlatform } from "@/server/actions/admin";
 import { useAdminAction } from "./use-admin-action";
 
@@ -43,14 +44,6 @@ const ICON_NAMES: Record<PlatformIcon, string> = {
   briefcase: "Briefcase",
   megaphone: "Megaphone",
 };
-
-function suggestKey(label: string) {
-  return label
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^[^a-z]+|_+$/g, "")
-    .slice(0, 30);
-}
 
 function toggle<T>(values: readonly T[], value: T): T[] {
   return values.includes(value)
@@ -150,7 +143,8 @@ export function PlatformForm({
         error={errors.label}
         onChange={(event) => {
           setLabel(event.target.value);
-          if (isCreate && !isKeyEdited) setKey(suggestKey(event.target.value));
+          if (isCreate && !isKeyEdited)
+            setKey(suggestCatalogueKey(event.target.value));
         }}
       />
       {isCreate ? (

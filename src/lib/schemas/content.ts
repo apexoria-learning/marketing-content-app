@@ -1,14 +1,18 @@
 import { z } from "zod";
 
-// Platforms are admin-managed catalogue keys (DATABASE.md §5.12); the
-// database foreign key and catalogue trigger decide which keys exist.
-export const PLATFORM_KEY_PATTERN = /^[a-z][a-z0-9_]{1,29}$/;
-export const PlatformSchema = z
-  .string()
-  .regex(
-    PLATFORM_KEY_PATTERN,
-    "Use 2–30 lowercase letters, numbers or underscores, starting with a letter.",
-  );
+// Platforms and pillars are admin-managed catalogue keys (DATABASE.md §5.12,
+// §5.14); the database foreign keys and catalogue triggers decide which exist.
+export const CATALOGUE_KEY_PATTERN = /^[a-z][a-z0-9_]{1,29}$/;
+export const PLATFORM_KEY_PATTERN = CATALOGUE_KEY_PATTERN;
+const catalogueKey = () =>
+  z
+    .string()
+    .regex(
+      CATALOGUE_KEY_PATTERN,
+      "Use 2–30 lowercase letters, numbers or underscores, starting with a letter.",
+    );
+export const PlatformSchema = catalogueKey();
+export const PillarSchema = catalogueKey();
 export const FormatSchema = z.enum([
   "carousel",
   "reel",
@@ -16,18 +20,6 @@ export const FormatSchema = z.enum([
   "story",
   "meme",
   "poll",
-]);
-export const PillarSchema = z.enum([
-  "salesforce_tips",
-  "salesforce_news",
-  "memes",
-  "interview_questions",
-  "success_stories",
-  "course_promos",
-  "career_guidance",
-  "behind_the_scenes",
-  "myth_busting",
-  "polls_engagement",
 ]);
 export const StatusSchema = z.enum(["idea", "ready", "posted", "skipped"]);
 const text = z.string().min(1);

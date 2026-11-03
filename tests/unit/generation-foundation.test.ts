@@ -5,6 +5,7 @@ import { generateContent } from "../../src/server/ai/generators";
 import { validateGeneratedContent } from "../../src/server/ai/validation";
 import { estimateCost } from "../../src/server/ai/accounting";
 import type { GenerationContext } from "../../src/server/ai/schemas";
+import { pillarRulesFor } from "./support/pillars";
 
 const context: GenerationContext = {
   platform: "instagram",
@@ -39,6 +40,12 @@ const context: GenerationContext = {
     caption_max_chars: null,
     guidance: "",
   },
+  pillar_rules: pillarRulesFor("salesforce_tips"),
+};
+// The seeded news pillar: its catalogue rule, not its key, requires sources.
+const news = {
+  pillar: "salesforce_news",
+  pillar_rules: pillarRulesFor("salesforce_news"),
 };
 const output = {
   format: "post",
@@ -71,14 +78,15 @@ describe("generation foundation", () => {
     expect(prompt).toEqual(
       buildContentPrompt({ ...context, steer: "Be concise" }),
     );
-    expect(prompt.messages).toHaveLength(4);
+    expect(prompt.messages).toHaveLength(5);
     expect(prompt.messages[0]?.content).toContain("Apexoria");
     expect(prompt.messages[1]?.content).toContain("Previous idea");
     expect(prompt.messages[1]?.content).not.toContain(
       "https://example.test/news",
     );
     expect(prompt.messages[2]?.content).toContain("visual_concept");
-    expect(prompt.messages[3]?.content).toContain("Be concise");
+    expect(prompt.messages[3]?.content).toContain("Teach something small");
+    expect(prompt.messages[4]?.content).toContain("Be concise");
   });
 
   it("rejects missing fields and preserves authored line breaks", () => {
@@ -105,7 +113,7 @@ describe("generation foundation", () => {
           },
         ],
       }),
-      { ...context, pillar: "salesforce_news" },
+      { ...context, ...news },
     );
     expect(result.source_refs).toEqual([
       {
@@ -120,7 +128,7 @@ describe("generation foundation", () => {
     expect(() =>
       validateGeneratedContent(JSON.stringify(output), {
         ...context,
-        pillar: "salesforce_news",
+        ...news,
       }),
     ).toThrow(/validation/);
     expect(() =>
@@ -135,6 +143,23 @@ describe("generation foundation", () => {
         },
       }),
     ).toThrow(/validation/);
+  });
+
+  it("requires sources by the catalogue's news flag, not the pillar key", () => {
+    expect(() =>
+      validateGeneratedContent(JSON.stringify(output), {
+        ...context,
+        pillar: "python_news",
+        pillar_rules: { ...news.pillar_rules, label: "Py news" },
+      }),
+    ).toThrow(/validation/);
+    expect(
+      validateGeneratedContent(JSON.stringify(output), {
+        ...context,
+        pillar: "salesforce_news",
+        pillar_rules: pillarRulesFor("salesforce_tips"),
+      }).format,
+    ).toBe("post");
   });
 
   it("enforces a catalogue platform's hashtag and caption limits", () => {
@@ -216,7 +241,7 @@ describe("generation foundation", () => {
       generateContent(
         {
           ...context,
-          pillar: "salesforce_news",
+          ...news,
           news: [],
         },
         generate,

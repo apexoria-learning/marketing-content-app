@@ -16,10 +16,13 @@ import {
   listActivityActors,
   listAppUsers,
   listAuthAccounts,
+  listPillars,
   listPlatforms,
   listPromptInstructions,
   listUsageRuns,
+  savePillar,
   savePlatform,
+  setPillarSortOrder,
   setPlatformSortOrder,
   updateAppUser,
   updateSettingsOverrides,
@@ -40,6 +43,12 @@ import {
   type PlatformRecord,
   type SavePlatformInput,
 } from "../../lib/schemas/platforms";
+import {
+  pillarPlannabilityError,
+  type MovePillarInput,
+  type PillarRecord,
+  type SavePillarInput,
+} from "../../lib/schemas/pillars";
 import { todayInIst } from "../../lib/utils/dates";
 import {
   summarizeUsage,
@@ -90,11 +99,8 @@ export type AdminOverview = {
   allowance: { used: number; limit: number; per_user: number };
   config: Pick<
     RuntimeConfig,
-    | "aiGenerationEnabled"
-    | "aiModel"
-    | "planningHorizonMonths"
-    | "enabledPillars"
-  > & { enabledPlatformLabels: string[] };
+    "aiGenerationEnabled" | "aiModel" | "planningHorizonMonths"
+  > & { enabledPlatformLabels: string[]; enabledPillarLabels: string[] };
 };
 
 export async function getAdminOverview(
@@ -102,12 +108,14 @@ export async function getAdminOverview(
   now = new Date(),
 ): Promise<AdminOverview> {
   assertAdmin(admin);
-  const [{ runs, entries }, overrides, used, platforms] = await Promise.all([
-    loadDirectory(now),
-    getSettingsOverrides(),
-    getGlobalAllowanceUsed(`${todayInIst(now)}T00:00:00+05:30`),
-    listPlatforms(),
-  ]);
+  const [{ runs, entries }, overrides, used, platforms, pillars] =
+    await Promise.all([
+      loadDirectory(now),
+      getSettingsOverrides(),
+      getGlobalAllowanceUsed(`${todayInIst(now)}T00:00:00+05:30`),
+      listPlatforms(),
+      listPillars(),
+    ]);
   const config = resolveRuntimeConfig(env, overrides);
   return {
     users: summarizeUserBase(entries, now),
@@ -129,7 +137,9 @@ export async function getAdminOverview(
       enabledPlatformLabels: platforms
         .filter((platform) => platform.is_enabled)
         .map((platform) => platform.label),
-      enabledPillars: config.enabledPillars,
+      enabledPillarLabels: pillars
+        .filter((pillar) => pillar.is_enabled)
+        .map((pillar) => pillar.label),
     },
   };
 }
@@ -329,16 +339,75 @@ export async function movePlatform(
   input: MovePlatformInput,
 ): Promise<{ key: string }> {
   assertAdmin(admin);
-  const order = (await listPlatforms()).map((platform) => platform.key);
-  const index = order.indexOf(input.key);
-  if (index < 0) refuse("This platform no longer exists.");
-  const target = input.direction === "up" ? index - 1 : index + 1;
-  const neighbour = order[target];
-  if (neighbour === undefined) return { key: input.key };
-  order[target] = input.key;
-  order[index] = neighbour;
+  const order = swapWithNeighbour(
+    (await listPlatforms()).map((platform) => platform.key),
+    input,
+    "This platform no longer exists.",
+  );
   // Renumber in display order so ties from older rows cannot persist.
   for (const [position, key] of order.entries())
     await setPlatformSortOrder(key, position + 1, admin.email);
+  return { key: input.key };
+}
+
+/** The order after moving `key` one place; empty when already at that end. */
+function swapWithNeighbour(
+  order: string[],
+  { key, direction }: { key: string; direction: "up" | "down" },
+  missing: string,
+): string[] {
+  const index = order.indexOf(key);
+  if (index < 0) refuse(missing);
+  const target = direction === "up" ? index - 1 : index + 1;
+  const neighbour = order[target];
+  if (neighbour === undefined) return [];
+  order[target] = key;
+  order[index] = neighbour;
+  return order;
+}
+
+export async function getPillarCatalogueForAdmin(
+  admin: AdminActor,
+): Promise<PillarRecord[]> {
+  assertAdmin(admin);
+  return listPillars();
+}
+
+export async function savePillarEntry(
+  admin: AdminActor,
+  input: SavePillarInput,
+): Promise<{ key: string; status: "created" | "updated" }> {
+  assertAdmin(admin);
+  const catalogue = await listPillars();
+  const existing = catalogue.some((pillar) => pillar.key === input.pillar.key);
+  if (input.mode === "create" && existing)
+    refuse("A pillar with this key already exists. Edit it instead.");
+  if (input.mode === "update" && !existing)
+    refuse("This pillar no longer exists.");
+  // The database re-checks this inside the same transaction (0017).
+  const problem = pillarPlannabilityError([
+    ...catalogue.filter((pillar) => pillar.key !== input.pillar.key),
+    input.pillar,
+  ]);
+  if (problem) refuse(`${problem} Months must stay plannable.`);
+  await savePillar(input.pillar, input.mode === "create", admin.email);
+  return {
+    key: input.pillar.key,
+    status: input.mode === "create" ? "created" : "updated",
+  };
+}
+
+export async function movePillar(
+  admin: AdminActor,
+  input: MovePillarInput,
+): Promise<{ key: string }> {
+  assertAdmin(admin);
+  const order = swapWithNeighbour(
+    (await listPillars()).map((pillar) => pillar.key),
+    input,
+    "This pillar no longer exists.",
+  );
+  for (const [position, key] of order.entries())
+    await setPillarSortOrder(key, position + 1, admin.email);
   return { key: input.key };
 }
