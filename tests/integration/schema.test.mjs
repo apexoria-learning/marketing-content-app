@@ -644,7 +644,7 @@ describeDatabase("content_items constraints", () => {
       }),
     );
 
-    expect(message).toMatch(/content_items_news_requires_sources/);
+    expect(message).toMatch(/News content requires a source/);
   });
 
   it("accepts a ready salesforce_news item carrying a source", async () => {

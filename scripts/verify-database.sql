@@ -8,7 +8,7 @@ begin
     'brand_profile', 'content_plans', 'content_items', 'daily_tips',
     'news_items', 'activity_log', 'generation_runs', 'rate_limits',
     'app_users', 'app_settings', 'prompt_instructions',
-    'platforms', 'platform_formats'
+    'platforms', 'platform_formats', 'pillars'
   ] loop
     if not exists (
       select 1
@@ -41,7 +41,7 @@ begin
     where schemaname = 'public'
       and tablename in (
         'app_users', 'app_settings', 'prompt_instructions',
-        'platforms', 'platform_formats'
+        'platforms', 'platform_formats', 'pillars'
       )
       and cmd <> 'SELECT'
   ) then

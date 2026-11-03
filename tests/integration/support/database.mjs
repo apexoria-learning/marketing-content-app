@@ -66,6 +66,7 @@ export const APPLICATION_TABLES = [
   "daily_tips",
   "generation_runs",
   "news_items",
+  "pillars",
   "platform_formats",
   "platforms",
   "prompt_instructions",
@@ -129,10 +130,11 @@ export function createTestDatabasePool(client) {
 
 /**
  * Provisions a throwaway database, applies every migration in order, and
- * optionally the development seed. Isolated per suite so mutating assertions
+ * optionally the development seed. `until` stops after the named migration
+ * file, for upgrade tests. Isolated per suite so mutating assertions
  * never touch the developer's own data.
  */
-export async function createTestDatabase({ seed = false } = {}) {
+export async function createTestDatabase({ seed = false, until } = {}) {
   const name = `apexoria_test_${randomUUID().replaceAll("-", "")}`;
   const admin = new pg.Client({ connectionString: databaseUrl });
 
@@ -156,6 +158,10 @@ export async function createTestDatabase({ seed = false } = {}) {
   await client.query(SUPABASE_BOOTSTRAP);
 
   for (const migration of await readMigrations()) {
+    if (until && path.basename(migration) > until) {
+      break;
+    }
+
     await client.query(await readFile(migration, "utf8"));
   }
 

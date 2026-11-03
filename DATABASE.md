@@ -141,7 +141,7 @@ create type public.activity_action   as enum (
 );
 ```
 
-`content_pillar` values map 1:1 to `PRD §6.1`. `content_status` values map 1:1 to `FR-7.1`.
+`content_pillar` values map 1:1 to `PRD §6.1`; since migration `0017` content uses the admin-managed pillar catalogue (§5.14) instead, and the enum remains only for the retired `app_settings.enabled_pillars` column. `content_status` values map 1:1 to `FR-7.1`.
 
 ---
 
@@ -316,7 +316,7 @@ create table public.content_items (
 This is the two-phase generation model (`ARCHITECTURE.md` §4.3) expressed in the schema. A skeleton row is valid and useful with only an idea. The `content_items_usable_is_hydrated` constraint then guarantees that the moment a row claims to be `ready` or `posted`, it is *completely* hydrated — making a half-generated item visible to a user physically impossible.
 
 **The news-sourcing constraint is the product's credibility control.**
-`PRD` risk `R2` ("factually wrong Salesforce claims damage credibility") is rated High. `FR-3.5` and `US-12` require sources. Enforcing it as a `CHECK` means a sourceless news item cannot reach a user even if the prompt, the Zod schema and the service layer all fail simultaneously.
+`PRD` risk `R2` ("factually wrong Salesforce claims damage credibility") is rated High. `FR-3.5` and `US-12` require sources. Enforcing it in the database means a sourceless news item cannot reach a user even if the prompt, the Zod schema and the service layer all fail simultaneously. Since migration `0017` it applies to every pillar the catalogue flags `requires_news` (§5.14), enforced by the `content_items_enforce_pillar_rules` trigger in place of the check shown above.
 
 **Format/platform compatibility encoded in the database.**
 `PRD §6.2` defines which formats are valid on which platform. A reel on LinkedIn is not a product decision to be re-litigated in a code review — it is rejected by the database. Since migration `0016` the rule is **catalogue data** (`platform_formats`, §5.13) enforced by the `content_items_enforce_platform_rules` trigger, which replaced the original `content_items_format_platform_valid` and `content_items_whatsapp_no_hashtags` checks shown above with identical seeded rules. `platform` is now `text` referencing `platforms(key)`.
@@ -464,7 +464,7 @@ Database-managed access list and roles (`US-17`, migration `0015`).
 
 Singleton (`id = 1`, seeded by `0015`) of runtime overrides for the environment defaults in `ARCHITECTURE.md` §11. **`NULL` means "use the environment value"**, so the app behaves exactly as before until an admin changes something.
 
-Columns: `ai_generation_enabled`, `regen_daily_limit` (1–1000), `global_daily_ai_limit` (1–10000), `plan_day_of_month` (1–31), `planning_horizon_months` (1–12), `ai_model` (trimmed, ≤ 200), `ai_base_url` (HTTPS `/v1`, no credentials/query/fragment, ≤ 500), `news_feed_urls text[]` (≤ 25; empty array disables feeds), `enabled_platforms platform[]` (1–3), `enabled_pillars content_pillar[]` (≥ 3 excluding `salesforce_news`, so the no-adjacent-repeat rule stays satisfiable), `updated_at`, `updated_by`. No secret is ever stored here.
+Columns: `ai_generation_enabled`, `regen_daily_limit` (1–1000), `global_daily_ai_limit` (1–10000), `plan_day_of_month` (1–31), `planning_horizon_months` (1–12), `ai_model` (trimmed, ≤ 200), `ai_base_url` (HTTPS `/v1`, no credentials/query/fragment, ≤ 500), `news_feed_urls text[]` (≤ 25; empty array disables feeds), `enabled_platforms platform[]` and `enabled_pillars content_pillar[]` (both retired: folded into the catalogues by `0016` and `0017`, kept unused per §9.3), `updated_at`, `updated_by`. No secret is ever stored here.
 
 ### 5.11 `prompt_instructions`
 
@@ -494,6 +494,27 @@ Seeded with Instagram, LinkedIn and WhatsApp Status using today's exact rules (I
 `(platform_key → platforms.key, format content_format)` primary key: which existing formats each platform supports. New formats still require code (each has its own body schema and renderer). `save_platform(jsonb, content_format[], boolean, text)` — executable by `service_role` only — writes a platform and its formats in one transaction and rejects any state with fewer than two enabled platform/format pairs, so the no-consecutive-repeat planning rule stays satisfiable.
 
 `content_items_enforce_platform_rules` (`BEFORE INSERT OR UPDATE` on `content_items`) enforces: the key exists; inserts only on enabled platforms; `(platform, format)` is in `platform_formats` when either changes; hashtag count ≤ the platform's limit when hashtags or platform change. Later catalogue edits therefore never block unrelated updates to existing rows. `commit_month_plan` and `commit_day_items` were redefined to take the platform as `text`.
+
+### 5.14 `pillars`
+
+Admin-managed pillar catalogue (`US-19`, migration `0017`); replaces the fixed `content_pillar` enum for content and every `salesforce_news` special case.
+
+| Column | Type | Notes |
+|---|---|---|
+| `key` | `text` PK | `^[a-z][a-z0-9_]{1,29}$`; **permanent** — a trigger rejects key changes and deletes (retire with `is_enabled = false`) |
+| `label` | `text` | Trimmed, 1–30; shown on chips, filters and summaries |
+| `description` | `text` | Trimmed, 1–300; the pillar's purpose, given to the planners and generator as subordinate reference data |
+| `guidance` | `text` | Trimmed, ≤ 1000; optional subordinate prompt text |
+| `requires_news` | `boolean` | Planned only when verified news exists, and usable content must cite a supplied source |
+| `is_enabled` | `boolean` | Disabled pillars take no **new** content (trigger) and are excluded from plans; existing content stays readable and editable |
+| `sort_order` | `smallint` | Display order |
+| `created_at/by`, `updated_at/by` | | Attribution |
+
+Seeded with the ten `PRD §6.1` pillars (keys unchanged, short labels from the former UI constants, intents as descriptions); only `salesforce_news` requires news. The 0015 `app_settings.enabled_pillars` override was folded into `is_enabled`; the column keeps its value so the previous release stays consistent until the new code ships, and remains unused afterwards (§9.3). A transitional `app_settings_sync_legacy_enabled_pillars` trigger mirrors any write the previous release makes to that column onto the seeded pillars' `is_enabled` (`NULL` = all enabled), so nothing changed during the migrate-then-deploy window is lost; the new release never writes the column, and a later migration may drop the trigger.
+
+`content_items_enforce_pillar_rules` (`BEFORE INSERT OR UPDATE` on `content_items`) enforces: the key exists; inserts only on enabled pillars; and, for a `requires_news` pillar, at least one `source_refs` entry whenever a row is inserted as, or moves into, `ready`/`posted`, or its pillar or sources change while usable. This replaces the `content_items_news_requires_sources` check with the same rule for any news pillar. `commit_month_plan` and `commit_day_items` were redefined to take the pillar as `text`.
+
+`save_pillar(jsonb, boolean, text)` — executable by `service_role` only — creates or updates a pillar and, in the same transaction, rejects any state with fewer than three enabled pillars that do not need news (so planning without news can still avoid adjacent-day repeats) or more than fourteen enabled pillars (each must fit twice into February at one item per day).
 
 ---
 
@@ -623,6 +644,7 @@ RLS is enabled on **every** table. Deny-by-default: a table with RLS enabled and
 | `app_settings` | ✅ | ❌ | ❌ | ❌ | Non-secret runtime config read during generation; admin module writes |
 | `prompt_instructions` | ✅ | ❌ | ❌ | ❌ | Read during generation; admin module appends; triggers forbid update/delete |
 | `platforms`, `platform_formats` | ✅ | ❌ | ❌ | ❌ | Every screen and generator reads the catalogue; only the admin module writes (`save_platform`); keys are permanent and rows are never deleted |
+| `pillars` | ✅ | ❌ | ❌ | ❌ | Same pattern; only the admin module writes (`save_pillar`) |
 
 The `rate_limits` row is the sharpest line in this table. If users could `UPDATE` their own quota rows, the spend control protecting `R4` would be self-service. Total RLS denial plus a definer function means the counter is only ever touched by trusted, audited code.
 
@@ -942,6 +964,14 @@ the catalogue trigger, redefines both planning writers for text keys, and
 adds the service-role-only `save_platform`. Apply it after `0015` and
 **before** deploying the code that reads the catalogue; old code keeps
 working against it because platform values are unchanged strings.
+Migration `0017` adds the pillar catalogue (§5.14) the same way: `pillars`
+with select-only RLS seeded with the ten existing pillars, folds
+`enabled_pillars` into `is_enabled`, converts `content_items.pillar` to
+`text` with a foreign key, replaces `content_items_news_requires_sources` with
+the catalogue trigger, redefines both planning writers for text keys, and adds
+the service-role-only `save_pillar`. Apply it after `0016` and **before**
+deploying the code that reads it; old code keeps working because pillar values
+are unchanged strings and the old release still reads `enabled_pillars`.
 No other hosted target or automatic push/pull-request trigger is configured.
 
 #### Isolated behavioral tests and generated types
@@ -1090,7 +1120,7 @@ Release gates for the data layer, mapping to `PRD §17`.
 - [ ] `consume_rate_limit` is `SECURITY DEFINER` with `search_path = ''`
 - [ ] A third insert on one `scheduled_date` fails on the unique constraint
 - [ ] A `ready` item missing `caption`, `body` or `design_brief` is rejected
-- [ ] A `ready` `salesforce_news` item with empty `source_refs` is rejected
+- [ ] A `ready` item on a `requires_news` pillar (e.g. `salesforce_news`) with empty `source_refs` is rejected
 - [ ] A reel on LinkedIn is rejected
 - [ ] WhatsApp item with hashtags is rejected
 - [ ] `status = 'posted'` without `posted_at`/`posted_by` is rejected

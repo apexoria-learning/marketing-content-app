@@ -203,7 +203,7 @@ export type Database = {
           hydrated_at: string | null;
           id: string;
           idea: string;
-          pillar: Database["public"]["Enums"]["content_pillar"];
+          pillar: string;
           plan_id: string | null;
           platform: string;
           posted_at: string | null;
@@ -232,7 +232,7 @@ export type Database = {
           hydrated_at?: string | null;
           id?: string;
           idea: string;
-          pillar: Database["public"]["Enums"]["content_pillar"];
+          pillar: string;
           plan_id?: string | null;
           platform: string;
           posted_at?: string | null;
@@ -260,7 +260,7 @@ export type Database = {
           hydrated_at?: string | null;
           id?: string;
           idea?: string;
-          pillar?: Database["public"]["Enums"]["content_pillar"];
+          pillar?: string;
           plan_id?: string | null;
           platform?: string;
           posted_at?: string | null;
@@ -276,6 +276,13 @@ export type Database = {
           updated_at?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "content_items_pillar_fkey";
+            columns: ["pillar"];
+            isOneToOne: false;
+            referencedRelation: "pillars";
+            referencedColumns: ["key"];
+          },
           {
             foreignKeyName: "content_items_plan_id_fkey";
             columns: ["plan_id"];
@@ -445,6 +452,49 @@ export type Database = {
           title?: string;
           url?: string;
           url_hash?: string;
+        };
+        Relationships: [];
+      };
+      pillars: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          description: string;
+          guidance: string;
+          is_enabled: boolean;
+          key: string;
+          label: string;
+          requires_news: boolean;
+          sort_order: number;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          description: string;
+          guidance?: string;
+          is_enabled?: boolean;
+          key: string;
+          label: string;
+          requires_news?: boolean;
+          sort_order?: number;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          description?: string;
+          guidance?: string;
+          is_enabled?: boolean;
+          key?: string;
+          label?: string;
+          requires_news?: boolean;
+          sort_order?: number;
+          updated_at?: string;
+          updated_by?: string | null;
         };
         Relationships: [];
       };
@@ -636,6 +686,10 @@ export type Database = {
           p_prompt_version: string;
           p_regenerate: boolean;
         };
+        Returns: Json;
+      };
+      save_pillar: {
+        Args: { p_actor: string; p_create: boolean; p_pillar: Json };
         Returns: Json;
       };
       save_platform: {
