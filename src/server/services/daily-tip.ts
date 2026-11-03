@@ -5,6 +5,7 @@ import type { Database } from "../db/database.types";
 import { DailyTipSchema } from "../../lib/schemas/content";
 import { shiftDate } from "../../lib/utils/dates";
 import { generateDailyTip } from "../ai/generators/daily-tip";
+import type { GenerationContext } from "../ai/schemas";
 import { AiOutputError } from "../ai/validation";
 import { AiTransportError, type AiRequest } from "../ai/client";
 
@@ -16,6 +17,7 @@ export async function ensureDailyTip(
     signal?: AbortSignal,
   ) => Promise<{ content: string }>,
   signal?: AbortSignal,
+  instructions?: GenerationContext["instructions"],
 ) {
   z.iso.date().parse(date);
   const { data, error } = await client
@@ -43,7 +45,12 @@ export async function ensureDailyTip(
     .map((row) => row.tip);
   let generated: Awaited<ReturnType<typeof generateDailyTip>>;
   try {
-    generated = await generateDailyTip(recentTips, generate, signal);
+    generated = await generateDailyTip(
+      recentTips,
+      generate,
+      signal,
+      instructions,
+    );
   } catch (failure) {
     if (!(
       failure instanceof AiOutputError || failure instanceof AiTransportError

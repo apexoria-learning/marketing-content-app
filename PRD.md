@@ -185,8 +185,16 @@ Every item, regardless of format, carries:
 
 **US-2** — As the owner, I want only approved people to access the app, so that my calendar and AI credits are protected.
 - AC1: Users not permitted by Google OAuth cannot complete sign-in.
-- AC2: An optional server-side email allowlist blocks any non-listed email even if Google authentication succeeds.
+- AC2: A server-side access list blocks any email that is not an owner (`ADMIN_EMAILS`), an active admin-panel grant, or a not-yet-imported `ALLOWED_EMAILS` entry, even if Google authentication succeeds. Empty lists admit no one (fail closed).
 - AC3: Every page and API route rejects unauthenticated requests; no content is visible pre-login.
+
+**US-17** — As the owner, I want an admin panel, so that I can see usage and manage access, prompts, filters and settings without changing environment variables or redeploying.
+- AC1: Admins see the user base (with access, active in 7/30 days, signed in without access, revoked) and AI token usage for the last 30 days by person, day and type.
+- AC2: Admins can grant, revoke and restore access, set the Member/Admin role and turn AI generation on or off per person. Changes take effect on the person's next request.
+- AC3: Admins can save versioned editorial instructions for content, planning and daily-tip prompts; built-in factual, privacy and schema rules always take precedence.
+- AC4: Admins can limit planning to chosen platforms and pillars (at least one platform and three non-news pillars) and edit news feeds.
+- AC5: Admins can override AI generation on/off, daily limits, planning day/horizon, model alias and gateway URL; clearing an override restores the environment value. The gateway API key is never shown or editable.
+- AC6: Owners in `ADMIN_EMAILS` cannot be changed from the panel, and no admin can change their own access.
 
 ### Today's Plan
 
@@ -287,9 +295,10 @@ Every item, regardless of format, carries:
 ### FR-1 Authentication and access control
 - FR-1.1 Google OAuth sign-in via Supabase Auth; single-action sign-in screen.
 - FR-1.2 Server-side session verification on every page and API route.
-- FR-1.3 Optional environment-configured email allowlist enforced server-side.
+- FR-1.3 Server-side access list enforced on every session validation: `ADMIN_EMAILS` owners, admin-panel grants (database), then legacy `ALLOWED_EMAILS` entries until imported; fails closed.
 - FR-1.4 Sign-out available from Settings.
 - FR-1.5 Denied users see an explicit, non-technical "access not granted" screen.
+- FR-1.6 An admin panel (`/admin`) is available only to admins; members receive a not-found response.
 
 ### FR-2 Content planning engine
 - FR-2.1 Generate a full-month plan: every date populated with 1–2 items.
@@ -416,26 +425,29 @@ Every item, regardless of format, carries:
 | S6 | Item detail | `/item/[id]` | Everything about one piece | Hook, caption block, slides/script, hashtags, CTA, design brief, sources, copy actions, regenerate, posted toggle |
 | S7 | **Archive** | `/archive` | History and review | Month filter, platform/pillar/format filters, counts, posted list with notes |
 | S8 | Settings | `/settings` | Configuration | Brand profile editor, manual month generation, generation run log, install hint, theme, sign out |
+| S9 | Admin | `/admin` (+ `/users`, `/prompts`, `/filters`, `/settings`) | Owner controls (`US-17`) | Usage and user-base overview, access management, editorial instructions, planning filters, runtime settings |
 
-Bottom navigation exposes S3, S4, S5, S7. Settings is reached from the header. Item detail is reached from S3, S4, S5 and S7.
+Bottom navigation exposes S3, S4, S5, S7. Settings is reached from the header. Admin is reached from the Today header and shown only to admins. Item detail is reached from S3, S4, S5 and S7.
 
 > **Assumption A2:** Four bottom-nav destinations plus a header entry to Settings is the right information architecture. Adding a fifth tab would crowd the thumb zone.
 
 ## 12. Roles and permissions
 
-v1 has a single role.
+v1 has two roles: **Member** (the original single role) and **Admin** (Member plus the admin panel, `US-17`).
 
-| Capability | Authenticated team member | Unauthenticated |
-|---|---|---|
-| View Today / Calendar / Create / Archive / Item detail | ✅ | ❌ |
-| Mark posted / skipped, add notes | ✅ | ❌ |
-| Regenerate a single item (rate-limited) | ✅ | ❌ |
-| Trigger month generation (rate-limited) | ✅ | ❌ |
-| Edit brand profile | ✅ | ❌ |
-| Access any data or API | ✅ | ❌ |
+| Capability | Admin | Member | Unauthenticated |
+|---|---|---|---|
+| View Today / Calendar / Create / Archive / Item detail | ✅ | ✅ | ❌ |
+| Mark posted / skipped, add notes | ✅ | ✅ | ❌ |
+| Regenerate a single item (rate-limited) | ✅ | ✅ unless AI is turned off for them | ❌ |
+| Trigger month generation (rate-limited) | ✅ | ✅ unless AI is turned off for them | ❌ |
+| Edit brand profile | ✅ | ✅ | ❌ |
+| Admin panel: usage, access, prompts, filters, settings | ✅ | ❌ | ❌ |
+| Access any data or API | ✅ | ✅ | ❌ |
 
-- Access is granted by adding a Google account as an approved user in Google Cloud Console (D3), optionally reinforced by a server-side email allowlist.
-- Access is revoked by removing the account from the Google Console list and/or the allowlist. Revocation takes effect on next session validation.
+- Access is granted from the admin panel (or by listing an owner in `ADMIN_EMAILS`). If the Google OAuth consent screen is in testing mode, the account must also be added as a Google Cloud Console test user (D3) — the app cannot change that list.
+- Access is revoked from the admin panel. Revocation takes effect on the person's next request (page, action or middleware check).
+- `ADMIN_EMAILS` owners are always admins and cannot be changed from the panel; no admin can change their own access.
 - Scheduled jobs act as a system actor and authenticate with a shared secret, not a user session.
 
 > **Decision requiring approval — DR-1:** Should a read-only "Designer" role be introduced that can view and copy but cannot regenerate or edit the brand profile? This protects AI spend if an external freelancer is given access. *Recommendation: defer to v1.1 unless an external designer is onboarded immediately.*

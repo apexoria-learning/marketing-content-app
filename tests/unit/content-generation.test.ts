@@ -6,7 +6,16 @@ const mocks = vi.hoisted(() => ({
 }));
 vi.mock("server-only", () => ({}));
 vi.mock("../../src/server/config/env", () => ({
-  env: { AI_MODEL: "@test/model", PLANNING_HORIZON_MONTHS: 2 },
+  env: { PORTKEY_API_KEY: "server-held-key" },
+}));
+vi.mock("../../src/server/db/settings", () => ({
+  loadRuntimeConfig: async () => ({
+    aiModel: "@admin/model",
+    aiBaseUrl: "https://gateway.example.test/v1",
+    planningHorizonMonths: 2,
+  }),
+  getRuntimeConfig: vi.fn(),
+  getActiveInstructions: async () => null,
 }));
 vi.mock("../../src/server/db/client", () => ({
   createUserDatabaseClient: async () => ({}),
@@ -67,4 +76,20 @@ it("honours an earlier caller deadline, such as the batch's remaining time", asy
   expect(combined.aborted).toBe(false);
   caller.abort();
   expect(combined.aborted).toBe(true);
+});
+
+it("routes through the admin-configured gateway with the server-held key", async () => {
+  await generateContentItemWithClient(
+    {} as never,
+    "c862f630-7968-4b35-b048-9b7e9183fef1",
+    false,
+  );
+  expect(mocks.createAiClient).toHaveBeenCalledWith(
+    {
+      PORTKEY_API_KEY: "server-held-key",
+      PORTKEY_BASE_URL: "https://gateway.example.test/v1",
+      AI_MODEL: "@admin/model",
+    },
+    { timeoutMs: CONTENT_REQUEST_TIMEOUT_MS },
+  );
 });

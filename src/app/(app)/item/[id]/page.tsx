@@ -21,7 +21,7 @@ import { Banner } from "@/components/feedback/Banner";
 import { TrackedTick } from "@/features/content/TrackedTick";
 import { ItemActions } from "@/features/content/ItemActions";
 import { GenerationControl } from "@/features/content/GenerationControl";
-import { env } from "@/server/config/env";
+import { getViewerCapabilities } from "@/server/services/viewer-capabilities";
 import { displayDate, displayTimestamp } from "@/lib/utils/dates";
 import { hasHydratedContent } from "@/lib/utils/status";
 import { getActivity, getItem, withPosterNames } from "@/server/db/queries";
@@ -42,6 +42,7 @@ export default async function ItemPage({
   const activity = await getActivity([item.id]);
   const postedByName =
     (await withPosterNames([item]))[0]?.posted_by_name ?? null;
+  const { canGenerate } = await getViewerCapabilities();
   return (
     <>
       <PageHeader
@@ -139,7 +140,7 @@ export default async function ItemPage({
         {item.status !== "posted" ? (
           <GenerationControl
             key={item.id}
-            enabled={env.AI_GENERATION_ENABLED === "true"}
+            enabled={canGenerate}
             auto={
               item.status === "idea" &&
               !hasHydratedContent(item) &&

@@ -9,7 +9,17 @@ const mocks = vi.hoisted(() => ({
 }));
 vi.mock("server-only", () => ({}));
 vi.mock("../../src/server/config/env", () => ({
-  env: { AI_MODEL: "@test/model", PLANNING_HORIZON_MONTHS: 2 },
+  env: { PORTKEY_API_KEY: "server-held-key" },
+}));
+vi.mock("../../src/server/db/settings", () => ({
+  getRuntimeConfig: async () => ({
+    aiModel: "@test/model",
+    aiBaseUrl: "https://gateway.example.test/v1",
+    planningHorizonMonths: 2,
+    enabledPlatforms: ["linkedin"],
+    enabledPillars: ["memes", "salesforce_tips", "career_guidance"],
+  }),
+  getActiveInstructions: async () => null,
 }));
 vi.mock("../../src/server/db/client", () => ({
   createUserDatabaseClient: async () => ({
@@ -63,6 +73,17 @@ it("gives whole-month planning a bounded deadline that fits one repair in the wo
   });
   expect(MONTH_PLAN_REQUEST_TIMEOUT_MS).toBeGreaterThan(60000);
   expect(MONTH_PLAN_REQUEST_TIMEOUT_MS * 2).toBeLessThanOrEqual(240000);
+});
+
+it("plans only with the platforms and pillars an admin enabled", async () => {
+  await generateMonth("2026-12");
+  expect(mocks.planMonth.mock.calls[0]?.[0]).toMatchObject({
+    horizonMonths: 2,
+    filters: {
+      platforms: ["linkedin"],
+      pillars: ["memes", "salesforce_tips", "career_guidance"],
+    },
+  });
 });
 
 describe("month-plan allowance", () => {

@@ -8,6 +8,8 @@ const mocks = vi.hoisted(() => ({
 vi.mock("server-only", () => ({}));
 vi.mock("../../src/server/auth", () => ({
   getAuthorizedUser: mocks.authorize,
+  toAdminActor: (user: { email: string; role: string; isOwner: boolean }) =>
+    user.role === "admin" ? { email: user.email, isOwner: user.isOwner } : null,
 }));
 vi.mock("../../src/server/db/client", () => ({
   destroyUserSession: mocks.destroy,
@@ -15,6 +17,7 @@ vi.mock("../../src/server/db/client", () => ({
 
 import {
   ActionFailure,
+  runAdminAction,
   runAuthorizedAction,
 } from "../../src/server/actions/run-action";
 
@@ -162,5 +165,83 @@ describe("six-step action pipeline", () => {
         "Your changes were saved, but the view could not refresh. Reload the page.",
       saved: true,
     });
+  });
+
+  it("surfaces a service's user-safe refusal message", async () => {
+    operation.mockRejectedValue(
+      new ActionFailure(
+        "VALIDATION",
+        "internal reason",
+        "You can't change your own access. Nothing was changed.",
+      ),
+    );
+    expect(await run()).toEqual({
+      ok: false,
+      code: "VALIDATION",
+      message: "You can't change your own access. Nothing was changed.",
+    });
+  });
+});
+
+describe("admin action pipeline", () => {
+  function runAdmin(input: unknown = { note: "Reviewed" }) {
+    return runAdminAction(input, schema, operation, revalidate);
+  }
+
+  it("refuses a member without destroying their session or mutating", async () => {
+    mocks.authorize.mockResolvedValue({
+      ok: true,
+      user: {
+        id: "id",
+        email: "member@example.test",
+        role: "member",
+        canGenerate: true,
+        isOwner: false,
+      },
+    });
+    expect(await runAdmin()).toEqual({
+      ok: false,
+      code: "FORBIDDEN",
+      message: "This needs admin access. Nothing was changed.",
+    });
+    expect(mocks.destroy).not.toHaveBeenCalled();
+    expect(operation).not.toHaveBeenCalled();
+  });
+
+  it("checks the role before validating input", async () => {
+    mocks.authorize.mockResolvedValue({
+      ok: true,
+      user: { id: "id", email: "m@example.test", role: "member" },
+    });
+    expect(await runAdmin({ unexpected: true })).toMatchObject({
+      code: "FORBIDDEN",
+    });
+  });
+
+  it("passes the verified admin token to the operation", async () => {
+    mocks.authorize.mockResolvedValue({
+      ok: true,
+      user: {
+        id: "id",
+        email: "admin@example.test",
+        role: "admin",
+        canGenerate: true,
+        isOwner: false,
+      },
+    });
+    expect(await runAdmin({ note: " Reviewed " })).toEqual({
+      ok: true,
+      data: { saved: true },
+    });
+    expect(operation).toHaveBeenCalledWith(
+      { note: "Reviewed" },
+      { email: "admin@example.test", isOwner: false },
+    );
+  });
+
+  it("still destroys a session that lost all access", async () => {
+    mocks.authorize.mockResolvedValue({ ok: false, code: "FORBIDDEN" });
+    expect(await runAdmin()).toMatchObject({ code: "FORBIDDEN" });
+    expect(mocks.destroy).toHaveBeenCalledOnce();
   });
 });

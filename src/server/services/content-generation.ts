@@ -5,15 +5,20 @@ import type { Database } from "../db/database.types";
 import { createUserDatabaseClient } from "../db/client";
 import { createAiClient } from "../ai/client";
 import { ContentItemSchema } from "../../lib/schemas/content";
-import { env } from "../config/env";
 import { todayInIst, shiftDate } from "../../lib/utils/dates";
 import { PlannedSlotSchema } from "../../lib/schemas/planning";
 import { getItem } from "../db/queries";
+import {
+  getActiveInstructions,
+  getRuntimeConfig,
+  loadRuntimeConfig,
+} from "../db/settings";
 import { hasHydratedContent } from "../../lib/utils/status";
 import { consumeGenerationBudget } from "../security";
 import type { ActionResult } from "../../lib/schemas/action-result";
 import { createRecordedAiClient } from "./recorded-ai";
 import { loadGenerationContext } from "./generation-context";
+import { gatewayConfiguration } from "./gateway-configuration";
 import { generateItem } from "./item-generation";
 import { generateDayPlan } from "../ai/generators/day-plan";
 import { ActionFailure } from "./service-error";
@@ -57,6 +62,7 @@ export async function generateContentItemWithClient(
   signal?: AbortSignal,
 ) {
   const budget = AbortSignal.timeout(CONTENT_GENERATION_BUDGET_MS);
+  const config = await loadRuntimeConfig(client);
   return generateItem(
     { itemId, regenerate, steer },
     {
@@ -69,15 +75,23 @@ export async function generateContentItemWithClient(
         if (error) throw error;
         return data ? ContentItemSchema.parse(data) : null;
       },
-      context: (item, guidance) =>
-        loadGenerationContext(client, item, todayInIst(), guidance),
+      context: async (item, guidance) =>
+        loadGenerationContext(
+          client,
+          item,
+          todayInIst(),
+          guidance,
+          (await getActiveInstructions(client, "content")) ?? undefined,
+        ),
       generate: createRecordedAiClient(
         client,
-        createAiClient(env, { timeoutMs: CONTENT_REQUEST_TIMEOUT_MS }),
+        createAiClient(gatewayConfiguration(config), {
+          timeoutMs: CONTENT_REQUEST_TIMEOUT_MS,
+        }),
         {
           kind: regenerate ? "item_regeneration" : "item_hydration",
           content_item_id: itemId,
-          model: env.AI_MODEL,
+          model: config.aiModel,
           prompt_version: "content-v1",
         },
         null,
@@ -109,9 +123,10 @@ export async function generateContentItemWithClient(
 
 export async function generateDay(date: string, count: number) {
   const today = todayInIst();
+  const config = await getRuntimeConfig();
   if (
     date < today ||
-    !isMonthWithinHorizon(date.slice(0, 7), today, env.PLANNING_HORIZON_MONTHS)
+    !isMonthWithinHorizon(date.slice(0, 7), today, config.planningHorizonMonths)
   )
     throw new ActionFailure(
       "VALIDATION",
@@ -134,14 +149,16 @@ export async function generateDay(date: string, count: number) {
       idea: `Plan content for ${date}`,
     },
     today,
+    undefined,
+    (await getActiveInstructions(client, "planning")) ?? undefined,
   );
   const generate = createRecordedAiClient(
     client,
-    createAiClient(env),
+    createAiClient(gatewayConfiguration(config)),
     {
       kind: "month_skeleton",
       target_month: `${date.slice(0, 7)}-01`,
-      model: env.AI_MODEL,
+      model: config.aiModel,
       prompt_version: "day-plan-v1",
     },
     null,
@@ -155,7 +172,16 @@ export async function generateDay(date: string, count: number) {
     .array(PlannedSlotSchema.pick({ pillar: true, format: true }))
     .parse(adjacent);
   const plan = await generateDayPlan(
-    { date, count, context, adjacentSlots },
+    {
+      date,
+      count,
+      context,
+      adjacentSlots,
+      filters: {
+        platforms: config.enabledPlatforms,
+        pillars: config.enabledPillars,
+      },
+    },
     generate,
   );
   const { data, error: commitError } = await client.rpc("commit_day_items", {

@@ -1,7 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import { GenerationContextSchema } from "../ai/schemas";
+import { GenerationContextSchema, type GenerationContext } from "../ai/schemas";
 import type { Database } from "../db/database.types";
 import type { PlannedSlot } from "../../lib/schemas/planning";
 import { shiftDate } from "../../lib/utils/dates";
@@ -32,6 +32,7 @@ export async function loadGenerationContext(
   slot: Pick<PlannedSlot, "platform" | "format" | "pillar" | "idea">,
   today: string,
   steer?: string,
+  instructions?: GenerationContext["instructions"],
 ) {
   const [brandResult, newsResult, recentResult, historyResult] =
     await Promise.all([
@@ -92,5 +93,6 @@ export async function loadGenerationContext(
       .parse(historyResult.data)
       .map((item) => item.pillar),
     ...(steer === undefined ? {} : { steer }),
+    ...(instructions === undefined ? {} : { instructions }),
   });
 }

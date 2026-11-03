@@ -1,10 +1,16 @@
-import { PillarSchema } from "../schemas/content";
+import { PillarSchema, type Pillar, type Platform } from "../schemas/content";
 import {
   PlanMonthInputSchema,
   PlanOutputSchema,
   type PlannedSlot,
 } from "../schemas/planning";
 import { monthBounds, shiftDate, shiftMonth } from "./dates";
+
+/** Admin-enabled platforms and pillars (DATABASE.md §5.10). */
+export type PlanningFilters = {
+  platforms: readonly Platform[];
+  pillars: readonly Pillar[];
+};
 
 const PLATFORM_FORMATS = {
   instagram: ["carousel", "reel", "post", "story", "meme", "poll"],
@@ -14,6 +20,17 @@ const PLATFORM_FORMATS = {
 
 export function isCompatiblePlannedSlot(item: PlannedSlot) {
   return PLATFORM_FORMATS[item.platform].includes(item.format);
+}
+
+export function isSlotAllowedByFilters(
+  item: Pick<PlannedSlot, "platform" | "pillar">,
+  filters?: PlanningFilters,
+) {
+  return (
+    !filters ||
+    (filters.platforms.includes(item.platform) &&
+      filters.pillars.includes(item.pillar))
+  );
 }
 
 function words(idea: string) {
@@ -54,6 +71,7 @@ export function validatePlanningRules(
   input: unknown,
   postedIdeas: readonly string[],
   hasNews = true,
+  filters?: PlanningFilters,
 ): { items: PlannedSlot[]; violations: string[] } {
   PlanMonthInputSchema.parse({ month });
   const parsed = PlanOutputSchema.safeParse(input);
@@ -96,6 +114,14 @@ export function validatePlanningRules(
       );
     if (!hasNews && item.pillar === "salesforce_news")
       violations.push(`pillar: news is unavailable on ${item.scheduled_date}`);
+    if (filters && !filters.platforms.includes(item.platform))
+      violations.push(
+        `platform: ${item.platform} is disabled on ${item.scheduled_date}`,
+      );
+    if (filters && !filters.pillars.includes(item.pillar))
+      violations.push(
+        `pillar: ${item.pillar} is disabled on ${item.scheduled_date}`,
+      );
   }
   for (let date = start; date < end; date = shiftDate(date, 1)) {
     const day = byDate.get(date) ?? [];
@@ -120,6 +146,7 @@ export function validatePlanningRules(
   }
   for (const [pillar, count] of counts) {
     if (!hasNews && pillar === "salesforce_news") continue;
+    if (filters && !filters.pillars.includes(pillar)) continue;
     if (count < 2)
       violations.push(`pillar: ${pillar} must appear at least twice`);
   }

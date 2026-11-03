@@ -1,23 +1,40 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   rpc: vi.fn(),
-  env: {
-    AI_GENERATION_ENABLED: "true",
-    REGEN_DAILY_LIMIT: 20,
-    GLOBAL_DAILY_AI_LIMIT: 100,
+  lookup: vi.fn(),
+  config: {
+    aiGenerationEnabled: true,
+    regenDailyLimit: 20,
+    globalDailyAiLimit: 100,
   },
 }));
 vi.mock("server-only", () => ({}));
-vi.mock("../../src/server/config/env", () => ({ env: mocks.env }));
+vi.mock("../../src/server/config/env", () => ({
+  env: { ADMIN_EMAILS: "", ALLOWED_EMAILS: "" },
+}));
 vi.mock("../../src/server/db/client", () => ({
   createUserDatabaseClient: async () => ({ rpc: mocks.rpc }),
+}));
+vi.mock("../../src/server/db/settings", () => ({
+  getRuntimeConfig: async () => mocks.config,
+}));
+vi.mock("../../src/server/auth/access", () => ({
+  lookupAccess: mocks.lookup,
 }));
 import { consumeGenerationBudget } from "../../src/server/security";
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.env.AI_GENERATION_ENABLED = "true";
+  mocks.config.aiGenerationEnabled = true;
+  mocks.config.regenDailyLimit = 20;
+  mocks.config.globalDailyAiLimit = 100;
   mocks.rpc.mockResolvedValue({ data: true, error: null });
+  mocks.lookup.mockResolvedValue({
+    allowed: true,
+    role: "member",
+    canGenerate: true,
+    source: "database",
+  });
 });
 
 describe("AI generation allowance", () => {
@@ -30,6 +47,17 @@ describe("AI generation allowance", () => {
       p_user_limit: 20,
       p_global_limit: 100,
       p_plan_month: true,
+    });
+  });
+
+  it("charges the limits an admin set at runtime", async () => {
+    mocks.config.regenDailyLimit = 5;
+    mocks.config.globalDailyAiLimit = 40;
+    await consumeGenerationBudget("user@example.test");
+    expect(mocks.rpc).toHaveBeenCalledWith("consume_ai_budget", {
+      p_user_limit: 5,
+      p_global_limit: 40,
+      p_plan_month: false,
     });
   });
 
@@ -47,11 +75,35 @@ describe("AI generation allowance", () => {
   });
 
   it("blocks inactive generation without charging any quota", async () => {
-    mocks.env.AI_GENERATION_ENABLED = "false";
+    mocks.config.aiGenerationEnabled = false;
     expect(await consumeGenerationBudget("user@example.test")).toMatchObject({
       ok: false,
       code: "GENERATION_FAILED",
     });
+    expect(mocks.rpc).not.toHaveBeenCalled();
+  });
+
+  it("blocks a person whose AI access an admin turned off, without charging quota", async () => {
+    mocks.lookup.mockResolvedValue({
+      allowed: true,
+      role: "member",
+      canGenerate: false,
+      source: "database",
+    });
+    expect(await consumeGenerationBudget("user@example.test")).toEqual({
+      ok: false,
+      code: "GENERATION_FAILED",
+      message:
+        "AI generation isn't enabled for your account. Nothing was changed.",
+    });
+    expect(mocks.rpc).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when access cannot be re-read", async () => {
+    mocks.lookup.mockResolvedValue(null);
+    await expect(consumeGenerationBudget("user@example.test")).rejects.toThrow(
+      "Access list unavailable.",
+    );
     expect(mocks.rpc).not.toHaveBeenCalled();
   });
 

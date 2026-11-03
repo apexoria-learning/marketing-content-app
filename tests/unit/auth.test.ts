@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { isEmailAllowed } from "../../src/lib/auth/allowlist";
+import { isEmailListed, parseEmailList } from "../../src/lib/auth/allowlist";
+import { resolveAccess } from "../../src/lib/auth/access";
 import { getSafeRedirectPath } from "../../src/lib/auth/redirect";
 import {
   getAuthCookieOptions,
@@ -8,25 +9,101 @@ import {
 } from "../../src/lib/auth/session-cookie";
 import { SignInSearchSchema } from "../../src/lib/schemas/auth-search";
 
-describe("email allowlist", () => {
-  it("allows all signed-in users when the optional allowlist is empty", () => {
-    expect(isEmailAllowed("team@example.com", "")).toBe(true);
-    expect(isEmailAllowed("team@example.com", " , ")).toBe(true);
+describe("email lists", () => {
+  it("grants nothing when a list is empty (fail closed)", () => {
+    expect(isEmailListed("team@example.com", "")).toBe(false);
+    expect(isEmailListed("team@example.com", " , ")).toBe(false);
+    expect(parseEmailList(" , ")).toEqual([]);
   });
 
-  it("normalizes addresses and matches only allowlisted users", () => {
+  it("normalizes addresses and matches only listed users", () => {
     expect(
-      isEmailAllowed(
+      isEmailListed(
         " TEAM@Example.com ",
         " owner@example.com, team@example.com ",
       ),
     ).toBe(true);
-    expect(isEmailAllowed("other@example.com", "team@example.com")).toBe(false);
+    expect(isEmailListed("other@example.com", "team@example.com")).toBe(false);
   });
 
   it("rejects users without a verified email", () => {
-    expect(isEmailAllowed(null, "")).toBe(false);
-    expect(isEmailAllowed(undefined, "team@example.com")).toBe(false);
+    expect(isEmailListed(null, "team@example.com")).toBe(false);
+    expect(isEmailListed(undefined, "team@example.com")).toBe(false);
+  });
+});
+
+describe("access resolution", () => {
+  const lists = {
+    ownerEmails: "owner@example.test",
+    allowedEmails: "legacy@example.test",
+  };
+  const record = {
+    role: "member" as const,
+    is_active: true,
+    can_generate: true,
+  };
+
+  it("always admits owners as admins, even with a revoked row", () => {
+    expect(
+      resolveAccess({
+        ...lists,
+        email: " Owner@Example.test ",
+        record: { ...record, is_active: false },
+      }),
+    ).toEqual({
+      allowed: true,
+      role: "admin",
+      canGenerate: true,
+      source: "owner",
+    });
+  });
+
+  it("uses an active database row's role and AI permission", () => {
+    expect(
+      resolveAccess({
+        ...lists,
+        email: "admin@example.test",
+        record: { role: "admin", is_active: true, can_generate: false },
+      }),
+    ).toEqual({
+      allowed: true,
+      role: "admin",
+      canGenerate: false,
+      source: "database",
+    });
+  });
+
+  it("lets a revoked row override the legacy environment list", () => {
+    expect(
+      resolveAccess({
+        ...lists,
+        email: "legacy@example.test",
+        record: { ...record, is_active: false },
+      }),
+    ).toEqual({ allowed: false });
+  });
+
+  it("admits unimported ALLOWED_EMAILS entries as members", () => {
+    expect(
+      resolveAccess({ ...lists, email: "legacy@example.test", record: null }),
+    ).toMatchObject({ allowed: true, role: "member", source: "environment" });
+  });
+
+  it("denies everyone else, including when every list is empty", () => {
+    expect(
+      resolveAccess({ ...lists, email: "stranger@example.test", record: null }),
+    ).toEqual({ allowed: false });
+    expect(
+      resolveAccess({
+        ownerEmails: "",
+        allowedEmails: "",
+        email: "anyone@example.test",
+        record: null,
+      }),
+    ).toEqual({ allowed: false });
+    expect(resolveAccess({ ...lists, email: null, record })).toEqual({
+      allowed: false,
+    });
   });
 });
 

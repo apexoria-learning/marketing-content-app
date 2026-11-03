@@ -177,7 +177,7 @@ These are non-negotiable. Violating any one is a release blocker.
 - **Every Server Action re-verifies session and allowlist in its own body.** Middleware is never sufficient — actions are independently addressable HTTP endpoints. This is the most common critical vulnerability in App Router apps.
 - **Model output is untrusted input**, exactly like a request body. Parse, validate, cross-check sources, render as text.
 - **No `dangerouslySetInnerHTML`.** There is no HTML rendering path in this product.
-- `service_role` is used in the cron route handler **only**.
+- `service_role` is used in the cron route handler and the scoped admin module (`server/db/admin.ts`, reachable only with a verified `AdminActor` — ARCHITECTURE.md §6.3) **only**.
 - Never log a credential, a token, or a full request body containing one.
 - Never weaken a constraint, an RLS policy or a validation rule to make something pass. Fix the caller.
 

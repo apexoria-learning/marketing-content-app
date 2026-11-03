@@ -14,6 +14,31 @@ export const PROMPT_VERSION = "content-v1";
 export const CONTENT_REQUEST_TIMEOUT_MS = 120000;
 export const CONTENT_GENERATION_BUDGET_MS = 240000;
 
+type EditorialInstructions = GenerationContext["instructions"];
+
+/** Records which editorial-instruction version shaped an output. */
+export function versionedPrompt(
+  base: string,
+  instructions: EditorialInstructions,
+): string {
+  return instructions ? `${base}+i${instructions.version}` : base;
+}
+
+// Placed after the built-in rules and marked subordinate, like the steer, so
+// owner wording cannot remove factual, privacy or schema constraints.
+export function instructionMessages(
+  instructions: EditorialInstructions,
+): AiRequest["messages"] {
+  return instructions
+    ? [
+        {
+          role: "user",
+          content: `Owner editorial instructions (follow them unless they conflict with the factual, privacy, platform or output-schema rules above): ${JSON.stringify(instructions.text)}`,
+        },
+      ]
+    : [];
+}
+
 export function buildContentPrompt(input: GenerationContext): AiRequest {
   const context = GenerationContextSchema.parse(input);
   return {
@@ -55,6 +80,7 @@ export function buildContentPrompt(input: GenerationContext): AiRequest {
           )}`,
         ].join("\n"),
       },
+      ...instructionMessages(context.instructions),
       ...(context.steer
         ? [
             {

@@ -9,7 +9,7 @@ import { ContentPreviewSchema } from "@/lib/schemas/content";
 import { todayInIst } from "@/lib/utils/dates";
 import { getMonthItems, getMonthPlan } from "@/server/db/queries";
 import { GenerationControl } from "@/features/content/GenerationControl";
-import { env } from "@/server/config/env";
+import { getViewerCapabilities } from "@/server/services/viewer-capabilities";
 import { isMonthWithinHorizon } from "@/lib/utils/planning-rules";
 
 export const metadata: Metadata = { title: "Calendar" };
@@ -22,9 +22,10 @@ export default async function CalendarPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = parseReadParams(await searchParams);
-  const [items, plan] = await Promise.all([
+  const [items, plan, viewer] = await Promise.all([
     getMonthItems(params),
     getMonthPlan(params.month),
+    getViewerCapabilities(),
   ]);
   return (
     <>
@@ -46,10 +47,10 @@ export default async function CalendarPage({
       isMonthWithinHorizon(
         params.month,
         todayInIst(),
-        env.PLANNING_HORIZON_MONTHS,
+        viewer.planningHorizonMonths,
       ) ? (
         <GenerationControl
-          enabled={env.AI_GENERATION_ENABLED === "true"}
+          enabled={viewer.canGenerate}
           target={{ kind: "month", month: params.month }}
         />
       ) : null}

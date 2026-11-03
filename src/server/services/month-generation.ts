@@ -2,11 +2,12 @@ import "server-only";
 import { z } from "zod";
 import { createUserDatabaseClient } from "../db/client";
 import { createAiClient } from "../ai/client";
-import { env } from "../config/env";
+import { getActiveInstructions, getRuntimeConfig } from "../db/settings";
 import { todayInIst } from "../../lib/utils/dates";
 import { planMonth } from "./planning";
 import { loadGenerationContext } from "./generation-context";
 import { createRecordedAiClient } from "./recorded-ai";
+import { gatewayConfiguration } from "./gateway-configuration";
 import { MONTH_PLAN_REQUEST_TIMEOUT_MS } from "../ai/generators/month-plan";
 import { consumeGenerationBudget } from "../security";
 import { isMonthWithinHorizon } from "../../lib/utils/planning-rules";
@@ -19,7 +20,8 @@ export async function getMonthPlanAllowance(
   month: string,
   email: string,
 ): Promise<ActionResult<void>> {
-  if (!isMonthWithinHorizon(month, todayInIst(), env.PLANNING_HORIZON_MONTHS))
+  const config = await getRuntimeConfig();
+  if (!isMonthWithinHorizon(month, todayInIst(), config.planningHorizonMonths))
     return {
       ok: false,
       code: "VALIDATION",
@@ -44,11 +46,16 @@ export async function getMonthPlanAllowance(
 
 export async function generateMonth(month: string) {
   const client = await createUserDatabaseClient();
+  const config = await getRuntimeConfig();
   return planMonth(
     {
       month,
       today: todayInIst(),
-      horizonMonths: env.PLANNING_HORIZON_MONTHS,
+      horizonMonths: config.planningHorizonMonths,
+      filters: {
+        platforms: config.enabledPlatforms,
+        pillars: config.enabledPillars,
+      },
     },
     {
       async exists(value) {
@@ -60,7 +67,7 @@ export async function generateMonth(month: string) {
         if (error) throw error;
         return data !== null;
       },
-      loadContext: () =>
+      loadContext: async () =>
         loadGenerationContext(
           client,
           {
@@ -70,14 +77,18 @@ export async function generateMonth(month: string) {
             idea: "Plan the month",
           },
           todayInIst(),
+          undefined,
+          (await getActiveInstructions(client, "planning")) ?? undefined,
         ),
       generate: createRecordedAiClient(
         client,
-        createAiClient(env, { timeoutMs: MONTH_PLAN_REQUEST_TIMEOUT_MS }),
+        createAiClient(gatewayConfiguration(config), {
+          timeoutMs: MONTH_PLAN_REQUEST_TIMEOUT_MS,
+        }),
         {
           kind: "month_skeleton",
           target_month: `${month}-01`,
-          model: env.AI_MODEL,
+          model: config.aiModel,
           prompt_version: "month-plan-v1",
         },
         null,
@@ -86,7 +97,7 @@ export async function generateMonth(month: string) {
         const { data, error } = await client.rpc("commit_month_plan", {
           p_month: `${plan.month}-01`,
           p_items: plan.items,
-          p_model: env.AI_MODEL,
+          p_model: config.aiModel,
           p_prompt_version: plan.prompt_version,
         });
         if (error) throw error;

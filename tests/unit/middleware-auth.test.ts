@@ -6,7 +6,7 @@ const mocks = vi.hoisted(() => ({
   getUser: vi.fn(),
   signOut: vi.fn(),
   create: vi.fn(),
-  allowed: vi.fn(),
+  access: vi.fn(),
   expired: vi.fn(),
 }));
 vi.mock("server-only", () => ({}));
@@ -15,7 +15,7 @@ vi.mock("../../src/server/db/middleware", () => ({
   getExpiredSessionCookies: mocks.expired,
 }));
 vi.mock("../../src/server/auth/middleware", () => ({
-  isMiddlewareUserAllowed: mocks.allowed,
+  getMiddlewareAccess: mocks.access,
 }));
 import { middleware } from "../../src/middleware";
 
@@ -29,7 +29,7 @@ beforeEach(() => {
     data: { user: null },
     error: new AuthSessionMissingError(),
   });
-  mocks.allowed.mockReturnValue(true);
+  mocks.access.mockResolvedValue("allowed");
   mocks.signOut.mockResolvedValue({ error: null });
   mocks.expired.mockReturnValue([
     {
@@ -71,6 +71,7 @@ describe("middleware session boundaries", () => {
     "/create",
     "/archive",
     "/settings",
+    "/admin",
     "/item/example",
   ])("redirects unauthenticated %s", async (path) => {
     const response = await middleware(
@@ -106,7 +107,7 @@ describe("middleware session boundaries", () => {
       data: { user: { email: "denied@example.test" } },
       error: null,
     });
-    mocks.allowed.mockReturnValue(false);
+    mocks.access.mockResolvedValue("denied");
     mocks.signOut.mockResolvedValue({
       error: { code: "unavailable", status: 503 },
     });
@@ -118,6 +119,31 @@ describe("middleware session boundaries", () => {
     );
     expect(response.cookies.get("sb-project-auth-token")?.maxAge).toBe(0);
     expect(mocks.signOut).toHaveBeenCalledWith({ scope: "local" });
+  });
+
+  it("defers to the layout when the access list is unreadable", async () => {
+    mocks.getUser.mockResolvedValue({
+      data: { user: { id: "verified-id", email: "member@example.test" } },
+      error: null,
+    });
+    mocks.access.mockResolvedValue("unknown");
+    const response = await middleware(
+      new NextRequest("https://app.example.test/calendar"),
+    );
+    expect(response.status).toBe(200);
+    expect(mocks.signOut).not.toHaveBeenCalled();
+    expect(response.headers.get("x-offline-session")).toBeNull();
+  });
+
+  it("skips the access-list query for public assets", async () => {
+    mocks.getUser.mockResolvedValue({
+      data: { user: { id: "verified-id", email: "member@example.test" } },
+      error: null,
+    });
+    await middleware(new NextRequest("https://app.example.test/sw.js"));
+    expect(mocks.access).not.toHaveBeenCalled();
+    await middleware(new NextRequest("https://app.example.test/admin"));
+    expect(mocks.access).toHaveBeenCalledOnce();
   });
 
   it("carries refreshed session cookies onto protected-route redirects", async () => {

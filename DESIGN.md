@@ -363,8 +363,11 @@ Horizontally scrollable row of `r-pill` toggle chips, 12px gap, fading edge mask
 **QueueRow** (Create screen)
 Compact row: 40px `r-sm` format glyph tile on the left; title/hook (`sm`, 2-line clamp) and a meta line (`caption`: date · platform · pillar); `StatusTick` on the right. Overdue rows show a 2px `danger` left rule and a date in `danger`.
 
-**Inputs** (Settings and the regeneration steer only)
+**Inputs** (Settings, the admin panel and the regeneration steer only)
 `surface-sunken`, `r-md`, `border`, 48px min height, 16px text (prevents iOS zoom), label above in `eyebrow`, helper/error text below in `caption`. Errors use `danger` text **plus** an alert glyph. Textareas auto-grow to a max of 8 lines then scroll.
+
+**Checkbox** (admin panel)
+Native checkbox tinted `accent`, with the whole label row as a 44px target and optional `caption` helper beneath. Used for on/off settings (AI generation, per-person AI permission). Distinct from `StatusTick`, which remains the posting control.
 
 **Toast**
 Bottom-anchored above the nav, `e4`, `r-lg`, max 2 lines, auto-dismiss 4s, swipe to dismiss, one optional action (usually **Undo**). Only one toast at a time; a new toast replaces the current one.
@@ -415,11 +418,13 @@ Calendar ─┼─→ Item detail ─→ (regeneration sheet)
 Create ─┤
 Archive ─┘
 Settings (from header, modal-style route)
+Admin (from the Today header, admins only; sections as sibling links)
 ```
 
 - Tabs preserve independent scroll positions.
 - Item detail is a pushed route with a back chevron; it returns to the originating tab.
 - Settings pushes from the Today header and dismisses back to it.
+- Admin pushes from the Today header with a back chevron. Its five sections (Overview, Users, Prompts, Filters, Settings) are siblings in a chip-style link row, so depth stays at two.
 - Maximum depth is two. Nothing in v1 goes three levels deep.
 
 ### 7.2 Transitions
@@ -683,7 +688,17 @@ Grouped sections separated by `32`, each with an eyebrow heading:
 3. **App** — theme control, install hint, version.
 4. **Account** — signed-in email and **Sign out** (`ghost`, `danger` text).
 
-No destructive action outside this screen. Sign out requires a confirmation sheet.
+No destructive action outside this screen and the admin panel (S9). Sign out requires a confirmation sheet.
+
+### S9 — Admin (`/admin`)
+Admins only (members get the not-found screen). `PageHeader` with back chevron, then a scrollable row of section links styled like selected/unselected `FilterBar` chips (`aria-current="page"` on the active one). Sections separated by `32`, each with an eyebrow heading.
+1. **Overview** — two-column stat tiles (`surface-1`, `r-lg`, `h2` tabular numerals) for people (with access, active 7/30 days, signed in without access) and 30-day AI usage; then usage by person, by day and by type as compact rows. No charts. A neutral banner when AI generation is off. Empty usage uses `EmptyState`.
+2. **Users** — grant form (email `Input`, Member/Admin `SegmentedControl`, AI `Checkbox`, the screen's one `primary` button), an accent banner offering to import `ALLOWED_EMAILS`, then groups: *Signed in without access*, *With access*, *Revoked*. Each row shows name, email, badges and last activity, with a `secondary` **Manage**/**Grant access** button opening a `BottomSheet`. Revoking needs an inline danger confirmation inside the sheet. Owners and the signed-in admin show a note instead of a button.
+3. **Prompts** — scope `SegmentedControl` (Content · Planning · Daily tip), a `Textarea` with a character counter, the active version line, and an immutable history list with **Use this text**. Copy states that built-in rules always apply first.
+4. **Filters** — platform and pillar toggle `Chip`s, a news-feed `Textarea` (one URL per line), **Save filters** and **Reset to defaults**.
+5. **Settings** — AI generation `Checkbox`, limit/planning/provider `Input`s with "Custom value · Use default" helpers. Changing the model or gateway asks for confirmation in a `BottomSheet`. The API key is never shown.
+
+Loading uses the shape-accurate `ScreenLoading surface="Admin"` skeleton; failures use `ErrorState` inside the admin segment so navigation keeps working.
 
 ---
 

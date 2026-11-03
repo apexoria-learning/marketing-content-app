@@ -3,11 +3,19 @@ import type { AiRequest } from "../ai/client";
 import { generateMonthPlan } from "../ai/generators/month-plan";
 import type { GenerationContext } from "../ai/schemas";
 import type { PlannedSlot } from "../../lib/schemas/planning";
-import { isMonthWithinHorizon } from "../../lib/utils/planning-rules";
+import {
+  isMonthWithinHorizon,
+  type PlanningFilters,
+} from "../../lib/utils/planning-rules";
 import { ActionFailure } from "./service-error";
 
 export async function planMonth(
-  input: { month: string; today: string; horizonMonths: number },
+  input: {
+    month: string;
+    today: string;
+    horizonMonths: number;
+    filters?: PlanningFilters;
+  },
   dependencies: {
     exists: (month: string) => Promise<boolean>;
     loadContext: () => Promise<GenerationContext>;

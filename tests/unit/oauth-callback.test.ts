@@ -5,14 +5,21 @@ const mocks = vi.hoisted(() => ({
   exchange: vi.fn(),
   destroy: vi.fn(),
   client: vi.fn(),
+  record: vi.fn(),
 }));
 vi.mock("server-only", () => ({}));
 vi.mock("../../src/server/config/env", () => ({
-  env: { ALLOWED_EMAILS: "member@example.test" },
+  env: {
+    ADMIN_EMAILS: "owner@example.test",
+    ALLOWED_EMAILS: "member@example.test",
+  },
 }));
 vi.mock("../../src/server/db/client", () => ({
   createUserDatabaseClient: mocks.client,
   destroyUserSession: mocks.destroy,
+}));
+vi.mock("../../src/server/db/access", () => ({
+  getAccessRecord: mocks.record,
 }));
 import { GET } from "../../src/app/auth/callback/route";
 
@@ -27,6 +34,7 @@ beforeEach(() => {
     error: null,
   });
   mocks.destroy.mockResolvedValue(true);
+  mocks.record.mockResolvedValue(null);
 });
 
 async function callback(query: string) {
@@ -96,6 +104,30 @@ describe("OAuth callback", () => {
     mocks.exchange.mockResolvedValue({ data: { user: {} }, error: null });
     expect((await callback("code=single-use")).headers.get("location")).toBe(
       "https://app.example.test/no-access",
+    );
+    expect(mocks.destroy).toHaveBeenCalledOnce();
+  });
+
+  it("admits an account granted in the admin panel", async () => {
+    mocks.exchange.mockResolvedValue({
+      data: { user: { email: "granted@example.test" } },
+      error: null,
+    });
+    mocks.record.mockResolvedValue({
+      role: "member",
+      is_active: true,
+      can_generate: true,
+    });
+    expect((await callback("code=single-use")).headers.get("location")).toBe(
+      "https://app.example.test/",
+    );
+    expect(mocks.destroy).not.toHaveBeenCalled();
+  });
+
+  it("destroys the new session when the access list cannot be read", async () => {
+    mocks.record.mockRejectedValue({ code: "08006" });
+    expect((await callback("code=single-use")).headers.get("location")).toBe(
+      "https://app.example.test/sign-in?error=session",
     );
     expect(mocks.destroy).toHaveBeenCalledOnce();
   });

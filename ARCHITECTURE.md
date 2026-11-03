@@ -179,6 +179,7 @@ Four boxes. One deployable. No internal network to secure.
 | `AppShell`, `BottomNav`, `PwaControls` | Per-tab scroll restoration, route motion, long-background resume, navigation state, install/update/connectivity APIs and acknowledged cache purge before sign-out |
 | `CalendarView`, `ScopeControl` | Day-sheet state, month swipe/chevrons, and URL-based segment selection |
 | `TrackedTick`, `ItemActions`, `usePosting` | Optimistic status changes, shared Today tick/button/ring state, reversible tracking and note/skip sheet submission |
+| `GrantAccessForm`, `UserAccessRow`, `ImportAllowlistControl`, `InstructionsEditor`, `PlanningFiltersForm`, `RuntimeSettingsForm`, `useAdminAction` | Admin panel form state, confirmation sheets and action feedback (`features/admin`, `US-17`); data stays server-rendered |
 
 Everything else — page shells, `ContentCard` content, `SlideList`, `ScriptList`, `BriefSection`, `CalendarGrid`, `QueueRow`, `TipCard`, archive lists — renders on the server.
 
@@ -440,7 +441,7 @@ Constraints and indexes:
 
 - **Reads** use a request-scoped client carrying the user's session. RLS applies.
 - **User-initiated writes** use the same session-scoped client. RLS applies.
-- **The service-role client is used in exactly one place: the cron route handler**, which has no user session. It is constructed inside `server/db/` behind a function whose name makes its privilege obvious, and it is never reachable from a Server Action or a Server Component.
+- **The service-role client is used in exactly two places: the cron route handler**, which has no user session, **and the scoped admin module** (`server/db/admin.ts`, §6.3), reachable only through admin services that require a verified `AdminActor`. Each is constructed inside `server/db/` behind a function whose name makes its privilege obvious; the admin factory is private to its module and neither is re-exported from the `db` barrel.
 
 Supabase CLI generates TypeScript types from the live schema; those types flow through `db/` into services. A schema change that breaks a query is a compile error, not a runtime surprise.
 
@@ -459,9 +460,10 @@ Plain SQL files in `supabase/migrations/`, forward-only, applied through the Sup
   → Supabase OAuth redirect → Google consent
   → /auth/callback?code=...
   → exchange code for session, set httpOnly secure cookies
-  → check allowlist
+  → check access list (owner → app_users row → legacy ALLOWED_EMAILS)
        allowed     → redirect to /
        not allowed → sign out server-side, redirect to /no-access
+       unreadable  → sign out server-side, redirect to /sign-in?error=session
 ```
 
 The session lives in host-only `httpOnly`, `sameSite=lax` cookies managed by `@supabase/ssr` (also `secure` in production), with a seven-day cookie lifetime. No token is readable by JavaScript. Middleware refreshes the session on each request so active installed-PWA sessions do not expire mid-use; Supabase Auth's refresh-token lifetime remains the upper bound.
@@ -480,20 +482,21 @@ Defence in depth, because `NFR-2` treats access as the primary risk:
 | Layer | Enforces | Fails how |
 |---|---|---|
 | **1. Google Cloud Console test users** (`D3`) | Who can complete OAuth at all | Google blocks sign-in before any code runs |
-| **2. Server-side allowlist** (`FR-1.3`) | Optional `ALLOWED_EMAILS` check on every session validation | Session terminated, redirect to `/no-access` |
+| **2. Server-side access list** (`FR-1.3`) | `ADMIN_EMAILS` owners → active `app_users` row → unimported `ALLOWED_EMAILS` entry, on every session validation (callback, middleware, layout, every action). Fails closed: empty lists and unreadable rows admit no one | Session terminated, redirect to `/no-access` (unreadable list: `/sign-in?error=session`) |
 | **3. Postgres RLS** (`NFR-2.3`) | Row access, independent of application logic | Query returns zero rows |
 
 Layer 3 matters most. Even if middleware were misconfigured and a page leaked, the anon key alone returns nothing, because every table is deny-by-default and policies require `auth.role() = 'authenticated'`.
 
 ### 6.3 Authorization model
 
-`PRD §12` defines a single role: any authenticated, allowlisted user has full capability. Therefore:
+`PRD §12` defines two roles: **Member** and **Admin** (`US-17`). Therefore:
 
-- RLS policies check *authentication*, not per-row ownership. There is no `user_id` column on content, because content belongs to the business, not to a person.
-- `posted_by` and `activity_log.actor_email` are **attribution, not authorization**. They record who did something; they never gate what anyone may do.
-- Cron acts as a system actor authenticated by a shared secret, not a user session. It is the only context using the service-role key.
-
-This is deliberately minimal. Introducing a read-only Designer role (`DR-1`) later means adding a `user_roles` table and tightening the mutation policies — a contained change, precisely because attribution and authorization are already separate concepts.
+- RLS policies on content check *authentication*, not per-row ownership. There is no `user_id` column on content, because content belongs to the business, not to a person.
+- `posted_by` and `activity_log.actor_email` are **attribution, not authorization**. They record who did something; they never gate what anyone may do. `generation_runs.actor_email` is stamped from the JWT by a trigger and is likewise attribution (usage reporting).
+- Role, active state and per-person AI permission live in `app_users` (`DATABASE.md` §5.9). Members can read only their own row; **no authenticated write policy exists**, so a signed-in account cannot grant itself access through the Data API.
+- `ADMIN_EMAILS` owners are admins resolved from the environment and never depend on the database, so a database outage or panel mistake cannot lock the owner out.
+- **Admin operations use a scoped service-role client** (owner-approved deviation, 2026-11-03). `server/db/admin.ts` creates it in a private factory; its only callers are `server/services/admin.ts` functions, each of which requires an `AdminActor` token that `toAdminActor` issues only after `getAuthorizedUser` verified an admin session in that request. Admin pages call `requireAdminPage()` themselves (layouts do not re-run on client navigation); admin actions use `runAdminAction`. A member is refused with `FORBIDDEN` without losing their session.
+- Cron acts as a system actor authenticated by a shared secret, not a user session.
 
 ### 6.4 Route protection
 
@@ -527,6 +530,9 @@ Everything else is a Server Action. There is no public REST API, no API versioni
 | `generateForDay` | date | **Yes** | Fills an empty day |
 | `updateBrandProfile` | profile fields | No | Autosave on blur (`DESIGN.md §8`) |
 | `setTheme` | theme | No | Cookie only |
+| `grantUserAccess`, `updateUserAccess`, `importAllowlist` | email, role, active, AI permission | No | Admin only (`runAdminAction`); owners and self are refused |
+| `updateAppSettings` | runtime overrides, planning filters | No | Admin only; `null` restores the environment value |
+| `saveEditorialInstructions` | scope, text ≤ 2,000 | No | Admin only; appends a version |
 
 **Uniform contract.** Every action returns a discriminated result — success with typed data, or failure with a stable error code and a user-safe message. Actions never throw across the client boundary, because thrown errors in production are reduced to an opaque digest and the UI cannot render the specific recovery guidance `DESIGN.md §9.3` requires.
 
@@ -557,7 +563,7 @@ Steps 1–3 are a shared wrapper, so an action cannot accidentally omit them.
 
 | Service | Role | Credential | Failure mode | Degradation |
 |---|---|---|---|---|
-| **Supabase Postgres** | Data | Anon key (client), service role (cron only) | Unavailable | Reads fall back to the service-worker cache; writes roll back optimistic state with a retry toast |
+| **Supabase Postgres** | Data | Anon key (client), service role (cron and the scoped admin module, §6.3) | Unavailable | Reads fall back to the service-worker cache; writes roll back optimistic state with a retry toast |
 | **Supabase Auth** | Google sign-in | Anon key + OAuth secret | Unavailable | Sign-in error with retry; existing sessions continue |
 | **Portkey → Claude** | Generation | Portkey API key, server-only | Timeout, rate limit, invalid output | Retry with backoff → repair attempt → mark run failed, **change nothing** (`NFR-3.2`) |
 | **Salesforce RSS feeds** | News grounding | None (public) | Feed down, malformed, blocked | Per-feed isolation; generation proceeds ungrounded and **never invents news** (`FR-3.6`, `R2`) |
@@ -583,16 +589,17 @@ Nothing outside `server/ai/` knows which model is in use, what a prompt looks li
 
 ### 9.2 Prompt composition
 
-Four layers, assembled in a fixed order so that caching and reasoning both behave predictably:
+Five layers, assembled in a fixed order so that caching and reasoning both behave predictably:
 
 | Layer | Contents | Volatility |
 |---|---|---|
 | **System** | Role, brand profile, platform tone rules, do/don't lists, hard constraints | Changes when the brand profile changes |
 | **Context** | Recent `news_items` (News pillar only), pillar usage history, last 60 days of posted ideas | Changes daily |
-| **Task** | The specific instruction and the exact output schema | Fixed per generator |
+| **Task** | The specific instruction and the exact output schema; enabled platforms/pillars when an admin has filtered them | Fixed per generator |
+| **Editorial instructions** | Admin-authored house style per scope (`content`, `planning`, `daily_tip`; `DATABASE.md` §5.11), ≤ 2,000 chars, sent as its own message explicitly subordinate to the factual, privacy, platform and schema rules | Per saved version |
 | **Steer** | Optional user instruction from the regeneration sheet | Per request |
 
-Every prompt carries a `prompt_version`, persisted on the row it produced (`NFR-7.2`). When output quality shifts, the cause is attributable.
+Every prompt carries a `prompt_version`, persisted on the row it produced (`NFR-7.2`). When editorial instructions are active the version gains a `+i<version>` suffix (e.g. `content-v1+i4`), so output changes stay attributable. Admin planning filters are enforced again by the deterministic validator (§4.4), never trusted to the prompt alone.
 
 ### 9.3 Structured output and validation
 
@@ -674,7 +681,9 @@ apexoria-content-copilot/
    │  │  ├─ create/page.tsx          # S5
    │  │  ├─ archive/page.tsx         # S7
    │  │  ├─ item/[id]/page.tsx       # S6
-   │  │  └─ settings/page.tsx        # S8
+   │  │  ├─ settings/page.tsx        # S8
+   │  │  └─ admin/                   # S9 — admin-gated layout + overview,
+   │  │                              # users, prompts, filters, settings
    │  │
    │  ├─ auth/callback/route.ts
    │  └─ api/
@@ -693,7 +702,7 @@ apexoria-content-copilot/
    │  └─ feedback/                   # EmptyState, ErrorState, Banner
    │
    ├─ features/                      # screen composition: data + layout
-   │  ├─ today/  calendar/  create/  archive/  item/  settings/
+   │  ├─ today/  calendar/  create/  archive/  item/  settings/  admin/
    │
    ├─ server/
    │  ├─ auth/                       # session, allowlist, guards
@@ -726,19 +735,20 @@ apexoria-content-copilot/
 |---|---|---|---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | Client + server | No | Both | Project endpoint |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Client + server | No | Both | RLS-constrained access |
-| `SUPABASE_SERVICE_ROLE_KEY` | Server | **Yes** | Cron only | Bypasses RLS — the highest-value secret |
-| `PORTKEY_API_KEY` | Server | **Yes** | `ai/client` | Gateway authentication |
-| `PORTKEY_BASE_URL` | Server | No | `ai/client` | Owner-authorized HTTPS `/v1` endpoint; model-alias routing per API.md §8.1 |
-| `AI_MODEL` | Server | No | `ai/client` | Model identifier — config, not code |
-| `CRON_SECRET` | Server | **Yes** | Cron route | Bearer authentication |
-| `ALLOWED_EMAILS` | Server | No | `auth/allowlist` | Comma-separated; empty disables layer 2 |
-| `NEWS_FEED_URLS` | Server | No | `news/` | Comma-separated feed list; approved Salesforce News/Ben defaults when unset; explicit empty disables feeds |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server | **Yes** | Cron; scoped admin module (§6.3) | Bypasses RLS — the highest-value secret |
+| `PORTKEY_API_KEY` | Server | **Yes** | `ai/client` | Gateway authentication; never stored in the database or shown in the panel |
+| `PORTKEY_BASE_URL` | Server | No | `ai/client` | Owner-authorized HTTPS `/v1` endpoint; model-alias routing per API.md §8.1. Default; admin-overridable |
+| `AI_MODEL` | Server | No | `ai/client` | Model identifier — config, not code. Default; admin-overridable |
+| `ADMIN_EMAILS` | Server | No | `auth/` | Comma-separated owners: always admins, cannot be changed from the panel |
+| `ALLOWED_EMAILS` | Server | No | `auth/` | Legacy comma-separated allowlist, honoured until imported into `app_users` from `/admin/users`. Empty admits no one |
+| `NEWS_FEED_URLS` | Server | No | `news/` | Comma-separated feed list; approved Salesforce News/Ben defaults when unset; explicit empty disables feeds. Default; admin-overridable |
 | `NEWS_RETENTION_DAYS` | Server | No | News ingestion service | Default `30` days from fetched_at, owner-approved |
-| `PLAN_DAY_OF_MONTH` | Server | No | Cron | Default `25` (`DR-4`) |
-| `REGEN_DAILY_LIMIT` | Server | No | `security/` | Default `20` (`DR-5`) |
-| `GLOBAL_DAILY_AI_LIMIT` | Server | No | `security/` | Default `100` — backstop bounding total daily AI spend |
-| `PLANNING_HORIZON_MONTHS` | Server | No | Planning service | Default `2` (`DR-6`) |
-| `AI_GENERATION_ENABLED` | Server | No | Generation actions and controls | Default `false`; owner enables after Group B validation and reviewed hosted migrations `0012`/`0013` |
+| `PLAN_DAY_OF_MONTH` | Server | No | Cron | Default `25` (`DR-4`); admin-overridable |
+| `REGEN_DAILY_LIMIT` | Server | No | `security/` | Default `20` (`DR-5`); admin-overridable |
+| `GLOBAL_DAILY_AI_LIMIT` | Server | No | `security/` | Default `100` — backstop bounding total daily AI spend; admin-overridable |
+| `PLANNING_HORIZON_MONTHS` | Server | No | Planning service | Default `2` (`DR-6`); admin-overridable |
+| `AI_GENERATION_ENABLED` | Server | No | Generation actions and controls | Default `false`; owner enables after Group B validation and reviewed hosted migrations `0012`/`0013`; admin-overridable |
+| `CRON_SECRET` | Server | **Yes** | Cron route | Bearer authentication |
 | `NEXT_PUBLIC_APP_URL` | Client + server | No | OAuth redirect, manifest | Canonical origin |
 
 Rules:
@@ -746,6 +756,7 @@ Rules:
 - `.env.example` is committed with names and explanatory comments and **no values**. Real values exist only in `.env.local` (git-ignored) and in Vercel's encrypted store.
 - Environment variables are read once in a typed, Zod-validated config module that **fails fast at startup** if a required value is missing or malformed. A missing key becomes a clear boot error, never a confusing `undefined` at 3 a.m. during a cron run.
 - Tunable behaviour (`PLAN_DAY_OF_MONTH`, `REGEN_DAILY_LIMIT`, `NEWS_FEED_URLS`) is configuration precisely because `PRD §19` leaves those decisions open. They change without a code review.
+- Variables marked *admin-overridable* are defaults: an admin may override them at runtime in `app_settings` (`DATABASE.md` §5.10), read once per request through `server/db/settings.ts`. Clearing an override restores the environment value. Secrets are never overridable or stored in the database.
 
 ---
 
@@ -758,7 +769,7 @@ Every failure maps to one of six codes, each with a defined UI treatment drawn f
 | Code | Cause | HTTP-ish | User sees | Recovery |
 |---|---|---|---|---|
 | `UNAUTHENTICATED` | No/expired session | 401 | Redirect to sign-in | Sign in |
-| `FORBIDDEN` | Not allowlisted | 403 | `/no-access` screen | Use another account |
+| `FORBIDDEN` | Not on the access list; or a member calling an admin action | 403 | `/no-access` screen (admin actions: inline message, session kept) | Use another account |
 | `VALIDATION` | Bad input | 400 | Inline field error | Correct and retry |
 | `RATE_LIMITED` | Cap exceeded | 429 | **Sheet**, not a toast — includes reset time | Dismiss |
 | `GENERATION_FAILED` | AI failure after retries | 502 | Banner: "Nothing was changed." | Try again |
@@ -968,8 +979,8 @@ Mapping directly to `PRD §17`:
 - **Daily:** the owner sees the run log in Settings; a failure is visible as an in-app banner.
 - **Monthly:** planning runs automatically on `PLAN_DAY_OF_MONTH`; the manual trigger exists as a fallback.
 - **Rollback:** Vercel instant rollback for application code. Data is never destructively migrated in v1, so a code rollback is always safe.
-- **Adding a user:** add the Google account in Cloud Console, and to `ALLOWED_EMAILS` if layer 2 is enabled. No deployment required.
-- **Changing feed sources or tuning limits:** environment variable change plus redeploy. No code change.
+- **Adding a user:** grant access in `/admin/users` (role and AI permission included). If the Google consent screen is in testing mode, also add the account as a Cloud Console test user. No deployment required.
+- **Changing feed sources, filters, prompts or tuning limits:** `/admin/filters`, `/admin/prompts` and `/admin/settings`; changes apply to the next request. Environment variables remain the defaults.
 
 ---
 

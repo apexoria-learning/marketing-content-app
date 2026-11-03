@@ -6,21 +6,23 @@ import { parseReadParams } from "@/lib/schemas/read-params";
 import { displayDate, shiftDate, todayInIst } from "@/lib/utils/dates";
 import { getDailyTip, getMonthItems, getTodayItems } from "@/server/db/queries";
 import { GenerationControl } from "@/features/content/GenerationControl";
-import { env } from "@/server/config/env";
+import { getViewerCapabilities } from "@/server/services/viewer-capabilities";
 
 export const metadata: Metadata = { title: "Today" };
 
 export default async function HomePage() {
   const today = todayInIst();
-  const [items, tip, month] = await Promise.all([
+  const [items, tip, month, viewer] = await Promise.all([
     getTodayItems(today),
     getDailyTip(today),
     getMonthItems(parseReadParams({ month: today.slice(0, 7) })),
+    getViewerCapabilities(),
   ]);
   return (
     <>
       <TodayDeck
         items={items.map((item) => ContentPreviewSchema.parse(item))}
+        isAdmin={viewer.isAdmin}
         progress={{
           posted: month.filter((item) => item.status === "posted").length,
           planned: month.length,
@@ -40,7 +42,7 @@ export default async function HomePage() {
       />
       {!items.length ? (
         <GenerationControl
-          enabled={env.AI_GENERATION_ENABLED === "true"}
+          enabled={viewer.canGenerate}
           target={{ kind: "day", date: today }}
         />
       ) : null}

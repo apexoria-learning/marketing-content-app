@@ -1,17 +1,24 @@
-export function isEmailAllowed(
+export function normalizeEmail(
   email: string | null | undefined,
-  configuredEmails: string,
-): boolean {
-  const normalizedEmail = email?.trim().toLowerCase();
+): string | null {
+  return email?.trim().toLowerCase() || null;
+}
 
-  if (!normalizedEmail) {
-    return false;
-  }
-
-  const allowlist = configuredEmails
+export function parseEmailList(configuredEmails: string): string[] {
+  return configuredEmails
     .split(",")
     .map((address) => address.trim().toLowerCase())
     .filter(Boolean);
+}
 
-  return allowlist.length === 0 || allowlist.includes(normalizedEmail);
+// An empty list grants nothing: access fails closed (ARCHITECTURE.md §6.2).
+export function isEmailListed(
+  email: string | null | undefined,
+  configuredEmails: string,
+): boolean {
+  const normalizedEmail = normalizeEmail(email);
+  return (
+    normalizedEmail !== null &&
+    parseEmailList(configuredEmails).includes(normalizedEmail)
+  );
 }

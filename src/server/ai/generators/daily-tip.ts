@@ -1,8 +1,10 @@
 import "server-only";
 import { z } from "zod";
 import type { AiRequest } from "../client";
+import type { GenerationContext } from "../schemas";
 import { areSimilarIdeas } from "../../../lib/utils/planning-rules";
 import { AiOutputError } from "../validation";
+import { instructionMessages, versionedPrompt } from "../prompts";
 
 const TipOutputSchema = z
   .object({
@@ -18,6 +20,7 @@ export async function generateDailyTip(
     signal?: AbortSignal,
   ) => Promise<{ content: string }>,
   signal?: AbortSignal,
+  instructions?: GenerationContext["instructions"],
 ) {
   const recent = z.array(z.string().max(1000)).max(30).parse(recentTips);
   const prompt: AiRequest = {
@@ -32,6 +35,7 @@ export async function generateDailyTip(
         role: "user",
         content: `Avoid topics repeated in these last 30 days: ${JSON.stringify(recent)}. Return JSON matching ${JSON.stringify(z.toJSONSchema(TipOutputSchema))}`,
       },
+      ...instructionMessages(instructions),
     ],
   };
   let request = prompt;
@@ -48,7 +52,10 @@ export async function generateDailyTip(
       parsed.success &&
       !recent.some((tip) => areSimilarIdeas(tip, parsed.data.tip))
     ) {
-      return { ...parsed.data, prompt_version: "daily-tip-v1" };
+      return {
+        ...parsed.data,
+        prompt_version: versionedPrompt("daily-tip-v1", instructions),
+      };
     }
     if (attempt === 1) {
       console.error("Daily tip failed validation.");

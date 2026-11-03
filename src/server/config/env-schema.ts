@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { GatewayBaseUrlSchema } from "../../lib/schemas/admin";
 
 // Canonical variable list: ARCHITECTURE.md §11, API.md §10.
 export const envSchema = z.object({
@@ -6,23 +7,13 @@ export const envSchema = z.object({
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
   PORTKEY_API_KEY: z.string().min(1),
-  PORTKEY_BASE_URL: z
-    .url()
-    .refine((value) => {
-      const url = new URL(value);
-      return (
-        url.protocol === "https:" &&
-        !url.username &&
-        !url.password &&
-        !url.search &&
-        !url.hash &&
-        /\/v1\/?$/.test(url.pathname)
-      );
-    }, "Must be an HTTPS v1 endpoint without credentials, query or fragment")
-    .default("https://portkeygateway.perficient.com/v1"),
+  PORTKEY_BASE_URL: GatewayBaseUrlSchema.default(
+    "https://portkeygateway.perficient.com/v1",
+  ),
   AI_MODEL: z.string().min(1),
   AI_GENERATION_ENABLED: z.enum(["true", "false"]).default("false"),
   CRON_SECRET: z.string().min(32),
+  ADMIN_EMAILS: z.string().default(""),
   ALLOWED_EMAILS: z.string().default(""),
   NEWS_FEED_URLS: z
     .string()

@@ -1,6 +1,10 @@
 import "server-only";
 import type { AiRequest } from "../client";
-import { buildContentPrompt, PROMPT_VERSION } from "../prompts";
+import {
+  buildContentPrompt,
+  PROMPT_VERSION,
+  versionedPrompt,
+} from "../prompts";
 import { GenerationContextSchema, type GenerationContext } from "../schemas";
 import { AiOutputError, validateGeneratedContent } from "../validation";
 
@@ -25,7 +29,7 @@ export async function generateContent(
     try {
       return {
         content: validateGeneratedContent(response.content, context),
-        prompt_version: PROMPT_VERSION,
+        prompt_version: versionedPrompt(PROMPT_VERSION, context.instructions),
       };
     } catch (error) {
       if (!(error instanceof AiOutputError)) throw error;

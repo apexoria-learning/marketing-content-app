@@ -3,17 +3,33 @@ import { z } from "zod";
 import type { AiRequest } from "../client";
 import { GenerationContextSchema, type GenerationContext } from "../schemas";
 import { PlanOutputSchema } from "../../../lib/schemas/planning";
+import { PillarSchema, PlatformSchema } from "../../../lib/schemas/content";
 import {
   isMonthWithinHorizon,
   validatePlanningRules,
+  type PlanningFilters,
 } from "../../../lib/utils/planning-rules";
 import { monthBounds } from "../../../lib/utils/dates";
 import { AiOutputError } from "../validation";
+import { instructionMessages, versionedPrompt } from "../prompts";
 
 export const PLAN_PROMPT_VERSION = "month-plan-v1";
 // A whole month is one non-streamed response, far larger than a single item.
 // The initial request plus its one repair must fit the 240s work budget.
 export const MONTH_PLAN_REQUEST_TIMEOUT_MS = 120000;
+
+function pillarRule(hasNews: boolean, filters?: PlanningFilters) {
+  if (!filters)
+    return hasNews
+      ? "Each of the ten pillars must appear at least twice. No pillar may repeat on adjacent dates."
+      : "Omit salesforce_news explicitly. Each of the other nine pillars must appear at least twice. No pillar may repeat on adjacent dates.";
+  const required = filters.pillars.filter(
+    (pillar) => hasNews || pillar !== "salesforce_news",
+  );
+  return `Use only these pillars, each at least twice: ${JSON.stringify(required)}. Never use: ${JSON.stringify(
+    PillarSchema.options.filter((pillar) => !required.includes(pillar)),
+  )}. No pillar may repeat on adjacent dates.`;
+}
 
 export async function generateMonthPlan(
   input: {
@@ -21,6 +37,7 @@ export async function generateMonthPlan(
     today: string;
     horizonMonths: number;
     context: GenerationContext;
+    filters?: PlanningFilters;
   },
   generate: (
     request: AiRequest,
@@ -57,11 +74,15 @@ export async function generateMonthPlan(
         content: [
           "Return one or two items for EVERY date in the requested month, slots starting at 1.",
           "Each idea is ONE line of at most 200 characters naming the topic and angle only. Do not write hooks, slide-by-slide copy, captions, scripts, hashtags or production notes; those are generated later for each item.",
-          context.news.length
-            ? "Each of the ten pillars must appear at least twice. No pillar may repeat on adjacent dates."
-            : "Omit salesforce_news explicitly. Each of the other nine pillars must appear at least twice. No pillar may repeat on adjacent dates.",
+          pillarRule(context.news.length > 0, input.filters),
           "Do not repeat a format on adjacent dates for the same platform.",
           "Instagram supports all six formats; LinkedIn supports carousel/post/poll; WhatsApp supports story/meme.",
+          ...(input.filters &&
+          input.filters.platforms.length < PlatformSchema.options.length
+            ? [
+                `Use only these platforms: ${JSON.stringify(input.filters.platforms)}.`,
+              ]
+            : []),
           "Avoid recent posted ideas: case/punctuation-insensitive word-set Jaccard similarity >=0.70 is rejected.",
           context.news.length
             ? "Use supplied news only for news ideas."
@@ -69,6 +90,7 @@ export async function generateMonthPlan(
           `JSON schema: ${JSON.stringify(z.toJSONSchema(PlanOutputSchema))}`,
         ].join("\n"),
       },
+      ...instructionMessages(context.instructions),
     ],
   };
   let current = request;
@@ -85,11 +107,15 @@ export async function generateMonthPlan(
       decoded,
       context.recent_ideas,
       context.news.length > 0,
+      input.filters,
     );
     if (!result.violations.length) {
       return {
         items: result.items,
-        prompt_version: PLAN_PROMPT_VERSION,
+        prompt_version: versionedPrompt(
+          PLAN_PROMPT_VERSION,
+          context.instructions,
+        ),
         news_omitted: context.news.length === 0,
       };
     }

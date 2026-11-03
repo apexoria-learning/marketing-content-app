@@ -14,6 +14,7 @@ import { generateMonthPlan } from "../../src/server/ai/generators/month-plan";
 import { generateDayPlan } from "../../src/server/ai/generators/day-plan";
 import { AiOutputError } from "../../src/server/ai/validation";
 import { planMonth } from "../../src/server/services/planning";
+import { buildContentPrompt } from "../../src/server/ai/prompts";
 import type { GenerationContext } from "../../src/server/ai/schemas";
 
 const context: GenerationContext = {
@@ -367,5 +368,116 @@ describe("month generation pipeline", () => {
     ).rejects.toMatchObject({ code: "VALIDATION" });
     expect(generate).not.toHaveBeenCalled();
     expect(commitPlan).not.toHaveBeenCalled();
+  });
+});
+
+describe("admin planning filters and editorial instructions", () => {
+  const threePillars = ["salesforce_tips", "memes", "career_guidance"] as const;
+  function filteredPlan() {
+    const plan = validPlan();
+    plan.items.forEach((item, index) => {
+      item.pillar = threePillars[index % 3] ?? "salesforce_tips";
+    });
+    return plan;
+  }
+  const filters = { platforms: ["instagram" as const], pillars: threePillars };
+  const instructed: GenerationContext = {
+    ...context,
+    instructions: { version: 4, text: "Prefer Indian examples." },
+  };
+
+  it("rejects disabled platforms and pillars and requires only enabled pillars", () => {
+    expect(
+      validatePlanningRules("2026-11", filteredPlan(), [], true, filters)
+        .violations,
+    ).toEqual([]);
+    const violations = validatePlanningRules("2026-11", validPlan(), [], true, {
+      platforms: ["linkedin"],
+      pillars: threePillars,
+    }).violations;
+    expect(violations).toContain(
+      "platform: instagram is disabled on 2026-11-01",
+    );
+    expect(violations).toContain(
+      "pillar: salesforce_news is disabled on 2026-11-02",
+    );
+    expect(violations.some((issue) => issue.includes("must appear"))).toBe(
+      false,
+    );
+  });
+
+  it("tells the month planner the enabled set and versions the instructions", async () => {
+    const generate = vi
+      .fn()
+      .mockResolvedValue({ content: JSON.stringify(filteredPlan()) });
+    const result = await generateMonthPlan(
+      { ...input, context: instructed, filters },
+      generate,
+    );
+    expect(result.prompt_version).toBe("month-plan-v1+i4");
+    const messages = generate.mock.calls[0]?.[0].messages;
+    const rules = JSON.stringify(messages);
+    expect(rules).toContain("Use only these platforms");
+    expect(rules).toContain("salesforce_tips");
+    expect(messages[0].content).not.toContain("Prefer Indian examples");
+    expect(messages.at(-1)).toEqual({
+      role: "user",
+      content: expect.stringMatching(
+        /^Owner editorial instructions \(follow them unless they conflict with the factual, privacy, platform or output-schema rules above\): "Prefer Indian examples\."$/,
+      ),
+    });
+  });
+
+  it("keeps the month prompt unchanged when no filters or instructions exist", async () => {
+    const generate = vi
+      .fn()
+      .mockResolvedValue({ content: JSON.stringify(validPlan()) });
+    const result = await generateMonthPlan({ ...input, context }, generate);
+    expect(result.prompt_version).toBe("month-plan-v1");
+    const rules = JSON.stringify(generate.mock.calls[0]?.[0].messages);
+    expect(rules).toContain(
+      "Each of the ten pillars must appear at least twice",
+    );
+    expect(rules).not.toContain("Owner editorial instructions");
+  });
+
+  it("rejects a day slot on a disabled pillar and keeps instructions out of reference data", async () => {
+    const slot: PlannedSlot = {
+      scheduled_date: "2026-11-01",
+      slot: 1,
+      platform: "instagram",
+      format: "post",
+      pillar: "myth_busting",
+      idea: "Flow debugging walkthrough",
+    };
+    const rejected = vi
+      .fn()
+      .mockResolvedValue({ content: JSON.stringify({ items: [slot] }) });
+    await expect(
+      generateDayPlan(
+        { date: slot.scheduled_date, count: 1, context: instructed, filters },
+        rejected,
+      ),
+    ).rejects.toThrow(AiOutputError);
+    const accepted = vi.fn().mockResolvedValue({
+      content: JSON.stringify({ items: [{ ...slot, pillar: "memes" }] }),
+    });
+    await expect(
+      generateDayPlan(
+        { date: slot.scheduled_date, count: 1, context: instructed, filters },
+        accepted,
+      ),
+    ).resolves.toMatchObject({ prompt_version: "day-plan-v1+i4" });
+    const messages = accepted.mock.calls[0]?.[0].messages;
+    expect(messages[0].content).not.toContain("Prefer Indian examples");
+    expect(messages.at(-1).content).toContain("Owner editorial instructions");
+  });
+
+  it("places content instructions after the rules and before the steer", () => {
+    const prompt = buildContentPrompt({ ...instructed, steer: "Be concise" });
+    const contents = prompt.messages.map((message) => message.content);
+    expect(contents.at(-2)).toContain("Prefer Indian examples");
+    expect(contents.at(-1)).toContain("Be concise");
+    expect(contents[0]).not.toContain("Prefer Indian examples");
   });
 });

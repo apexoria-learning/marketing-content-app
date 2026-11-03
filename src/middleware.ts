@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { isMiddlewareUserAllowed } from "./server/auth/middleware";
+import { getMiddlewareAccess } from "./server/auth/middleware";
 import {
   createMiddlewareDatabaseClient,
   getExpiredSessionCookies,
@@ -78,22 +78,30 @@ export async function middleware(request: NextRequest) {
   // also 404s in production.
   const isDevOnlyRoute =
     process.env.NODE_ENV !== "production" && pathname === "/design-system";
+  const isPublicAsset = [
+    "/manifest.webmanifest",
+    "/sw.js",
+    "/offline.html",
+    "/offline.css",
+    "/api/health",
+  ].includes(pathname);
   const isPublicRoute =
     isDevOnlyRoute ||
+    isPublicAsset ||
     pathname === "/sign-in" ||
     pathname === "/no-access" ||
-    pathname === "/auth/callback" ||
-    pathname === "/manifest.webmanifest" ||
-    pathname === "/sw.js" ||
-    pathname === "/offline.html" ||
-    pathname === "/offline.css" ||
-    pathname === "/api/health";
+    pathname === "/auth/callback";
   const isServerActionRequest =
     request.method === "POST" &&
     request.headers.has("Next-Action") &&
     !pathname.startsWith("/api/");
+  // Assets carry no private data; skip the access-list query for them.
+  const access =
+    user && !isServerActionRequest && !isPublicAsset
+      ? await getMiddlewareAccess(supabase, user.email)
+      : null;
 
-  if (!isServerActionRequest && user && !isMiddlewareUserAllowed(user.email)) {
+  if (access === "denied") {
     const expiredCookies = getExpiredSessionCookies(request);
     try {
       const { error: signOutError } = await supabase.auth.signOut({
@@ -147,7 +155,7 @@ export async function middleware(request: NextRequest) {
     request.method === "GET" &&
     isPrivatePage(pathname) &&
     user?.id &&
-    isMiddlewareUserAllowed(user.email) &&
+    access === "allowed" &&
     response.status === 200
   ) {
     response.headers.set("x-offline-session", user.id);

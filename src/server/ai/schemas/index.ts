@@ -65,6 +65,14 @@ export const GenerationContextSchema = z
     recent_ideas: z.array(z.string().max(2000)),
     pillar_history: z.array(PillarSchema).max(120),
     steer: z.string().trim().max(500).optional(),
+    // Owner editorial instructions (DATABASE.md §5.11); subordinate to rules.
+    instructions: z
+      .object({
+        version: z.number().int().positive(),
+        text: z.string().trim().min(1).max(2000),
+      })
+      .strict()
+      .optional(),
   })
   .strict();
 

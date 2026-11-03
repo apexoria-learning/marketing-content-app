@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import Link from "next/link";
 import { useReducedMotion } from "motion/react";
 import type { ContentPreview } from "@/lib/schemas/content";
 import { ContentCard } from "@/components/content/ContentCard";
@@ -8,6 +9,7 @@ import { ProgressRing } from "@/components/ui/ProgressRing";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { ActionBar } from "@/components/shell/ActionBar";
 import { Button } from "@/components/ui/Button";
+import { Icon } from "@/components/ui/Icon";
 import { EmptyState } from "@/components/feedback/States";
 import { StatusTick } from "@/components/ui/StatusTick";
 import { usePosting } from "./use-posting";
@@ -20,12 +22,14 @@ export function TodayDeck({
   dateLabel,
   tomorrow,
   tip,
+  isAdmin = false,
 }: {
   items: ContentPreview[];
   progress: { posted: number; planned: number };
   dateLabel: string;
   tomorrow: string;
   tip: ReactNode;
+  isAdmin?: boolean;
 }) {
   const [index, setIndex] = useState(0);
   const { statuses, pending, save } = usePosting(items);
@@ -79,7 +83,16 @@ export function TodayDeck({
         title={dateLabel}
         actions={<ProgressRing posted={posted} planned={progress.planned} />}
       />
-      <div className="mb-4 flex justify-end">
+      <div className="mb-4 flex items-center justify-end gap-2">
+        {isAdmin ? (
+          <Link
+            href="/admin"
+            className="inline-flex min-h-11 items-center gap-2 rounded-pill px-4 text-sm font-semibold text-secondary hover:bg-surface-2 hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          >
+            <Icon name="shield" size="chip" />
+            Admin
+          </Link>
+        ) : null}
         <SignOutControl />
       </div>
       {tip}

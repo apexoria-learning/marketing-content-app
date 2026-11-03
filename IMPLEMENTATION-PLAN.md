@@ -253,6 +253,26 @@ trust in the frontend's admin flag. Bridge implementation and activation remain
 pending.
 Groups C/D are not started and real-smoke/backup/live cron gates remain.
 
+**In-app admin panel (2026-11-03, owner-approved).** At the owner's request an
+admin panel was built **inside Content Co-pilot** (`/admin`, PRD `US-17`, S9)
+instead of the external Firebase bridge, which stays unbuilt. Owner decisions:
+`ADMIN_EMAILS` owners plus database-promoted admins; a database access list
+replaces `ALLOWED_EMAILS` (kept only as a fallback until imported) and access
+now **fails closed**; admin reads/writes use a scoped service-role module
+behind a server-verified `AdminActor` (approved deviation from "service role in
+cron only"); prompt management is versioned editorial instructions subordinate
+to built-in rules (not full template editing); filters are planning
+platforms/pillars and news feeds; runtime overrides cover AI on/off, limits,
+planning day/horizon, model alias and gateway URL (the API key stays in env);
+per-person AI permission and token attribution. Migration `0015` and its
+generated-type entries were written to match generator output; SQL behaviour
+was validated against a disposable local PostgreSQL 17 (all 100 integration
+tests, including 10 new ones, pass), not yet in CI on PostgreSQL 15.
+**Before deploying:** set `ADMIN_EMAILS`, apply `0015` via the manual
+migration workflow (dry run first), then import `ALLOWED_EMAILS` from
+`/admin/users`. Daily-tip instructions, `PLAN_DAY_OF_MONTH` and news feeds take
+effect only once the Phase 12 cron exists. Cost is still recorded as unknown.
+
 ## 2. Phase map
 
 | # | Phase | Depends on | Outcome |

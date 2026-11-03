@@ -55,14 +55,15 @@ Therefore every search param in §6 is parsed through Zod with an explicit allow
 | Caller | Identity | Mechanism | Privilege |
 |---|---|---|---|
 | **Team member** | Google account | Supabase session in `httpOnly` cookies | `authenticated` — full product capability, RLS applies |
+| **Admin** | Google account with admin role (`app_users` or `ADMIN_EMAILS`) | Same session, plus a server-verified role | Member capability plus admin actions via the scoped service-role module |
 | **Vercel Cron** | System | `Authorization: Bearer <CRON_SECRET>` | `service_role` — bypasses RLS |
 | **Anyone else** | None | — | Nothing. `anon` returns zero rows from every table (`DATABASE.md` §7.2) |
 
 ### 2.2 The authorization rule
 
-`PRD §12` defines one role with full capability. Consequently:
+`PRD §12` defines two roles, Member and Admin. Consequently:
 
-> **Authorization checks answer "is this a valid, allowlisted team member?" — never "does this person own this row?"**
+> **Authorization checks answer "is this a valid team member on the access list?" (and, for admin actions, "is this member an admin?") — never "does this person own this row?"**
 
 There are no ownership predicates because content belongs to the business. `posted_by` and `actor_email` are attribution, not authorization (`DATABASE.md` §7.1).
 
@@ -72,10 +73,11 @@ Three independent layers (`ARCHITECTURE.md` §6.2), and **every mutating surface
 
 | Surface | Layer 1 | Layer 2 | Layer 3 |
 |---|---|---|---|
-| Protected pages | `middleware.ts` redirect | `(app)/layout` session + allowlist check | RLS |
-| Server Actions | — | **Own session + allowlist check** | RLS |
+| Protected pages | `middleware.ts` redirect | `(app)/layout` session + access-list check | RLS |
+| Admin pages | `middleware.ts` redirect | Admin layout **and each page** call `requireAdminPage()` (members → 404) | Scoped service-role module behind `AdminActor` |
+| Server Actions | — | **Own session + access-list check** (admin actions: + role) | RLS |
 | `/api/cron/daily` | — | Bearer secret, constant-time compare | — (uses `service_role`) |
-| `/auth/callback` | — | OAuth code exchange + allowlist | RLS |
+| `/auth/callback` | — | OAuth code exchange + access list | RLS |
 
 **Server Actions must never rely on middleware.** They are independently addressable HTTP endpoints identified by an action ID; a request can reach one without traversing a page route. Treating middleware as sufficient protection for Server Actions is the single most common critical vulnerability in Next.js App Router applications. Every action therefore begins with its own session verification (§5.2).
 
@@ -114,7 +116,7 @@ OAuth redirect target. Completes Google sign-in and enforces the allowlist.
 1. If `error` is present → redirect to `/sign-in?error=oauth`. Log the failure without recording raw provider messages, codes from query strings, tokens, or credentials.
 2. Exchange `code` for a session using the PKCE verifier held in an `httpOnly` cookie. Failure → `/sign-in?error=exchange`.
 3. Read the email from the established session.
-4. **Allowlist check** (`FR-1.3`): if `ALLOWED_EMAILS` is non-empty and the email is absent from it → sign out server-side, clear cookies, redirect to `/no-access`. The session must be destroyed, not merely redirected away from.
+4. **Access check** (`FR-1.3`): resolve owner (`ADMIN_EMAILS`) → active `app_users` row → unimported `ALLOWED_EMAILS` entry. Anyone else (including when every list is empty) → sign out server-side, clear cookies, redirect to `/no-access`. If the access row cannot be read → sign out and redirect to `/sign-in?error=session`. The session must be destroyed, not merely redirected away from.
 5. Set session cookies: `httpOnly`, `secure` in production, `sameSite=lax`, host-only, with a seven-day lifetime. Middleware refreshes the session and cookie as needed; Supabase Auth's refresh-token lifetime remains the upper bound.
 6. Redirect to the validated `next` destination, else `/`.
 
@@ -230,14 +232,14 @@ Every action, without exception, runs these six steps via a shared wrapper so no
 
 ```
 1. Verify session        → UNAUTHENTICATED
-2. Verify allowlist      → FORBIDDEN
+2. Verify access list    → FORBIDDEN    (admin actions: also verify the admin role → FORBIDDEN, session kept)
 3. Validate input (Zod)  → VALIDATION
 4. Consume rate limit    → RATE_LIMITED        (where applicable)
 5. Delegate to a service → GENERATION_FAILED | UNEXPECTED
 6. Revalidate paths, return typed result
 ```
 
-Steps 1 and 2 are repeated inside the action even though middleware and the layout already performed them (§2.3).
+Steps 1 and 2 are repeated inside the action even though middleware and the layout already performed them (§2.3). Admin actions use `runAdminAction`, the same wrapper with an actor resolver that issues an `AdminActor` token only for admins.
 
 The shared wrapper lives in `server/actions/run-action.ts`; the generic result
 contract is client-safe in `lib/schemas/action-result.ts`. Its optional quota step
@@ -274,8 +276,11 @@ reported on sign-in without claiming the remote session was revoked.
 | `steer` (regeneration instruction) | 500 characters |
 | Brand profile text fields | 2,000 characters |
 | Brand profile array entries | 40 entries × 200 characters |
+| Editorial instructions (admin) | 2,000 characters per version |
+| Model alias (admin) | 200 characters, `[\w.@:/-]` |
+| Gateway URL / feed URL (admin) | 500 characters, HTTPS, no credentials |
 
-Limits exist because `steer` and brand profile fields are **interpolated into AI prompts**. An unbounded field is both a cost vector and a prompt-injection surface (§8.5).
+Limits exist because `steer`, brand profile fields and editorial instructions are **interpolated into AI prompts**. An unbounded field is both a cost vector and a prompt-injection surface (§8.5).
 
 ### 4.4 Error codes
 
@@ -284,7 +289,7 @@ Identical to `ARCHITECTURE.md` §12.1 — this is the canonical mapping.
 | Code | Cause | UI treatment (`DESIGN.md §9.3`) |
 |---|---|---|
 | `UNAUTHENTICATED` | Missing or expired session | Redirect to `/sign-in` |
-| `FORBIDDEN` | Valid session, not allowlisted | Redirect to `/no-access` |
+| `FORBIDDEN` | Valid session, not on the access list (session destroyed); or a member calling an admin action (session kept) | Redirect to `/no-access`; admin forms show the message and refresh, which returns a member to a not-found page |
 | `VALIDATION` | Input failed schema or business rule | Inline field error |
 | `RATE_LIMITED` | Per-user or global cap reached | **Bottom sheet**, not a toast — includes reset time |
 | `GENERATION_FAILED` | AI failed after retries and repair | Banner: "Generation didn't complete. Nothing was changed." |
@@ -302,12 +307,14 @@ Actions call `revalidatePath` for every affected route so Server Components re-r
 | `regenerateItem`, `hydrateItem` | `/item/[id]`, `/`, `/create` |
 | `planMonth`, `generateForDay` | `/`, `/calendar`, `/create` |
 | `updateBrandProfile` | `/settings` |
+| `grantUserAccess`, `updateUserAccess`, `importAllowlist`, `saveEditorialInstructions` | `/admin` (layout) |
+| `updateAppSettings` | `/` (layout — every route) |
 
 ---
 
 ## 5. Server Actions — catalogue
 
-Nine actions. Eight carried over from `ARCHITECTURE.md` §7.2, plus `addNote`, with one signature refinement — both noted inline below.
+Nine member actions — eight carried over from `ARCHITECTURE.md` §7.2, plus `addNote`, with one signature refinement — both noted inline below. Five admin actions are catalogued in §5.5.
 
 ### 5.1 Content status
 
@@ -449,6 +456,23 @@ Writes a cookie only. No database access, no AI, no rate limit.
 | `generateForDay` | ✅ | ✅ | ✅ | ✅ | items, runs |
 | `updateBrandProfile` | ✅ | ✅ | — | — | brand_profile |
 | `setTheme` | ✅ | ✅ | — | — | cookie only |
+| `grantUserAccess` / `updateUserAccess` / `importAllowlist` | ✅ | ✅ + **admin** | — | — | app_users |
+| `updateAppSettings` | ✅ | ✅ + **admin** | — | — | app_settings |
+| `saveEditorialInstructions` | ✅ | ✅ + **admin** | — | — | prompt_instructions |
+
+### 5.5 Admin (`US-17`)
+
+Defined in `server/actions/admin.ts`, all via `runAdminAction` (§4.2). Each delegates to `server/services/admin.ts`, which requires the `AdminActor` token and is the only caller of the scoped service-role module. Admin pages read through the same services after `requireAdminPage()`; members get a 404.
+
+| Action | Input (Zod, strict) | Returns | Notes |
+|---|---|---|---|
+| `grantUserAccess` | `email`, `role` (`member`\|`admin`), `can_generate` | `{ email, status: "granted" \| "updated" }` | Creates or reactivates a row |
+| `updateUserAccess` | `email` + at least one of `role`, `is_active`, `can_generate` | `{ email }` | A legacy `ALLOWED_EMAILS` entry gets its first row here, so a revoke beats the env list. Unknown people → `VALIDATION` "Grant access first" |
+| `importAllowlist` | `{}` | `{ imported }` | Inserts missing `ALLOWED_EMAILS` entries (owners excluded) as members; existing rows untouched |
+| `updateAppSettings` | Any subset of the `app_settings` overrides; `null` restores the env default | `{ updated_at }` | Revalidates every route (generation controls change) |
+| `saveEditorialInstructions` | `scope`, `instructions` (≤ 2,000; empty clears) | `{ version, changed }` | Appends a version only when the text differs |
+
+Guards (`VALIDATION`, user-safe message, nothing changed): `ADMIN_EMAILS` owners cannot be changed from the panel, and an admin cannot change their own access. Revocation needs no session purge: every page, action and middleware request re-reads the access row.
 
 ---
 
@@ -526,9 +550,11 @@ A user can neither read nor modify their own quota. That is the point of routing
 
 | Scope | Key | Limit | Config |
 |---|---|---|---|
-| Per user, per day | `<email>:ai_generate` | 20 | `REGEN_DAILY_LIMIT` |
-| Global, per day | `global:ai_generate` | 100 | `GLOBAL_DAILY_AI_LIMIT` |
+| Per user, per day | `<email>:ai_generate` | 20 | `REGEN_DAILY_LIMIT` (admin-overridable) |
+| Global, per day | `global:ai_generate` | 100 | `GLOBAL_DAILY_AI_LIMIT` (admin-overridable) |
 | Global, per day | `global:plan_month` | 5 | — |
+
+Before any counter is charged, the budget check re-reads the runtime AI on/off switch and the caller's own `can_generate` permission; either being off returns `GENERATION_FAILED` ("AI generation isn't enabled for your account" / "Generation is not enabled yet") without spending quota.
 
 `regenerateItem`, `hydrateItem`, `planMonth` and `generateForDay` all consume the same per-user `ai_generate` budget. A single shared budget is correct: the user's mental model is "how much AI can I use today", not a per-feature allowance, and it prevents working around a limit by switching actions.
 
@@ -708,19 +734,20 @@ Canonical list (`ARCHITECTURE.md` §11), annotated with the integration each ser
 |---|---|---|---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | Client + server | No | Supabase clients | Project endpoint |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Client + server | No | Supabase clients | RLS-constrained access |
-| `SUPABASE_SERVICE_ROLE_KEY` | Server | **Yes** | `/api/cron/daily` only | Bypasses RLS |
-| `PORTKEY_API_KEY` | Server | **Yes** | `server/ai/client` | Gateway auth |
-| `PORTKEY_BASE_URL` | Server | No | `server/ai/client` | Owner-authorized HTTPS gateway `/v1` endpoint |
-| `AI_MODEL` | Server | No | `server/ai/client` | Model identifier |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server | **Yes** | `/api/cron/daily`; scoped admin module (`ARCHITECTURE.md` §6.3) | Bypasses RLS |
+| `PORTKEY_API_KEY` | Server | **Yes** | `server/ai/client` | Gateway auth; never stored or shown in the admin panel |
+| `PORTKEY_BASE_URL` | Server | No | `server/ai/client` | Owner-authorized HTTPS gateway `/v1` endpoint; admin-overridable default |
+| `AI_MODEL` | Server | No | `server/ai/client` | Model identifier; admin-overridable default |
 | `CRON_SECRET` | Server | **Yes** | `/api/cron/daily` | Bearer authentication |
-| `ALLOWED_EMAILS` | Server | No | `/auth/callback`, action wrapper | Allowlist; empty disables layer 2 |
-| `NEWS_FEED_URLS` | Server | No | `server/news` | Comma-separated feed list; defaults to owner-approved Salesforce News and Salesforce Ben when unset; explicit empty disables feeds |
+| `ADMIN_EMAILS` | Server | No | Callback, middleware, layout, action wrapper | Owners: always admins, never changeable from the panel |
+| `ALLOWED_EMAILS` | Server | No | Callback, middleware, layout, action wrapper | Legacy allowlist honoured until imported into `app_users`; empty admits no one |
+| `NEWS_FEED_URLS` | Server | No | `server/news` | Comma-separated feed list; defaults to owner-approved Salesforce News and Salesforce Ben when unset; explicit empty disables feeds; admin-overridable |
 | `NEWS_RETENTION_DAYS` | Server | No | News ingestion service | Default `30`, owner-approved; pruning by fetched_at |
-| `PLAN_DAY_OF_MONTH` | Server | No | Cron stage 3 | Default `25` (`DR-4`) |
-| `REGEN_DAILY_LIMIT` | Server | No | Rate limiter | Default `20` (`DR-5`) |
-| `GLOBAL_DAILY_AI_LIMIT` | Server | No | Rate limiter | Default `100` |
-| `PLANNING_HORIZON_MONTHS` | Server | No | `planMonth` | Default `2` (`DR-6`) |
-| `AI_GENERATION_ENABLED` | Server | No | Generation actions and controls | Default `false`; enable only after Group B validation and reviewed hosted migrations `0012`/`0013` |
+| `PLAN_DAY_OF_MONTH` | Server | No | Cron stage 3 | Default `25` (`DR-4`); admin-overridable |
+| `REGEN_DAILY_LIMIT` | Server | No | Rate limiter | Default `20` (`DR-5`); admin-overridable |
+| `GLOBAL_DAILY_AI_LIMIT` | Server | No | Rate limiter | Default `100`; admin-overridable |
+| `PLANNING_HORIZON_MONTHS` | Server | No | `planMonth` | Default `2` (`DR-6`); admin-overridable |
+| `AI_GENERATION_ENABLED` | Server | No | Generation actions and controls | Default `false`; enable only after Group B validation and reviewed hosted migrations `0012`/`0013`; admin-overridable |
 | `NEXT_PUBLIC_APP_URL` | Client + server | No | OAuth redirect, manifest | Canonical origin |
 
 ### 10.1 Rules

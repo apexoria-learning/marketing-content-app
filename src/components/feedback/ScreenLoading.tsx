@@ -4,13 +4,14 @@ import { Skeleton } from "../ui/Skeleton";
 export function ScreenLoading({
   surface,
 }: {
-  surface: "Today" | "Calendar" | "Create" | "Content details" | "Archive";
+  surface:
+    "Today" | "Calendar" | "Create" | "Content details" | "Archive" | "Admin";
 }) {
   return (
     <>
       <PageHeader
         title={surface}
-        back={surface === "Content details"}
+        back={surface === "Content details" || surface === "Admin"}
         actions={
           surface === "Today" ? (
             <Skeleton className="size-14 rounded-pill" />
@@ -76,6 +77,19 @@ export function ScreenLoading({
             <Skeleton className="h-16 rounded-md" />
             {[1, 2, 3, 4, 5].map((row) => (
               <Skeleton key={row} className="h-32 rounded-lg" />
+            ))}
+          </>
+        ) : null}
+        {surface === "Admin" ? (
+          <>
+            <Skeleton className="h-11 rounded-pill" />
+            <div className="grid grid-cols-2 gap-3">
+              {[1, 2, 3, 4].map((tile) => (
+                <Skeleton key={tile} className="h-20 rounded-lg" />
+              ))}
+            </div>
+            {[1, 2, 3].map((row) => (
+              <Skeleton key={row} className="h-16 rounded-md" />
             ))}
           </>
         ) : null}

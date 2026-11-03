@@ -1,7 +1,12 @@
 import "server-only";
 import { z } from "zod";
 import type { ActionCode, ActionResult } from "../../lib/schemas/action-result";
-import { getAuthorizedUser } from "../auth";
+import {
+  getAuthorizedUser,
+  toAdminActor,
+  type AdminActor,
+  type SessionUser,
+} from "../auth";
 import { destroyUserSession } from "../db/client";
 
 import { ActionFailure } from "../services/service-error";
@@ -20,6 +25,37 @@ export async function runAuthorizedAction<Input, Output>(
   input: unknown,
   schema: z.ZodType<Input>,
   operation: (value: Input, email: string) => Promise<Output>,
+  revalidate: (value: Input) => void,
+  consumeRateLimit?: (
+    email: string,
+    value: Input,
+  ) => Promise<ActionResult<void>>,
+): Promise<ActionResult<Output>> {
+  return runPipeline(
+    input,
+    schema,
+    (user) => user,
+    (value, user) => operation(value, user.email),
+    revalidate,
+    consumeRateLimit,
+  );
+}
+
+/** Same pipeline plus a server-verified admin role (API.md §5.5). */
+export async function runAdminAction<Input, Output>(
+  input: unknown,
+  schema: z.ZodType<Input>,
+  operation: (value: Input, admin: AdminActor) => Promise<Output>,
+  revalidate: (value: Input) => void,
+): Promise<ActionResult<Output>> {
+  return runPipeline(input, schema, toAdminActor, operation, revalidate);
+}
+
+async function runPipeline<Input, Output, Actor>(
+  input: unknown,
+  schema: z.ZodType<Input>,
+  resolveActor: (user: SessionUser) => Actor | null,
+  operation: (value: Input, actor: Actor) => Promise<Output>,
   revalidate: (value: Input) => void,
   consumeRateLimit?: (
     email: string,
@@ -51,6 +87,17 @@ export async function runAuthorizedAction<Input, Output>(
           );
     }
 
+    const actor = resolveActor(authorization.user);
+
+    // A member without the admin role keeps their session; only this
+    // privileged request is refused.
+    if (actor === null) {
+      return failure(
+        "FORBIDDEN",
+        "This needs admin access. Nothing was changed.",
+      );
+    }
+
     const parsed = schema.safeParse(input);
 
     if (!parsed.success) {
@@ -78,7 +125,7 @@ export async function runAuthorizedAction<Input, Output>(
       }
     }
 
-    const data = await operation(parsed.data, authorization.user.email);
+    const data = await operation(parsed.data, actor);
     hasSaved = true;
     revalidate(parsed.data);
     return { ok: true, data };
@@ -105,9 +152,10 @@ export async function runAuthorizedAction<Input, Output>(
     if (error instanceof ActionFailure) {
       return failure(
         error.code,
-        error.code === "GENERATION_FAILED"
-          ? "Generation didn't complete. Nothing was changed."
-          : "This change is not allowed. Nothing was changed.",
+        error.userMessage ??
+          (error.code === "GENERATION_FAILED"
+            ? "Generation didn't complete. Nothing was changed."
+            : "This change is not allowed. Nothing was changed."),
       );
     }
 
