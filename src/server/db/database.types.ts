@@ -205,7 +205,7 @@ export type Database = {
           idea: string;
           pillar: Database["public"]["Enums"]["content_pillar"];
           plan_id: string | null;
-          platform: Database["public"]["Enums"]["platform"];
+          platform: string;
           posted_at: string | null;
           posted_by: string | null;
           prompt_version: string | null;
@@ -234,7 +234,7 @@ export type Database = {
           idea: string;
           pillar: Database["public"]["Enums"]["content_pillar"];
           plan_id?: string | null;
-          platform: Database["public"]["Enums"]["platform"];
+          platform: string;
           posted_at?: string | null;
           posted_by?: string | null;
           prompt_version?: string | null;
@@ -262,7 +262,7 @@ export type Database = {
           idea?: string;
           pillar?: Database["public"]["Enums"]["content_pillar"];
           plan_id?: string | null;
-          platform?: Database["public"]["Enums"]["platform"];
+          platform?: string;
           posted_at?: string | null;
           posted_by?: string | null;
           prompt_version?: string | null;
@@ -282,6 +282,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "content_plans";
             referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "content_items_platform_fkey";
+            columns: ["platform"];
+            isOneToOne: false;
+            referencedRelation: "platforms";
+            referencedColumns: ["key"];
           },
         ];
       };
@@ -441,6 +448,85 @@ export type Database = {
         };
         Relationships: [];
       };
+      platform_formats: {
+        Row: {
+          format: Database["public"]["Enums"]["content_format"];
+          platform_key: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          format: Database["public"]["Enums"]["content_format"];
+          platform_key: string;
+        };
+        Update: {
+          format?: Database["public"]["Enums"]["content_format"];
+          platform_key?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "platform_formats_platform_key_fkey";
+            columns: ["platform_key"];
+            isOneToOne: false;
+            referencedRelation: "platforms";
+            referencedColumns: ["key"];
+          },
+        ];
+      };
+      platforms: {
+        Row: {
+          allows_hashtags: boolean;
+          caption_max_chars: number | null;
+          colour_slot: number;
+          created_at: string;
+          created_by: string | null;
+          guidance: string;
+          icon: string;
+          is_enabled: boolean;
+          key: string;
+          label: string;
+          max_hashtags: number;
+          sort_order: number;
+          tone: string;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          allows_hashtags?: boolean;
+          caption_max_chars?: number | null;
+          colour_slot: number;
+          created_at?: string;
+          created_by?: string | null;
+          guidance?: string;
+          icon: string;
+          is_enabled?: boolean;
+          key: string;
+          label: string;
+          max_hashtags?: number;
+          sort_order?: number;
+          tone?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          allows_hashtags?: boolean;
+          caption_max_chars?: number | null;
+          colour_slot?: number;
+          created_at?: string;
+          created_by?: string | null;
+          guidance?: string;
+          icon?: string;
+          is_enabled?: boolean;
+          key?: string;
+          label?: string;
+          max_hashtags?: number;
+          sort_order?: number;
+          tone?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
       prompt_instructions: {
         Row: {
           created_at: string;
@@ -549,6 +635,15 @@ export type Database = {
           p_item_id: string;
           p_prompt_version: string;
           p_regenerate: boolean;
+        };
+        Returns: Json;
+      };
+      save_platform: {
+        Args: {
+          p_actor: string;
+          p_create: boolean;
+          p_formats: Database["public"]["Enums"]["content_format"][];
+          p_platform: Json;
         };
         Returns: Json;
       };

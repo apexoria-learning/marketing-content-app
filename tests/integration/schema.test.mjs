@@ -682,7 +682,7 @@ describeDatabase("content_items constraints", () => {
       }),
     );
 
-    expect(message).toMatch(/content_items_format_platform_valid/);
+    expect(message).toMatch(/Format is not enabled for this platform/);
   });
 
   it("rejects a carousel on WhatsApp", async () => {
@@ -694,7 +694,7 @@ describeDatabase("content_items constraints", () => {
       }),
     );
 
-    expect(message).toMatch(/content_items_format_platform_valid/);
+    expect(message).toMatch(/Format is not enabled for this platform/);
   });
 
   it("rejects a WhatsApp item carrying hashtags", async () => {
@@ -707,7 +707,7 @@ describeDatabase("content_items constraints", () => {
       }),
     );
 
-    expect(message).toMatch(/content_items_whatsapp_no_hashtags/);
+    expect(message).toMatch(/Too many hashtags for this platform/);
   });
 
   it("rejects posted without posted_at and posted_by", async () => {

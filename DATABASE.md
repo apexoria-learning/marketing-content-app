@@ -318,8 +318,8 @@ This is the two-phase generation model (`ARCHITECTURE.md` §4.3) expressed in th
 **The news-sourcing constraint is the product's credibility control.**
 `PRD` risk `R2` ("factually wrong Salesforce claims damage credibility") is rated High. `FR-3.5` and `US-12` require sources. Enforcing it as a `CHECK` means a sourceless news item cannot reach a user even if the prompt, the Zod schema and the service layer all fail simultaneously.
 
-**Format/platform compatibility encoded as a constraint.**
-`PRD §6.2` defines which formats are valid on which platform. A reel on LinkedIn is not a product decision to be re-litigated in a code review — it is rejected by the database.
+**Format/platform compatibility encoded in the database.**
+`PRD §6.2` defines which formats are valid on which platform. A reel on LinkedIn is not a product decision to be re-litigated in a code review — it is rejected by the database. Since migration `0016` the rule is **catalogue data** (`platform_formats`, §5.13) enforced by the `content_items_enforce_platform_rules` trigger, which replaced the original `content_items_format_platform_valid` and `content_items_whatsapp_no_hashtags` checks shown above with identical seeded rules. `platform` is now `text` referencing `platforms(key)`.
 
 ### 5.4 `daily_tips`
 
@@ -470,6 +470,31 @@ Columns: `ai_generation_enabled`, `regen_daily_limit` (1–1000), `global_daily_
 
 Append-only editorial-instruction versions (`ARCHITECTURE.md` §9.2): `id` (identity), `scope` (`content` \| `planning` \| `daily_tip`), `instructions` (trimmed, ≤ 2000; empty string clears the scope), `created_at`, `created_by`. The highest `id` per scope is active. `BEFORE UPDATE`/`BEFORE DELETE` triggers (`reject_prompt_instruction_mutation`) make history immutable even for `service_role`, mirroring `activity_log` (§7.4).
 
+### 5.12 `platforms`
+
+Admin-managed platform catalogue (`US-18`, migration `0016`); replaces the fixed `platform` enum for content.
+
+| Column | Type | Notes |
+|---|---|---|
+| `key` | `text` PK | `^[a-z][a-z0-9_]{1,29}$`; **permanent** — a trigger rejects key changes and deletes (retire with `is_enabled = false`) |
+| `label` | `text` | Trimmed, 1–40 |
+| `is_enabled` | `boolean` | Disabled platforms take no **new** content (trigger) and are excluded from plans; existing content stays readable and editable |
+| `sort_order` | `smallint` | Display and planning order |
+| `colour_slot` | `smallint` | 1–8, a `DESIGN.md` §3.2 token |
+| `icon` | `text` | Glyph name; unknown names render the generic glyph |
+| `allows_hashtags`, `max_hashtags` | `boolean`, `smallint` | 0–30; `allows_hashtags = false` requires 0 |
+| `caption_max_chars` | `integer` | Optional, 50–10000 |
+| `tone`, `guidance` | `text` | ≤ 2000 / ≤ 1000, trimmed; tone replaces `brand_profile.tone_*`, guidance is subordinate prompt text |
+| `created_at/by`, `updated_at/by` | | Attribution |
+
+Seeded with Instagram, LinkedIn and WhatsApp Status using today's exact rules (Instagram and LinkedIn: hashtags allowed up to 30; WhatsApp: none) and their tones copied from `brand_profile`. The 0015 `app_settings.enabled_platforms` override was folded into `is_enabled`; the column keeps its value so the previous release, which still reads it, stays consistent with the catalogue until the new code ships. It and the three `brand_profile.tone_*` columns remain, unused by current code (§9.3 forbids dropping columns).
+
+### 5.13 `platform_formats`
+
+`(platform_key → platforms.key, format content_format)` primary key: which existing formats each platform supports. New formats still require code (each has its own body schema and renderer). `save_platform(jsonb, content_format[], boolean, text)` — executable by `service_role` only — writes a platform and its formats in one transaction and rejects any state with fewer than two enabled platform/format pairs, so the no-consecutive-repeat planning rule stays satisfiable.
+
+`content_items_enforce_platform_rules` (`BEFORE INSERT OR UPDATE` on `content_items`) enforces: the key exists; inserts only on enabled platforms; `(platform, format)` is in `platform_formats` when either changes; hashtag count ≤ the platform's limit when hashtags or platform change. Later catalogue edits therefore never block unrelated updates to existing rows. `commit_month_plan` and `commit_day_items` were redefined to take the platform as `text`.
+
 ---
 
 ## 6. Indexes
@@ -597,6 +622,7 @@ RLS is enabled on **every** table. Deny-by-default: a table with RLS enabled and
 | `app_users` | Own row only | ❌ | ❌ | ❌ | Members learn their own role/AI permission; only the admin module (service role) writes, so access cannot be self-granted |
 | `app_settings` | ✅ | ❌ | ❌ | ❌ | Non-secret runtime config read during generation; admin module writes |
 | `prompt_instructions` | ✅ | ❌ | ❌ | ❌ | Read during generation; admin module appends; triggers forbid update/delete |
+| `platforms`, `platform_formats` | ✅ | ❌ | ❌ | ❌ | Every screen and generator reads the catalogue; only the admin module writes (`save_platform`); keys are permanent and rows are never deleted |
 
 The `rate_limits` row is the sharpest line in this table. If users could `UPDATE` their own quota rows, the spend control protecting `R4` would be self-service. Total RLS denial plus a definer function means the counter is only ever touched by trusted, audited code.
 
@@ -908,6 +934,14 @@ changed. Apply it **before** deploying the dependent code, and set
 `ADMIN_EMAILS` first: access now fails closed, so only owners, granted rows
 and unimported `ALLOWED_EMAILS` entries can sign in. `scripts/verify-database.sql`
 checks the new tables' RLS and that none has a member write policy.
+Migration `0016` adds the platform catalogue (§5.12–5.13): `platforms` and
+`platform_formats` with select-only RLS, seeds the three existing platforms
+with unchanged rules, converts `content_items.platform` from the enum to
+`text` with a foreign key, replaces the two hard-coded platform checks with
+the catalogue trigger, redefines both planning writers for text keys, and
+adds the service-role-only `save_platform`. Apply it after `0015` and
+**before** deploying the code that reads the catalogue; old code keeps
+working against it because platform values are unchanged strings.
 No other hosted target or automatic push/pull-request trigger is configured.
 
 #### Isolated behavioral tests and generated types

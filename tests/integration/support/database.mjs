@@ -66,6 +66,8 @@ export const APPLICATION_TABLES = [
   "daily_tips",
   "generation_runs",
   "news_items",
+  "platform_formats",
+  "platforms",
   "prompt_instructions",
   "rate_limits",
 ];

@@ -7,7 +7,8 @@ begin
   foreach v_table in array array[
     'brand_profile', 'content_plans', 'content_items', 'daily_tips',
     'news_items', 'activity_log', 'generation_runs', 'rate_limits',
-    'app_users', 'app_settings', 'prompt_instructions'
+    'app_users', 'app_settings', 'prompt_instructions',
+    'platforms', 'platform_formats'
   ] loop
     if not exists (
       select 1
@@ -38,7 +39,10 @@ begin
   if exists (
     select 1 from pg_policies
     where schemaname = 'public'
-      and tablename in ('app_users', 'app_settings', 'prompt_instructions')
+      and tablename in (
+        'app_users', 'app_settings', 'prompt_instructions',
+        'platforms', 'platform_formats'
+      )
       and cmd <> 'SELECT'
   ) then
     raise exception 'Admin tables must not have member write policies';
