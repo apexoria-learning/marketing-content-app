@@ -179,7 +179,7 @@ Four boxes. One deployable. No internal network to secure.
 | `AppShell`, `BottomNav`, `PwaControls` | Per-tab scroll restoration, route motion, long-background resume, navigation state, install/update/connectivity APIs and acknowledged cache purge before sign-out |
 | `CalendarView`, `ScopeControl` | Day-sheet state, month swipe/chevrons, and URL-based segment selection |
 | `TrackedTick`, `ItemActions`, `usePosting` | Optimistic status changes, shared Today tick/button/ring state, reversible tracking and note/skip sheet submission |
-| `GrantAccessForm`, `UserAccessRow`, `ImportAllowlistControl`, `InstructionsEditor`, `PlanningFiltersForm`, `RuntimeSettingsForm`, `PlatformManager`, `PlatformForm`, `useAdminAction` | Admin panel form state, confirmation sheets and action feedback (`features/admin`, `US-17`, `US-18`); data stays server-rendered |
+| `GrantAccessForm`, `UserAccessRow`, `ImportAllowlistControl`, `InstructionsEditor`, `PlanningFiltersForm`, `RuntimeSettingsForm`, `PlatformManager`, `PlatformForm`, `AdminSectionNav`, `useAdminAction` | Admin panel form state, confirmation sheets, action feedback and scrolling the active section link into view (`features/admin`, `US-17`, `US-18`); data stays server-rendered |
 | `PlatformCatalogueProvider`, `PlatformBadge`, `PlatformName` | The `(app)` layout loads the platform catalogue's display fields once per request and provides them by context, so badges and labels in both server- and client-rendered trees never hard-code platforms |
 
 Everything else — page shells, `ContentCard` content, `SlideList`, `ScriptList`, `BriefSection`, `CalendarGrid`, `QueueRow`, `TipCard`, archive lists — renders on the server.

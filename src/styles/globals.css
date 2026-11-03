@@ -62,6 +62,14 @@ body {
   top: env(safe-area-inset-top);
 }
 
+/* Horizontal chip rows stay swipeable while hiding the scrollbar track. */
+@utility scrollbar-hidden {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 .calendar-grid {
   display: none;
 }
