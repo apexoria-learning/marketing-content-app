@@ -9,6 +9,8 @@ const mocks = vi.hoisted(() => ({
   destroy: vi.fn(),
 }));
 vi.mock("server-only", () => ({}));
+// Actions import modules that parse env at load; CI runs without app env.
+vi.mock("../../src/server/config/env", () => ({ env: {} }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }));
 vi.mock("next/navigation", () => ({
   redirect: (url: string) => {
