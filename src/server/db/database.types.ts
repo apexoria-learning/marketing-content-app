@@ -147,7 +147,10 @@ export type Database = {
           do_list: string[];
           dont_list: string[];
           id: number;
+          industry: string;
           links: NonNullable<Json>;
+          offerings_label: string;
+          tip_topic: string;
           tone_instagram: string;
           tone_linkedin: string;
           tone_whatsapp: string;
@@ -164,7 +167,10 @@ export type Database = {
           do_list?: string[];
           dont_list?: string[];
           id?: number;
+          industry?: string;
           links?: NonNullable<Json>;
+          offerings_label?: string;
+          tip_topic?: string;
           tone_instagram: string;
           tone_linkedin: string;
           tone_whatsapp: string;
@@ -180,7 +186,10 @@ export type Database = {
           do_list?: string[];
           dont_list?: string[];
           id?: number;
+          industry?: string;
           links?: NonNullable<Json>;
+          offerings_label?: string;
+          tip_topic?: string;
           tone_instagram?: string;
           tone_linkedin?: string;
           tone_whatsapp?: string;

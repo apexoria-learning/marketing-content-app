@@ -41,7 +41,7 @@ begin
     where schemaname = 'public'
       and tablename in (
         'app_users', 'app_settings', 'prompt_instructions',
-        'platforms', 'platform_formats', 'pillars'
+        'platforms', 'platform_formats', 'pillars', 'brand_profile'
       )
       and cmd <> 'SELECT'
   ) then

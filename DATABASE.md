@@ -178,7 +178,10 @@ create table public.brand_profile (
 | Column | Purpose |
 |---|---|
 | `id` | Pinned to `1`. A `CHECK` makes a second row impossible, which is stronger and simpler than a partial unique index |
-| `tone_*` | Per-platform voice rules (`D12`) — separate columns because all three are always needed and always distinct |
+| `industry` | Since `0018`: a few words (1–120) naming the business's field, e.g. *Salesforce training*. Every prompt describes the business from the profile; none names an industry itself |
+| `offerings_label` / `courses` | Since `0018`: `courses` holds the generic offerings list (≤ 40 × ≤ 200) and `offerings_label` (1–30) names it — *Courses*, *Services*, *Products*. The column keeps its original name because renaming would break the release still running between migrate and deploy |
+| `tip_topic` | Since `0018`: the daily tip's subject (1–200), e.g. *Salesforce learning* |
+| `tone_*` | Per-platform voice rules (`D12`). Superseded by `platforms.tone` (`0016`); kept unused (§9.3) |
 | `do_list` / `dont_list` | `text[]` because `DESIGN.md §8` edits them as removable chips, not free text |
 | `links` | `jsonb` — an open-ended set of social/website URLs with no query requirements |
 | `updated_by` | Attribution only (§8.2) |
@@ -632,7 +635,7 @@ RLS is enabled on **every** table. Deny-by-default: a table with RLS enabled and
 
 | Table | `authenticated` SELECT | INSERT | UPDATE | DELETE | Rationale |
 |---|---|---|---|---|---|
-| `brand_profile` | ✅ | ❌ | ✅ | ❌ | Seeded once; edited in Settings (`US-16`). Never created or destroyed at runtime |
+| `brand_profile` | ✅ | ❌ | ❌ | ❌ | Seeded once; edited only by the admin module on Admin → Business (`US-16`) — `0018` dropped the member UPDATE policy. Never created or destroyed at runtime |
 | `content_plans` | ✅ | ✅ | ✅ | ❌ | Manual "Plan this month" runs as the user (`FR-5.5`) |
 | `content_items` | ✅ | ✅ | ✅ | ❌ | **No delete policy — content is never deleted**; `skipped` is the product's retire path (`US-15`) |
 | `daily_tips` | ✅ | ❌ | ❌ | ❌ | Read-only to users; written only by cron via `service_role` |
@@ -972,6 +975,12 @@ the catalogue trigger, redefines both planning writers for text keys, and adds
 the service-role-only `save_pillar`. Apply it after `0016` and **before**
 deploying the code that reads it; old code keeps working because pillar values
 are unchanged strings and the old release still reads `enabled_pillars`.
+Migration `0018` makes the business profile industry-neutral (§5.1): it adds
+`industry`, `offerings_label` and `tip_topic` (backfilled with today's
+Salesforce wording, so generation is unchanged) and drops the member
+`brand_profile_update` policy; the admin module writes the profile. Apply it
+after `0017` and **before** deploying the code that reads the new columns; the
+old release only reads the profile and has no screen that writes it.
 No other hosted target or automatic push/pull-request trigger is configured.
 
 #### Isolated behavioral tests and generated types
