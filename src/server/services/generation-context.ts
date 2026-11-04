@@ -81,8 +81,10 @@ export async function loadGenerationContext(
   const brand = z
     .object({
       business_name: z.string(),
+      industry: z.string(),
       business_description: z.string(),
       audience_description: z.string(),
+      offerings_label: z.string(),
       courses: z.array(z.string()),
       current_offers: z.string().nullable(),
       do_list: z.array(z.string()),
@@ -112,9 +114,12 @@ export async function loadGenerationContext(
     idea: slot.idea,
     brand: {
       business_name: brand.business_name,
+      industry: brand.industry,
       business_description: brand.business_description,
       audience_description: brand.audience_description,
-      courses: brand.courses,
+      // `courses` holds the generic offerings list (DATABASE.md §5.1).
+      offerings_label: brand.offerings_label,
+      offerings: brand.courses,
       current_offers: brand.current_offers,
       // Per-platform tone now lives on the catalogue row (DATABASE.md §5.12).
       tone: tone || "Match the brand voice described above.",

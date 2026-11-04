@@ -290,10 +290,11 @@ Every item, regardless of format, carries:
 
 ### Brand configuration
 
-**US-16** — As a founder, I want to edit the brand profile, so that generated content stays accurate as the business evolves.
-- AC1: Business description, course list, current offers, audience description, tone rules per platform, and do/don't lists are editable.
-- AC2: Changes affect all subsequent generations.
+**US-16** — As the owner, I want to edit the business profile from the admin panel, so that generated content stays accurate as the business evolves — and the same app can serve a business in another industry.
+- AC1: Business name, industry, description, audience, the name for what the business offers (e.g. Courses, Services) and the offerings list, current offers, the daily-tip topic, do/don't lists and links are editable on Admin → Business. Tone is set per platform (`US-18`).
+- AC2: Changes affect all subsequent generations; no prompt names a specific industry — plans, posts and daily tips are written from the profile.
 - AC3: Changes do not retroactively alter already-generated items.
+- AC4: Only admins can change the profile; members' generation still reads it.
 
 ### Platform behaviour
 
@@ -357,7 +358,7 @@ Every item, regardless of format, carries:
 - FR-7.5 Archive view with filters and monthly counts.
 
 ### FR-8 Brand profile
-- FR-8.1 Single editable brand profile record.
+- FR-8.1 Single editable business profile record (admin-only since `US-16` was extended), describing any industry.
 - FR-8.2 Fields: business description, courses, offers, audience, tone rules per platform, do list, don't list, links.
 - FR-8.3 Used as context in every generation prompt.
 
@@ -437,7 +438,7 @@ Every item, regardless of format, carries:
 | S6 | Item detail | `/item/[id]` | Everything about one piece | Hook, caption block, slides/script, hashtags, CTA, design brief, sources, copy actions, regenerate, posted toggle |
 | S7 | **Archive** | `/archive` | History and review | Month filter, platform/pillar/format filters, counts, posted list with notes |
 | S8 | Settings | `/settings` | Configuration | Brand profile editor, manual month generation, generation run log, install hint, theme, sign out |
-| S9 | Admin | `/admin` (+ `/users`, `/platforms`, `/pillars`, `/prompts`, `/filters`, `/settings`) | Owner controls (`US-17`–`US-19`) | Usage and user-base overview, access management, platform and pillar catalogues, editorial instructions, news feeds, runtime settings |
+| S9 | Admin | `/admin` (+ `/users`, `/business`, `/platforms`, `/pillars`, `/prompts`, `/filters`, `/settings`) | Owner controls (`US-16`–`US-19`) | Usage and user-base overview, access management, business profile, platform and pillar catalogues, editorial instructions, news feeds, runtime settings |
 
 Bottom navigation exposes S3, S4, S5, S7. Settings is reached from the header. Admin is reached from the Today header and shown only to admins. Item detail is reached from S3, S4, S5 and S7.
 
@@ -453,8 +454,8 @@ v1 has two roles: **Member** (the original single role) and **Admin** (Member pl
 | Mark posted / skipped, add notes | ✅ | ✅ | ❌ |
 | Regenerate a single item (rate-limited) | ✅ | ✅ unless AI is turned off for them | ❌ |
 | Trigger month generation (rate-limited) | ✅ | ✅ unless AI is turned off for them | ❌ |
-| Edit brand profile | ✅ | ✅ | ❌ |
-| Admin panel: usage, access, prompts, filters, settings | ✅ | ❌ | ❌ |
+| Edit business profile | ✅ | ❌ | ❌ |
+| Admin panel: usage, access, business profile, platforms, pillars, prompts, news, settings | ✅ | ❌ | ❌ |
 | Access any data or API | ✅ | ✅ | ❌ |
 
 - Access is granted from the admin panel (or by listing an owner in `ADMIN_EMAILS`). If the Google OAuth consent screen is in testing mode, the account must also be added as a Google Cloud Console test user (D3) — the app cannot change that list.

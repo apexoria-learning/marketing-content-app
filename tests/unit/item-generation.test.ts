@@ -67,9 +67,11 @@ function dependencies() {
       idea: item.idea,
       brand: {
         business_name: "Apexoria",
+        industry: "Salesforce training",
         business_description: "Training",
         audience_description: "Learners",
-        courses: [],
+        offerings_label: "Courses",
+        offerings: [],
         current_offers: null,
         tone: "Helpful",
         do_list: [],
@@ -125,7 +127,7 @@ describe("item generation lifecycle", () => {
     expect(deps.save).toHaveBeenCalledWith({
       item,
       content,
-      prompt_version: "content-v2",
+      prompt_version: "content-v3",
       regenerate: true,
     });
   });

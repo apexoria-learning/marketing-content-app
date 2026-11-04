@@ -19,6 +19,7 @@ import {
   movePillar,
   movePlatform,
   saveInstructions,
+  saveBusinessProfile,
   savePillarEntry,
   savePlatformEntry,
   updateAccess,
@@ -36,6 +37,10 @@ import {
   type MovePillarInput,
   type SavePillarInput,
 } from "../../lib/schemas/pillars";
+import {
+  BusinessProfileInputSchema,
+  type BusinessProfileInput,
+} from "../../lib/schemas/business-profile";
 import { runAdminAction } from "./run-action";
 
 function revalidateAdmin(): void {
@@ -80,6 +85,15 @@ export async function reorderPillar(input: MovePillarInput) {
     MovePillarInputSchema,
     (value, admin) => movePillar(admin, value),
     revalidateEverything,
+  );
+}
+
+export async function updateBusinessProfile(input: BusinessProfileInput) {
+  return runAdminAction(
+    input,
+    BusinessProfileInputSchema,
+    (value, admin) => saveBusinessProfile(admin, value),
+    revalidateAdmin,
   );
 }
 

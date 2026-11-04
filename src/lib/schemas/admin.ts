@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { tryParseUrl } from "../utils/url";
 
 // Admin panel contracts (API.md §5.5). Single definition for both the
 // client-side pre-check and the server action.
@@ -62,8 +63,9 @@ export const GatewayBaseUrlSchema = z
   .url()
   .max(500)
   .refine((value) => {
-    const url = new URL(value);
+    const url = tryParseUrl(value);
     return (
+      url !== null &&
       url.protocol === "https:" &&
       !url.username &&
       !url.password &&
@@ -84,8 +86,13 @@ export const FeedUrlSchema = z
   .url()
   .max(500)
   .refine((value) => {
-    const url = new URL(value);
-    return url.protocol === "https:" && !url.username && !url.password;
+    const url = tryParseUrl(value);
+    return (
+      url !== null &&
+      url.protocol === "https:" &&
+      !url.username &&
+      !url.password
+    );
   }, "Feeds must be HTTPS addresses without credentials.");
 
 const isUnique = (values: readonly string[]) =>

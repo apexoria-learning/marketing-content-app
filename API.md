@@ -306,9 +306,8 @@ Actions call `revalidatePath` for every affected route so Server Components re-r
 | `markPosted`, `skipItem` | `/`, `/calendar`, `/create`, `/archive`, `/item/[id]` |
 | `regenerateItem`, `hydrateItem` | `/item/[id]`, `/`, `/create` |
 | `planMonth`, `generateForDay` | `/`, `/calendar`, `/create` |
-| `updateBrandProfile` | `/settings` |
-| `grantUserAccess`, `updateUserAccess`, `importAllowlist`, `saveEditorialInstructions` | `/admin` (layout) |
-| `updateAppSettings`, `savePlatform`, `reorderPlatform` | `/` (layout — every route) |
+| `grantUserAccess`, `updateUserAccess`, `importAllowlist`, `saveEditorialInstructions`, `updateBusinessProfile` | `/admin` (layout) |
+| `updateAppSettings`, `savePlatform`, `reorderPlatform`, `savePillar`, `reorderPillar` | `/` (layout — every route) |
 
 ---
 
@@ -425,15 +424,7 @@ Fills an empty day (`DESIGN.md §9.2`). Rejects with `VALIDATION` if the day alr
 
 ### 5.3 Configuration
 
-**`updateBrandProfile`** — `US-16`
-
-| | |
-|---|---|
-| Input | Partial brand profile; absent fields unchanged |
-| Returns | `{ updated_at }` |
-| Rate limited | No |
-
-Autosaves on blur (`DESIGN.md §8`). Sets `updated_by` from the session. Affects only **subsequent** generations — never rewrites existing items (`US-16 AC3`).
+The business profile is edited by admins only (`updateBusinessProfile`, §5.5, `US-16`); the former member `updateBrandProfile` action was removed with migration `0018`.
 
 **`setTheme`**
 
@@ -455,11 +446,11 @@ Writes a cookie only. No database access, no AI, no rate limit.
 | `hydrateItem` | ✅ | ✅ | ✅ | ✅ | items, log, runs |
 | `planMonth` | ✅ | ✅ | ✅ | ✅ | plans, items, runs |
 | `generateForDay` | ✅ | ✅ | ✅ | ✅ | items, runs |
-| `updateBrandProfile` | ✅ | ✅ | — | — | brand_profile |
 | `setTheme` | ✅ | ✅ | — | — | cookie only |
 | `grantUserAccess` / `updateUserAccess` / `importAllowlist` | ✅ | ✅ + **admin** | — | — | app_users |
 | `updateAppSettings` | ✅ | ✅ + **admin** | — | — | app_settings |
 | `saveEditorialInstructions` | ✅ | ✅ + **admin** | — | — | prompt_instructions |
+| `updateBusinessProfile` | ✅ | ✅ + **admin** | — | — | brand_profile |
 | `savePlatform` / `reorderPlatform` | ✅ | ✅ + **admin** | — | — | platforms, platform_formats |
 | `savePillar` / `reorderPillar` | ✅ | ✅ + **admin** | — | — | pillars |
 
@@ -474,6 +465,7 @@ Defined in `server/actions/admin.ts`, all via `runAdminAction` (§4.2). Each del
 | `importAllowlist` | `{}` | `{ imported }` | Inserts missing `ALLOWED_EMAILS` entries (owners excluded) as members; existing rows untouched |
 | `updateAppSettings` | Any subset of the `app_settings` overrides (limits, AI switch, model, gateway, plan day, horizon, news feeds); `null` restores the env default. Platform and pillar enablement are catalogue fields, not settings | `{ updated_at }` | Revalidates every route (generation controls change) |
 | `saveEditorialInstructions` | `scope`, `instructions` (≤ 2,000; empty clears) | `{ version, changed }` | Appends a version only when the text differs |
+| `updateBusinessProfile` | The whole profile: `business_name` ≤ 120, `industry` ≤ 120, `business_description` and `audience_description` ≤ 2,000, `offerings_label` ≤ 30, `offerings` ≤ 40 × ≤ 200 (unique), `current_offers` ≤ 2,000 (empty → none), `tip_topic` ≤ 200, `do_list`/`dont_list` ≤ 40 × ≤ 200 (unique), `links` ≤ 20 { `label` ≤ 40 (unique), http(s) `url` without credentials } | `{ updated_at }` | `US-16`. Writes every field through the admin module and stamps `updated_by`; affects only later generations, never existing items |
 | `savePlatform` | `mode` (`create`\|`update`), `platform` { `key` (permanent), `label`, `is_enabled`, `colour_slot` 1–8, `icon` (from the icon set), `formats` ≥ 1, `allows_hashtags`, `max_hashtags` 0–30, `caption_max_chars` 50–10000 or null, `tone` ≤ 2,000, `guidance` ≤ 1,000 } | `{ key, status }` | Atomic via `save_platform`. Duplicate key, unknown platform, or a result with fewer than two enabled platform/format pairs → `VALIDATION`. Revalidates every route |
 | `reorderPlatform` | `key`, `direction` (`up`\|`down`) | `{ key }` | Swaps with the neighbour and renumbers `sort_order`; no-op at the edge |
 | `savePillar` | `mode` (`create`\|`update`), `pillar` { `key` (permanent), `label` ≤ 30, `description` 1–300, `guidance` ≤ 1,000, `requires_news`, `is_enabled` } | `{ key, status }` | Atomic via `save_pillar` (`US-19`). Duplicate key, unknown pillar, fewer than three enabled pillars that do not need news, or more than fourteen enabled → `VALIDATION`. Revalidates every route |
@@ -576,7 +568,7 @@ The global cap is the backstop. It bounds total daily spend even if every user e
 
 ### 7.5 What is not rate limited
 
-`markPosted`, `skipItem`, `addNote`, `updateBrandProfile` and `setTheme` are unlimited. They cost nothing, and friction on `markPosted` would directly damage metrics `M1` and `M2` — the opposite of what the product is for. Abuse potential is nil behind an allowlisted Google login.
+`markPosted`, `skipItem`, `addNote` and `setTheme` are unlimited, as are the admin actions. They cost nothing, and friction on `markPosted` would directly damage metrics `M1` and `M2` — the opposite of what the product is for. Abuse potential is nil behind an allowlisted Google login.
 
 ---
 

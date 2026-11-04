@@ -173,13 +173,13 @@ Four boxes. One deployable. No internal network to secure.
 | `CopyBlock` | Clipboard API, long-press, transient "Copied" label |
 | `BottomSheet`, `FilterBar`, `SegmentedControl` | Open/selection state, focus trap |
 | `ActionBar`, `PageHeader` | Scroll-direction response |
-| `RegenerateSheet`, brand profile fields | Form state |
+| `RegenerateSheet` | Form state |
 | `InstallPrompt`, `ThemeToggle` | Browser APIs |
 | `FormSubmitButton` | `useFormStatus` for pending authentication submissions; wraps the existing `Button`, with no client data access |
 | `AppShell`, `BottomNav`, `PwaControls` | Per-tab scroll restoration, route motion, long-background resume, navigation state, install/update/connectivity APIs and acknowledged cache purge before sign-out |
 | `CalendarView`, `ScopeControl` | Day-sheet state, month swipe/chevrons, and URL-based segment selection |
 | `TrackedTick`, `ItemActions`, `usePosting` | Optimistic status changes, shared Today tick/button/ring state, reversible tracking and note/skip sheet submission |
-| `GrantAccessForm`, `UserAccessRow`, `ImportAllowlistControl`, `InstructionsEditor`, `PlanningFiltersForm`, `RuntimeSettingsForm`, `PlatformManager`, `PlatformForm`, `PillarManager`, `PillarForm`, `AdminSectionNav`, `useAdminAction` | Admin panel form state, confirmation sheets, action feedback and scrolling the active section link into view (`features/admin`, `US-17`–`US-19`); data stays server-rendered |
+| `GrantAccessForm`, `UserAccessRow`, `ImportAllowlistControl`, `InstructionsEditor`, `BusinessProfileForm`, `PlanningFiltersForm`, `RuntimeSettingsForm`, `PlatformManager`, `PlatformForm`, `PillarManager`, `PillarForm`, `AdminSectionNav`, `useAdminAction` | Admin panel form state, confirmation sheets, action feedback and scrolling the active section link into view (`features/admin`, `US-16`–`US-19`); data stays server-rendered |
 | `PlatformCatalogueProvider`, `PlatformBadge`, `PlatformName`, `PillarCatalogueProvider`, `PillarChip`, `PillarName` | The `(app)` layout loads the platform and pillar catalogues' display fields once per request and provides them by context, so badges, chips and labels in both server- and client-rendered trees never hard-code platforms or pillars |
 
 Everything else — page shells, `ContentCard` content, `SlideList`, `ScriptList`, `BriefSection`, `CalendarGrid`, `QueueRow`, `TipCard`, archive lists — renders on the server.
@@ -545,11 +545,11 @@ Everything else is a Server Action. There is no public REST API, no API versioni
 | `hydrateItem` | item id | **Yes** — shares the regeneration budget | Just-in-time hydration (§4.3) |
 | `planMonth` | month | **Yes** — low global limit | Manual trigger (`FR-5.5`) |
 | `generateForDay` | date | **Yes** | Fills an empty day |
-| `updateBrandProfile` | profile fields | No | Autosave on blur (`DESIGN.md §8`) |
 | `setTheme` | theme | No | Cookie only |
 | `grantUserAccess`, `updateUserAccess`, `importAllowlist` | email, role, active, AI permission | No | Admin only (`runAdminAction`); owners and self are refused |
 | `updateAppSettings` | runtime overrides, planning filters | No | Admin only; `null` restores the environment value |
 | `saveEditorialInstructions` | scope, text ≤ 2,000 | No | Admin only; appends a version |
+| `updateBusinessProfile` | the whole business profile | No | Admin only (`US-16`); the member write path was removed in `0018` |
 | `savePlatform`, `reorderPlatform` | catalogue platform fields / key + direction | No | Admin only; atomic `save_platform`; keeps ≥ 2 enabled platform/format pairs |
 | `savePillar`, `reorderPillar` | catalogue pillar fields / key + direction | No | Admin only; atomic `save_pillar`; keeps ≥ 3 enabled pillars without news and ≤ 14 enabled |
 
@@ -612,14 +612,14 @@ Six layers, assembled in a fixed order so that caching and reasoning both behave
 
 | Layer | Contents | Volatility |
 |---|---|---|
-| **System** | Role, brand profile, platform tone rules, do/don't lists, hard constraints | Changes when the brand profile changes |
+| **System** | Role, the business profile as JSON reference data (industry, offerings and their label, audience, do/don't lists), the platform's tone, hard constraints. No prompt names an industry; the profile does (`DATABASE.md` §5.1) | Changes when the profile changes |
 | **Context** | Recent `news_items` (`requires_news` pillars only), pillar usage history, last 60 days of posted ideas | Changes daily |
 | **Task** | The specific instruction and the exact output schema; enabled platforms with their formats and enabled pillar keys for planning; the item's platform rules (label, hashtag limit, caption limit) and the built-in news-sourcing rule for news pillars from the catalogues for content | Fixed per generator |
 | **Platform and pillar guidance** | The platform's admin-written guidance and the pillars' admin-written names, purposes and guidance (planners receive every plannable pillar's), JSON-encoded in their own messages explicitly subordinate to the rules above | Per catalogue edit |
 | **Editorial instructions** | Admin-authored house style per scope (`content`, `planning`, `daily_tip`; `DATABASE.md` §5.11), ≤ 2,000 chars, sent as its own message explicitly subordinate to the factual, privacy, platform and schema rules | Per saved version |
 | **Steer** | Optional user instruction from the regeneration sheet | Per request |
 
-Every prompt carries a `prompt_version`, persisted on the row it produced (`NFR-7.2`). When editorial instructions are active the version gains a `+i<version>` suffix (e.g. `content-v2+i4`; `v2` added catalogue pillar rules), so output changes stay attributable. Admin planning filters are enforced again by the deterministic validator (§4.4), never trusted to the prompt alone.
+Every prompt carries a `prompt_version`, persisted on the row it produced (`NFR-7.2`). When editorial instructions are active the version gains a `+i<version>` suffix (e.g. `content-v3+i4`; `v2` added catalogue pillar rules, `v3` the industry-neutral profile; `daily-tip-v2` takes its topic from the profile), so output changes stay attributable. Admin planning filters are enforced again by the deterministic validator (§4.4), never trusted to the prompt alone.
 
 ### 9.3 Structured output and validation
 

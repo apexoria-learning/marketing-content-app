@@ -43,4 +43,4 @@ export async function changeContentStatus(
   return persistStatus(input);
 }
 
-export { appendActivityNote, updateBrandProfile } from "../db/content";
+export { appendActivityNote } from "../db/content";

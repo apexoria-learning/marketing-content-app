@@ -14,9 +14,11 @@ const context: GenerationContext = {
   idea: "Explain flows",
   brand: {
     business_name: "Apexoria",
+    industry: "Salesforce training",
     business_description: "Salesforce training",
     audience_description: "Learners",
-    courses: ["Admin"],
+    offerings_label: "Courses",
+    offerings: ["Admin"],
     current_offers: null,
     tone: "Helpful",
     do_list: ["Be factual"],

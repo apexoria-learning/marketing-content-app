@@ -42,12 +42,15 @@ export const GenerationContextSchema = z
     format: FormatSchema,
     pillar: PillarSchema,
     idea: z.string().trim().min(1).max(2000),
+    // The business profile (DATABASE.md §5.1); reference data, never rules.
     brand: z
       .object({
         business_name: authoredText,
+        industry: authoredText,
         business_description: authoredText,
         audience_description: authoredText,
-        courses: z.array(authoredText).max(40),
+        offerings_label: authoredText,
+        offerings: z.array(authoredText).max(40),
         current_offers: authoredText.nullable(),
         tone: authoredText,
         do_list: z.array(authoredText).max(40),

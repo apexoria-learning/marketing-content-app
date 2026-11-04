@@ -49,8 +49,10 @@ it("includes every posted idea in the 60-day window without leaking brand audit 
           } else if (url.pathname.endsWith("/brand_profile")) {
             result = {
               business_name: "Apexoria",
+              industry: "Salesforce training",
               business_description: "Training",
               audience_description: "Learners",
+              offerings_label: "Courses",
               courses: [],
               current_offers: null,
               tone_instagram: "Helpful",
@@ -109,8 +111,10 @@ it("accepts a whole content item and keeps only its slot fields (live item-gener
             : url.pathname.endsWith("/brand_profile")
               ? {
                   business_name: "Apexoria",
+                  industry: "Salesforce training",
                   business_description: "Training",
                   audience_description: "Learners",
+                  offerings_label: "Courses",
                   courses: [],
                   current_offers: null,
                   tone_instagram: "Helpful",

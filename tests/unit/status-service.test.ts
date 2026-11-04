@@ -12,7 +12,6 @@ vi.mock("../../src/server/db/queries", () => ({
 vi.mock("../../src/server/db/content", () => ({
   changeContentStatus: mocks.persist,
   appendActivityNote: vi.fn(),
-  updateBrandProfile: vi.fn(),
 }));
 import { changeContentStatus } from "../../src/server/services";
 const hydratedItem = {

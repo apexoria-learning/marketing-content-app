@@ -37,6 +37,14 @@ function database(existing = previous, saveStatus = 200) {
             },
           );
         }
+        if (url.pathname.endsWith("/brand_profile"))
+          return new Response(
+            JSON.stringify({
+              tip_topic: "Python programming",
+              audience_description: "Career switchers",
+            }),
+            { headers: { "Content-Type": "application/json" } },
+          );
         return new Response(
           JSON.stringify(
             url.searchParams.get("select") === "tip"
@@ -75,7 +83,7 @@ describe("daily tip persistence", () => {
       tip_date: "2026-11-01",
       tip: "Debug a flow using the flow debugger.",
       category: "Automation",
-      prompt_version: "daily-tip-v1",
+      prompt_version: "daily-tip-v2",
     });
   });
   it("explicitly reports generation failure while retaining yesterday's saved tip", async () => {

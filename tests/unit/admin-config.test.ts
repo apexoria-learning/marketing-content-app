@@ -72,6 +72,17 @@ describe("admin input contracts", () => {
     ).toBe(false);
   });
 
+  it("reports malformed gateway and feed URLs as errors instead of throwing", () => {
+    for (const value of ["nope", "gateway.example.test/v1"]) {
+      expect(
+        AppSettingsUpdateSchema.safeParse({ ai_base_url: value }).success,
+      ).toBe(false);
+      expect(
+        AppSettingsUpdateSchema.safeParse({ news_feed_urls: [value] }).success,
+      ).toBe(false);
+    }
+  });
+
   it("only accepts credential-free HTTPS v1 gateways and HTTPS feeds", () => {
     for (const url of [
       "http://gateway.example.test/v1",

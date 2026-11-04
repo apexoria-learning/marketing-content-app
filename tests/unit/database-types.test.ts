@@ -1,5 +1,5 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
-import type { BrandProfileUpdate } from "../../src/lib/schemas/brand-profile";
+import type { BusinessProfileRecord } from "../../src/lib/schemas/business-profile";
 import {
   Constants,
   type Database,
@@ -18,10 +18,11 @@ describe("generated database query contracts", () => {
     >();
   });
 
-  it("accepts validated brand edits without a parallel handwritten type", () => {
-    expectTypeOf<BrandProfileUpdate>().toExtend<
+  it("reads the business profile without a parallel handwritten type", () => {
+    expectTypeOf<Omit<BusinessProfileRecord, "links">>().toExtend<
       TablesUpdate<"brand_profile">
     >();
+    expectTypeOf<Tables<"brand_profile">["industry"]>().toEqualTypeOf<string>();
   });
 
   it("types audit inserts and status RPC arguments", () => {

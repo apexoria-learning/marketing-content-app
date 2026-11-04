@@ -456,7 +456,7 @@ Rules:
 - Helper text explains consequence, not mechanics: "Used in every piece of content we generate."
 - Validation on blur, never on keystroke. Submission revalidates everything.
 - Errors appear beneath the field in `danger` with an alert glyph, and the field border becomes `danger`.
-- The brand profile **autosaves on blur** with a quiet "Saved" indicator in the header; there is no Save button and therefore no unsaved-changes trap.
+- The business profile is edited on Admin → Business (S9) with an explicit **Save business profile** button, like every admin form; the save is disabled until something changes.
 - Long lists (courses, do/don't items) are edited as removable chips with an "Add" affordance — not as comma-separated text.
 - The regeneration steer is a single auto-growing textarea with three tappable example chips ("Make it funnier", "Focus on Flow", "Shorter caption") that insert text; typing remains optional (P2).
 
@@ -688,7 +688,7 @@ Section order is fixed across all formats so returning users navigate by muscle 
 
 ### S8 — Settings (`/settings`)
 Grouped sections separated by `32`, each with an eyebrow heading:
-1. **Brand** — autosaving brand profile fields (description, courses as chips, offers, audience, per-platform tone, do/don't chips, links).
+1. **Brand** — superseded: the business profile moved to Admin → Business (S9), and per-platform tone to Admin → Platforms.
 2. **Content** — manual **Plan this month**, last generation timestamp, and a compact run log (status + time only).
 3. **App** — theme control, install hint, version.
 4. **Account** — signed-in email and **Sign out** (`ghost`, `danger` text).
@@ -699,11 +699,12 @@ No destructive action outside this screen and the admin panel (S9). Sign out req
 Admins only (members get the not-found screen). `PageHeader` with back chevron, then a single horizontally swipeable row of section links (`scrollbar-hidden` utility, no visible track) styled like selected/unselected `FilterBar` chips (`aria-current="page"` on the active one). Links never shrink or break mid-word; the active link is scrolled into view on load so it is visible even when it starts off-screen. Sections separated by `32`, each with an eyebrow heading.
 1. **Overview** — two-column stat tiles (`surface-1`, `r-lg`, `h2` tabular numerals) for people (with access, active 7/30 days, signed in without access) and 30-day AI usage; then usage by person, by day and by type as compact rows. No charts. A neutral banner when AI generation is off. Empty usage uses `EmptyState`.
 2. **Users** — grant form (email `Input`, Member/Admin `SegmentedControl`, AI `Checkbox`, the screen's one `primary` button), an accent banner offering to import `ALLOWED_EMAILS`, then groups: *Signed in without access*, *With access*, *Revoked*. Each row shows name, email, badges and last activity, with a `secondary` **Manage**/**Grant access** button opening a `BottomSheet`. Revoking needs an inline danger confirmation inside the sheet. Owners and the signed-in admin show a note instead of a button.
-3. **Prompts** — scope `SegmentedControl` (Content · Planning · Daily tip), a `Textarea` with a character counter, the active version line, and an immutable history list with **Use this text**. Copy states that built-in rules always apply first.
-4. **News** (`/admin/filters`) — a news-feed `Textarea` (one URL per line), **Save news feeds** and **Reset to defaults**. Platforms and pillars are managed on their own sections.
-5. **Platforms** — a primary **Add platform** button, then the catalogue in display order: a slot-coloured glyph tile, label (· *Retired* when disabled), formats and hashtag/caption rule, up/down `icon` buttons to reorder and a `secondary` **Edit**. Add/Edit open a `BottomSheet` form: name, permanent key (create only, suggested from the name), *Use in new plans* `Checkbox`, colour-slot and glyph `Chip`s, format `Chip`s, hashtag `Checkbox` + maximum, optional caption limit, tone and AI-guidance `Textarea`s. Platforms are retired, never deleted.
-6. **Pillars** — same layout as Platforms without the glyph tile: label (· *Needs news*, · *Retired*), purpose as the caption line, reorder buttons and **Edit**. The form has name, permanent key (create only), purpose `Textarea`, *Needs verified news* and *Use in new plans* `Checkbox`es and an AI-guidance `Textarea`. Pillars are retired, never deleted.
-7. **Settings** — AI generation `Checkbox`, limit/planning/provider `Input`s with "Custom value · Use default" helpers. Changing the model or gateway asks for confirmation in a `BottomSheet`. The API key is never shown.
+3. **Business** (`/admin/business`) — three eyebrow-headed groups. *Business*: name, industry, what the business does, audience. *What you offer*: the name for offerings (*Courses*, *Services*…), the offerings `Textarea` (one per line, labelled with that name) and optional current offers. *Guidance*: daily-tip topic, *Always* and *Never* `Textarea`s (one rule per line) and links (`Name: https://…` per line). One `primary` **Save business profile**, disabled until something changes; field errors inline. Copy states that changes apply to new generations only.
+4. **Prompts** — scope `SegmentedControl` (Content · Planning · Daily tip), a `Textarea` with a character counter, the active version line, and an immutable history list with **Use this text**. Copy states that built-in rules always apply first.
+5. **News** (`/admin/filters`) — a news-feed `Textarea` (one URL per line), **Save news feeds** and **Reset to defaults**. Platforms and pillars are managed on their own sections.
+6. **Platforms** — a primary **Add platform** button, then the catalogue in display order: a slot-coloured glyph tile, label (· *Retired* when disabled), formats and hashtag/caption rule, up/down `icon` buttons to reorder and a `secondary` **Edit**. Add/Edit open a `BottomSheet` form: name, permanent key (create only, suggested from the name), *Use in new plans* `Checkbox`, colour-slot and glyph `Chip`s, format `Chip`s, hashtag `Checkbox` + maximum, optional caption limit, tone and AI-guidance `Textarea`s. Platforms are retired, never deleted.
+7. **Pillars** — same layout as Platforms without the glyph tile: label (· *Needs news*, · *Retired*), purpose as the caption line, reorder buttons and **Edit**. The form has name, permanent key (create only), purpose `Textarea`, *Needs verified news* and *Use in new plans* `Checkbox`es and an AI-guidance `Textarea`. Pillars are retired, never deleted.
+8. **Settings** — AI generation `Checkbox`, limit/planning/provider `Input`s with "Custom value · Use default" helpers. Changing the model or gateway asks for confirmation in a `BottomSheet`. The API key is never shown.
 
 Loading uses the shape-accurate `ScreenLoading surface="Admin"` skeleton; failures use `ErrorState` inside the admin segment so navigation keeps working.
 

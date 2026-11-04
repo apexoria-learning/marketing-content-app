@@ -123,6 +123,11 @@ describe("bounded hydration batch", () => {
 });
 
 describe("daily tip generation", () => {
+  const topic = {
+    tip_topic: "Python programming",
+    audience_description: "Career switchers learning to code",
+  };
+
   it("preserves valid output with prompt version", async () => {
     const generate = vi.fn().mockResolvedValue({
       content: JSON.stringify({
@@ -130,12 +135,21 @@ describe("daily tip generation", () => {
         category: "Apex",
       }),
     });
-    expect(await generateDailyTip(["Use flow debug logs"], generate)).toEqual({
+    expect(
+      await generateDailyTip(
+        { recentTips: ["Use flow debug logs"], topic },
+        generate,
+      ),
+    ).toEqual({
       tip: "Use test isolation for Apex unit tests.",
       category: "Apex",
-      prompt_version: "daily-tip-v1",
+      prompt_version: "daily-tip-v2",
     });
     expect(generate).toHaveBeenCalledTimes(1);
+    // The topic comes from the business profile, JSON-encoded as data.
+    const system = generate.mock.calls[0]?.[0].messages[0].content;
+    expect(system).toContain('"tip_topic":"Python programming"');
+    expect(system).not.toMatch(/salesforce/i);
   });
 
   it("repairs repeated topics once and rejects persistent repeats", async () => {
@@ -148,7 +162,10 @@ describe("daily tip generation", () => {
       }),
     });
     await expect(
-      generateDailyTip(["Use flow debug logs!"], generate),
+      generateDailyTip(
+        { recentTips: ["Use flow debug logs!"], topic },
+        generate,
+      ),
     ).rejects.toThrow();
     expect(generate).toHaveBeenCalledTimes(2);
   });

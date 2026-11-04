@@ -8,6 +8,7 @@ import {
 } from "../config/runtime";
 import {
   findAppUser,
+  getBusinessProfile,
   getGlobalAllowanceUsed,
   getSettingsOverrides,
   insertAppUser,
@@ -25,6 +26,7 @@ import {
   setPillarSortOrder,
   setPlatformSortOrder,
   updateAppUser,
+  updateBusinessProfile,
   updateSettingsOverrides,
 } from "../db/admin";
 import { isEmailListed, parseEmailList } from "../../lib/auth/allowlist";
@@ -49,6 +51,10 @@ import {
   type PillarRecord,
   type SavePillarInput,
 } from "../../lib/schemas/pillars";
+import type {
+  BusinessProfile,
+  BusinessProfileRecord,
+} from "../../lib/schemas/business-profile";
 import { todayInIst } from "../../lib/utils/dates";
 import {
   summarizeUsage,
@@ -410,4 +416,20 @@ export async function movePillar(
   for (const [position, key] of order.entries())
     await setPillarSortOrder(key, position + 1, admin.email);
   return { key: input.key };
+}
+
+export async function getBusinessProfileForAdmin(
+  admin: AdminActor,
+): Promise<BusinessProfileRecord> {
+  assertAdmin(admin);
+  return getBusinessProfile();
+}
+
+/** Affects only later generations; existing content is never rewritten. */
+export async function saveBusinessProfile(
+  admin: AdminActor,
+  profile: BusinessProfile,
+): Promise<{ updated_at: string }> {
+  assertAdmin(admin);
+  return updateBusinessProfile(profile, admin.email);
 }

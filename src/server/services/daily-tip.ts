@@ -4,7 +4,7 @@ import { z } from "zod";
 import type { Database } from "../db/database.types";
 import { DailyTipSchema } from "../../lib/schemas/content";
 import { shiftDate } from "../../lib/utils/dates";
-import { generateDailyTip } from "../ai/generators/daily-tip";
+import { TipTopicSchema, generateDailyTip } from "../ai/generators/daily-tip";
 import type { GenerationContext } from "../ai/schemas";
 import { AiOutputError } from "../ai/validation";
 import { AiTransportError, type AiRequest } from "../ai/client";
@@ -43,10 +43,17 @@ export async function ensureDailyTip(
     .array(z.object({ tip: z.string() }))
     .parse(recent)
     .map((row) => row.tip);
+  const { data: profile, error: profileError } = await client
+    .from("brand_profile")
+    .select("tip_topic,audience_description")
+    .eq("id", 1)
+    .single();
+  if (profileError) throw profileError;
+  const topic = TipTopicSchema.parse(profile);
   let generated: Awaited<ReturnType<typeof generateDailyTip>>;
   try {
     generated = await generateDailyTip(
-      recentTips,
+      { recentTips, topic },
       generate,
       signal,
       instructions,

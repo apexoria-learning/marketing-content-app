@@ -43,9 +43,11 @@ const context: GenerationContext = {
   idea: "Plan",
   brand: {
     business_name: "Apexoria",
+    industry: "Salesforce training",
     business_description: "Salesforce training",
     audience_description: "Learners",
-    courses: [],
+    offerings_label: "Courses",
+    offerings: [],
     current_offers: null,
     tone: "Helpful",
     do_list: [],
@@ -108,7 +110,7 @@ describe("day planning", () => {
         { date: slot.scheduled_date, count: 1, context, filters: seeded },
         generate,
       ),
-    ).toEqual({ items: [slot], prompt_version: "day-plan-v2" });
+    ).toEqual({ items: [slot], prompt_version: "day-plan-v3" });
     expect(generate).toHaveBeenCalledTimes(1);
   });
   it("repairs malformed output once and rejects persistent failures", async () => {
@@ -464,7 +466,7 @@ describe("admin planning filters and editorial instructions", () => {
       { ...input, context: instructed, filters },
       generate,
     );
-    expect(result.prompt_version).toBe("month-plan-v2+i4");
+    expect(result.prompt_version).toBe("month-plan-v3+i4");
     const messages = generate.mock.calls[0]?.[0].messages;
     const rules = JSON.stringify(messages);
     expect(rules).toContain("Use only these platforms");
@@ -483,7 +485,7 @@ describe("admin planning filters and editorial instructions", () => {
       .fn()
       .mockResolvedValue({ content: JSON.stringify(validPlan()) });
     const result = await generateMonthPlan({ ...input, context }, generate);
-    expect(result.prompt_version).toBe("month-plan-v2");
+    expect(result.prompt_version).toBe("month-plan-v3");
     const rules = JSON.stringify(generate.mock.calls[0]?.[0].messages);
     expect(rules).toContain("Use only these pillar keys, each at least twice");
     expect(rules).not.toContain("never use");
@@ -522,7 +524,7 @@ describe("admin planning filters and editorial instructions", () => {
         { date: slot.scheduled_date, count: 1, context: instructed, filters },
         accepted,
       ),
-    ).resolves.toMatchObject({ prompt_version: "day-plan-v2+i4" });
+    ).resolves.toMatchObject({ prompt_version: "day-plan-v3+i4" });
     const messages = accepted.mock.calls[0]?.[0].messages;
     expect(messages[0].content).not.toContain("Prefer Indian examples");
     expect(messages.at(-1).content).toContain("Owner editorial instructions");

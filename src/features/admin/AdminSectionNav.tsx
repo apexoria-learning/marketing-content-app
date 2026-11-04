@@ -7,6 +7,7 @@ import { cx } from "@/lib/utils/cx";
 export const ADMIN_SECTIONS = [
   { key: "overview", label: "Overview", href: "/admin" },
   { key: "users", label: "Users", href: "/admin/users" },
+  { key: "business", label: "Business", href: "/admin/business" },
   { key: "platforms", label: "Platforms", href: "/admin/platforms" },
   { key: "pillars", label: "Pillars", href: "/admin/pillars" },
   { key: "prompts", label: "Prompts", href: "/admin/prompts" },

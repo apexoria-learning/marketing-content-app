@@ -305,14 +305,23 @@ with the two-step push (migration commit → apply → app commit):
    hand-written to match the generator, pending CI drift check. Migration
    `46a1bdf` applied to the shared database 2026-11-04 (after `0016`); app
    change committed and deployed after it.
-3. **Industry-neutral business profile — not started.** Generic profile
-   (industry, offerings with a configurable label, audience, offers, do/don't,
-   links, time zone, language), an Admin → Business page (supersedes the
-   Phase 13 brand editor), prompts built from the profile instead of
-   "Salesforce", daily-tip topic from the profile, business time zone in code
-   and in `consume_ai_budget`. Needs owner-approved paid smoke calls to check
-   output quality.
-4. **Industry templates and setup wizard — not started.** Versioned templates
+3. **Industry-neutral business profile — built 2026-11-04 (`US-16`, migration
+   `0018`).** Profile gains industry, a configurable offerings label (the
+   `courses` column now holds generic offerings) and a daily-tip topic,
+   backfilled with today's Salesforce wording. Admin → Business edits the
+   whole profile (supersedes the Phase 13 brand editor; members lost write
+   access). No prompt names an industry: content, month/day planning and the
+   daily tip are written from the profile (`content-v3`, `month-plan-v3`,
+   `day-plan-v3`, `daily-tip-v2`). Owner decisions: admin-only editing; the
+   business time zone stays IST (deferred until a company outside India needs
+   it); English only. Owner-approved paid comparison (6 calls, previous vs new
+   prompts, seed profile): content and day-plan output kept the same
+   Salesforce specificity, accuracy and tone (~+40 input tokens); the new daily
+   tip was not reached because the previous tip used a repair call. Local
+   gateway calls need `NODE_USE_ENV_PROXY=1` behind the corporate proxy. Validated against disposable
+   local PostgreSQL 17 (126 database tests) plus 681 total tests, typecheck,
+   lint and production build. Migration `830f260` applied 2026-11-04 (after `0017`);
+   app change committed and deployed after it.4. **Industry templates and setup wizard — not started.** Versioned templates
    in the repo (Salesforce training = today's Apexoria setup, Python training,
    general services), a first-run wizard, app name/short name/accent from
    configuration, and a new-company deployment runbook. Migration `0009`

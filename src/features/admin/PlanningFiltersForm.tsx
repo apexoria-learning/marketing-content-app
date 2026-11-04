@@ -74,7 +74,7 @@ export function PlanningFiltersForm({
         value={feeds}
         onChange={(event) => setFeeds(event.target.value)}
         disabled={pending}
-        placeholder="https://www.salesforce.com/news/feed/"
+        placeholder="https://example.com/news/feed/"
         error={errors.news_feed_urls}
         helper="One HTTPS feed per line. Leave empty to turn news off. Used by the scheduled news job once it is switched on."
       />

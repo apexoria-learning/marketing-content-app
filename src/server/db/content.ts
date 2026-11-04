@@ -1,8 +1,6 @@
 import "server-only";
 import { z } from "zod";
-import type { BrandProfileUpdate } from "../../lib/schemas/brand-profile";
 import { createUserDatabaseClient } from "./client";
-import type { TablesUpdate } from "./database.types";
 
 const ContentStatusSchema = z.enum(["idea", "ready", "posted", "skipped"]);
 
@@ -60,47 +58,4 @@ export async function appendActivityNote(input: {
   if (error) {
     throw error;
   }
-}
-
-export async function updateBrandProfile(input: {
-  fields: BrandProfileUpdate;
-  actorEmail: string;
-}): Promise<{ updated_at: string }> {
-  const supabase = await createUserDatabaseClient();
-  const changes: TablesUpdate<"brand_profile"> = {
-    updated_by: input.actorEmail,
-  };
-
-  for (const field of [
-    "business_name",
-    "business_description",
-    "audience_description",
-    "courses",
-    "current_offers",
-    "tone_instagram",
-    "tone_linkedin",
-    "tone_whatsapp",
-    "do_list",
-    "dont_list",
-    "links",
-  ] as const) {
-    const value = input.fields[field];
-
-    if (value !== undefined) {
-      Object.assign(changes, { [field]: value });
-    }
-  }
-
-  const { data, error } = await supabase
-    .from("brand_profile")
-    .update(changes)
-    .eq("id", 1)
-    .select("updated_at")
-    .maybeSingle();
-
-  if (error) {
-    throw error;
-  }
-
-  return z.object({ updated_at: z.string().min(1) }).parse(data);
 }

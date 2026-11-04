@@ -4,7 +4,6 @@ const mocks = vi.hoisted(() => ({
   authorize: vi.fn(),
   change: vi.fn(),
   note: vi.fn(),
-  brand: vi.fn(),
   revalidate: vi.fn(),
   destroy: vi.fn(),
 }));
@@ -26,14 +25,8 @@ vi.mock("../../src/server/db/client", () => ({
 vi.mock("../../src/server/services", () => ({
   changeContentStatus: mocks.change,
   appendActivityNote: mocks.note,
-  updateBrandProfile: mocks.brand,
 }));
-import {
-  markPosted,
-  skipItem,
-  addNote,
-  updateBrandProfile,
-} from "../../src/server/actions";
+import { markPosted, skipItem, addNote } from "../../src/server/actions";
 import AppLayout from "../../src/app/(app)/layout";
 import { signOut } from "../../src/server/auth/actions";
 
@@ -51,7 +44,6 @@ beforeEach(() => {
     month_progress: { posted: 1, planned: 2 },
   });
   mocks.note.mockResolvedValue(undefined);
-  mocks.brand.mockResolvedValue({ updated_at: "2026-11-01T00:00:00Z" });
 });
 
 describe("business action entrypoints", () => {
@@ -61,30 +53,22 @@ describe("business action entrypoints", () => {
       markPosted({ item_id: itemId, posted: true }),
       skipItem({ item_id: itemId, skipped: true }),
       addNote({ item_id: itemId, note: "Reviewed" }),
-      updateBrandProfile({ business_name: "Apexoria" }),
     ]);
     for (const result of results) {
       expect(result).toMatchObject({ ok: false, code: "UNAUTHENTICATED" });
     }
-    expect(mocks.authorize).toHaveBeenCalledTimes(4);
+    expect(mocks.authorize).toHaveBeenCalledTimes(3);
     expect(mocks.change).not.toHaveBeenCalled();
     expect(mocks.note).not.toHaveBeenCalled();
-    expect(mocks.brand).not.toHaveBeenCalled();
   });
 
-  it("passes session attribution to note and profile services", async () => {
+  it("passes session attribution to the note service", async () => {
     await addNote({ item_id: itemId, note: " Reviewed " });
     expect(mocks.note).toHaveBeenCalledWith({
       itemId,
       actorEmail: "member@example.test",
       note: "Reviewed",
     });
-    await updateBrandProfile({ business_name: "Apexoria" });
-    expect(mocks.brand).toHaveBeenCalledWith({
-      fields: { business_name: "Apexoria" },
-      actorEmail: "member@example.test",
-    });
-    expect(mocks.revalidate).toHaveBeenCalledWith("/settings");
   });
 
   it("revalidates all affected content surfaces after status changes", async () => {

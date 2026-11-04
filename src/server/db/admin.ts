@@ -21,6 +21,11 @@ import type {
   PlatformRecord,
 } from "../../lib/schemas/platforms";
 import type { PillarInput, PillarRecord } from "../../lib/schemas/pillars";
+import {
+  BusinessProfileRecordSchema,
+  type BusinessProfile,
+  type BusinessProfileRecord,
+} from "../../lib/schemas/business-profile";
 import { env } from "../config/env";
 import type { Database, TablesUpdate } from "./database.types";
 import { loadPillarCatalogue } from "./pillars";
@@ -385,4 +390,49 @@ export async function setPillarSortOrder(
     .update({ sort_order: sortOrder, updated_by: actorEmail })
     .eq("key", key);
   if (error) throw error;
+}
+
+// Admin-only since 0018 (members lost their UPDATE policy).
+export async function getBusinessProfile(): Promise<BusinessProfileRecord> {
+  const client = createAdminServiceRoleClient();
+  const { data, error } = await client
+    .from("brand_profile")
+    .select(
+      "business_name,industry,business_description,audience_description,offerings_label,courses,current_offers,tip_topic,do_list,dont_list,links,updated_at,updated_by",
+    )
+    .eq("id", 1)
+    .single();
+  if (error) throw error;
+  return BusinessProfileRecordSchema.parse(data);
+}
+
+/** Replaces every editable profile field; tone lives on platforms (0016). */
+export async function updateBusinessProfile(
+  profile: BusinessProfile,
+  actorEmail: string,
+): Promise<{ updated_at: string }> {
+  const client = createAdminServiceRoleClient();
+  const { data, error } = await client
+    .from("brand_profile")
+    .update({
+      business_name: profile.business_name,
+      industry: profile.industry,
+      business_description: profile.business_description,
+      audience_description: profile.audience_description,
+      offerings_label: profile.offerings_label,
+      courses: profile.offerings,
+      current_offers: profile.current_offers,
+      tip_topic: profile.tip_topic,
+      do_list: profile.do_list,
+      dont_list: profile.dont_list,
+      links: Object.fromEntries(
+        profile.links.map((link) => [link.label, link.url]),
+      ),
+      updated_by: actorEmail,
+    })
+    .eq("id", 1)
+    .select("updated_at")
+    .single();
+  if (error) throw error;
+  return z.object({ updated_at: z.string().min(1) }).parse(data);
 }

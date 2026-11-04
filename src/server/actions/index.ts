@@ -11,10 +11,6 @@ import {
   type MarkPostedInput,
   type SkipItemInput,
 } from "../../lib/schemas/actions";
-import {
-  BrandProfileUpdateSchema,
-  type BrandProfileUpdate,
-} from "../../lib/schemas/brand-profile";
 import { runAuthorizedAction } from "./run-action";
 import {
   HydrateItemInputSchema,
@@ -36,11 +32,7 @@ import {
   getMonthPlanAllowance,
 } from "../services/month-generation";
 import { consumeGenerationBudget } from "../security";
-import {
-  appendActivityNote,
-  changeContentStatus,
-  updateBrandProfile as saveBrandProfile,
-} from "../services";
+import { appendActivityNote, changeContentStatus } from "../services";
 
 function revalidateContentPaths(itemId: string): void {
   for (const path of [
@@ -52,10 +44,6 @@ function revalidateContentPaths(itemId: string): void {
   ]) {
     revalidatePath(path);
   }
-}
-
-function revalidateSettings(): void {
-  revalidatePath("/settings");
 }
 
 export async function markPosted(input: MarkPostedInput): Promise<
@@ -118,17 +106,6 @@ export async function addNote(
       return { ok: true as const };
     },
     (value) => revalidateContentPaths(value.item_id),
-  );
-}
-
-export async function updateBrandProfile(
-  input: BrandProfileUpdate,
-): Promise<ActionResult<{ updated_at: string }>> {
-  return runAuthorizedAction(
-    input,
-    BrandProfileUpdateSchema,
-    (fields, email) => saveBrandProfile({ fields, actorEmail: email }),
-    revalidateSettings,
   );
 }
 
