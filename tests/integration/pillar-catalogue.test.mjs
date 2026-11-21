@@ -56,18 +56,22 @@ function readyFields(overrides = {}) {
 }
 
 describeDatabase("pillar catalogue seed", () => {
-  it("seeds today's ten pillars with labels, intents and the news flag", async () => {
+  it("seeds the channel plan's pillars, keeps release news sourced and retires the rest (0017, 0020)", async () => {
     const result = await db.query(
       `select key, label, requires_news, is_enabled
        from public.pillars order by sort_order`,
     );
-    expect(result.rows).toHaveLength(10);
-    expect(result.rows[0]).toEqual({
-      key: "salesforce_tips",
-      label: "Tips",
-      requires_news: false,
-      is_enabled: true,
-    });
+    expect(result.rows).toHaveLength(14);
+    expect(
+      result.rows.filter((row) => row.is_enabled).map((row) => row.label),
+    ).toEqual([
+      "Admin Tips",
+      "Dev for Beginners",
+      "Async Apex & Integration",
+      "Real-Project Lessons",
+      "Agentforce",
+      "Release Deep Dive",
+    ]);
     expect(
       result.rows.filter((row) => row.requires_news).map((row) => row.key),
     ).toEqual(["salesforce_news"]);
@@ -77,7 +81,7 @@ describeDatabase("pillar catalogue seed", () => {
     await asRole(db, "authenticated", async () => {
       expect(
         (await db.query("select key from public.pillars")).rows,
-      ).toHaveLength(10);
+      ).toHaveLength(14);
       await expectRejection(() =>
         db.query(
           "insert into public.pillars (key, label, description) values ('hacks', 'Hacks', 'x')",

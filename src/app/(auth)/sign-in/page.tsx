@@ -20,10 +20,10 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
     <main className="flex min-h-dvh items-center justify-center px-page py-12">
       <section className="w-full max-w-content text-center">
         <h1 className="font-display text-display font-bold tracking-display text-primary">
-          Apexoria
+          Trailhead Simplified
         </h1>
         <p className="mt-3 text-sm text-secondary">
-          Your daily content, already written.
+          Salesforce Simplified. Career Amplified.
         </p>
         <form action={beginGoogleSignIn} className="mt-8">
           <input

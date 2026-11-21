@@ -1,4 +1,4 @@
-# API.md — Apexoria Content Co-pilot
+# API.md — Trailhead Simplified Content Co-pilot
 
 **Source of truth for:** every communication surface — internal (browser ↔ server) and external (server ↔ third parties).
 **Derived from:** `PRD.md` v1.0, `ARCHITECTURE.md` v1.0, `DATABASE.md` v1.0.
@@ -487,7 +487,7 @@ Reads happen in Server Components (§1.2). The contract is the URL.
 | | `platform` | a catalogue key (`^[a-z][a-z0-9_]{1,29}$`, `DATABASE.md` §5.12) | all |
 | | `pillar` | a catalogue pillar key (`DATABASE.md` §5.14); unknown keys match nothing | all |
 | | `status` | `idea` \| `ready` \| `posted` \| `skipped` | all |
-| `/create` | `format` | `carousel` \| `reel` \| `post` \| `story` \| `meme` \| `poll` | all |
+| `/create` | `format` | `carousel` \| `reel` \| `post` \| `story` \| `meme` \| `poll` \| `short` \| `video` | all |
 | | `platform` | as above | all |
 | `/archive` | `scope` | `this_month` \| `last_month` \| `all` | `this_month` |
 | | `platform`, `pillar`, `format` | as above | all |
@@ -593,7 +593,9 @@ Four outbound integrations. None is in the critical path for reading content.
 **Why a gateway rather than calling the provider directly:** retries, timeouts, fallbacks and per-request token/cost accounting live at the gateway instead of in application code, and the provider credential is held by Portkey rather than in the application's environment. Switching models becomes a configuration change.
 
 **Owner-approved routing refinement (2026-11-01):** the owner confirmed that
-the custom Perficient gateway is authorized for Apexoria's application/data.
+the custom Perficient gateway is authorized for this application's data (confirmed
+while the product was branded Apexoria; re-confirm the authorization covers
+Trailhead Simplified before relying on it for new data).
 Use `https://portkeygateway.perficient.com/v1` with model alias
 `@dsvertex/anthropic.claude-sonnet-5-5`. This supersedes the initial virtual-key
 setup and the interim config-ID proposal. Paid calls still require separate

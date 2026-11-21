@@ -163,7 +163,7 @@ export function PwaControls() {
       {iosInstall ? (
         <Banner variant="accent" onDismiss={() => setIosInstall(false)}>
           On iPhone or iPad, open Share and choose Add to Home Screen to install
-          Apexoria.
+          Trailhead Simplified.
         </Banner>
       ) : null}
       {waiting ? (
@@ -205,7 +205,7 @@ export function PwaControls() {
           }}
           onDismiss={() => setInstall(null)}
         >
-          Install Apexoria for quick access.
+          Install Trailhead Simplified for quick access.
         </Banner>
       ) : null}
     </div>

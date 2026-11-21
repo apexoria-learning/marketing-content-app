@@ -1,4 +1,4 @@
-# DATABASE.md — Apexoria Content Co-pilot
+# DATABASE.md — Trailhead Simplified Content Co-pilot
 
 **Source of truth for:** the complete data model, constraints, access control and operational data concerns.
 **Derived from:** `PRD.md` v1.0 (§13 Data requirements, §12 Roles) and `ARCHITECTURE.md` v1.0 (§5 Database, §6 Auth, §13 Security).
@@ -118,7 +118,7 @@ Native Postgres enums rather than `CHECK (x IN (...))`.
 ```sql
 create type public.platform          as enum ('instagram', 'linkedin', 'whatsapp');
 
-create type public.content_format    as enum ('carousel', 'reel', 'post', 'story', 'meme', 'poll');
+create type public.content_format    as enum ('carousel', 'reel', 'post', 'story', 'meme', 'poll', 'short', 'video');  -- 'short' and 'video' added in migration 0019
 
 create type public.content_pillar    as enum (
   'salesforce_tips', 'salesforce_news', 'memes', 'interview_questions',
@@ -490,11 +490,13 @@ Admin-managed platform catalogue (`US-18`, migration `0016`); replaces the fixed
 | `tone`, `guidance` | `text` | ≤ 2000 / ≤ 1000, trimmed; tone replaces `brand_profile.tone_*`, guidance is subordinate prompt text |
 | `created_at/by`, `updated_at/by` | | Attribution |
 
-Seeded with Instagram, LinkedIn and WhatsApp Status using today's exact rules (Instagram and LinkedIn: hashtags allowed up to 30; WhatsApp: none) and their tones copied from `brand_profile`. The 0015 `app_settings.enabled_platforms` override was folded into `is_enabled`; the column keeps its value so the previous release, which still reads it, stays consistent with the catalogue until the new code ships. It and the three `brand_profile.tone_*` columns remain, unused by current code (§9.3 forbids dropping columns).
+Seeded with Instagram, LinkedIn and WhatsApp Status using their original rules (Instagram and LinkedIn: hashtags allowed up to 30; WhatsApp: none) and their tones copied from `brand_profile`. The 0015 `app_settings.enabled_platforms` override was folded into `is_enabled`; the column keeps its value so the previous release, which still reads it, stays consistent with the catalogue until the new code ships. It and the three `brand_profile.tone_*` columns remain, unused by current code (§9.3 forbids dropping columns).
+
+**Trailhead Simplified rebrand (migration `0020`):** adds `youtube` (icon `video`, up to 5 hashtags, caption ≤ 5000, formats `short`, `video`, `post`, `poll`, with guidance for 5–10 minute how-tos in ON CAMERA / OFF CAMERA / SHOW ON SCREEN lanes), re-orders the catalogue YouTube → Instagram → LinkedIn → WhatsApp, and **retires** LinkedIn and WhatsApp (`is_enabled = false`; never deleted, existing content stays readable, re-enable from Admin). Instagram's tone and reel guidance and LinkedIn's tone are replaced only when they still hold their original seeded wording, so Admin edits survive.
 
 ### 5.13 `platform_formats`
 
-`(platform_key → platforms.key, format content_format)` primary key: which existing formats each platform supports. New formats still require code (each has its own body schema and renderer). `save_platform(jsonb, content_format[], boolean, text)` — executable by `service_role` only — writes a platform and its formats in one transaction and rejects any state with fewer than two enabled platform/format pairs, so the no-consecutive-repeat planning rule stays satisfiable.
+`(platform_key → platforms.key, format content_format)` primary key: which existing formats each platform supports. New formats still require code (each has a body schema and renderer; `short` and `video` reuse the timecoded-script schema that `reel` uses). `save_platform(jsonb, content_format[], boolean, text)` — executable by `service_role` only — writes a platform and its formats in one transaction and rejects any state with fewer than two enabled platform/format pairs, so the no-consecutive-repeat planning rule stays satisfiable.
 
 `content_items_enforce_platform_rules` (`BEFORE INSERT OR UPDATE` on `content_items`) enforces: the key exists; inserts only on enabled platforms; `(platform, format)` is in `platform_formats` when either changes; hashtag count ≤ the platform's limit when hashtags or platform change. Later catalogue edits therefore never block unrelated updates to existing rows. `commit_month_plan` and `commit_day_items` were redefined to take the platform as `text`.
 
@@ -513,7 +515,7 @@ Admin-managed pillar catalogue (`US-19`, migration `0017`); replaces the fixed `
 | `sort_order` | `smallint` | Display order |
 | `created_at/by`, `updated_at/by` | | Attribution |
 
-Seeded with the ten `PRD §6.1` pillars (keys unchanged, short labels from the former UI constants, intents as descriptions); only `salesforce_news` requires news. The 0015 `app_settings.enabled_pillars` override was folded into `is_enabled`; the column keeps its value so the previous release stays consistent until the new code ships, and remains unused afterwards (§9.3). A transitional `app_settings_sync_legacy_enabled_pillars` trigger mirrors any write the previous release makes to that column onto the seeded pillars' `is_enabled` (`NULL` = all enabled), so nothing changed during the migrate-then-deploy window is lost; the new release never writes the column, and a later migration may drop the trigger.
+Seeded with the ten `PRD §6.1` pillars (keys unchanged, short labels from the former UI constants, intents as descriptions); only `salesforce_news` requires news. Migration `0020` aligns the catalogue with the channel plan: it relabels `salesforce_tips` → *Admin Tips* and `salesforce_news` → *Release Deep Dive* (only where the label still holds its original seeded value), adds `dev_beginners`, `async_integration`, `project_lessons` and `agentforce`, and retires the other eight seeded pillars (`is_enabled = false`, `sort_order + 10`; never deleted). That leaves six enabled pillars — five that do not need news — inside the 3–14 plannability bounds. The 0015 `app_settings.enabled_pillars` override was folded into `is_enabled`; the column keeps its value so the previous release stays consistent until the new code ships, and remains unused afterwards (§9.3). A transitional `app_settings_sync_legacy_enabled_pillars` trigger mirrors any write the previous release makes to that column onto the seeded pillars' `is_enabled` (`NULL` = all enabled), so nothing changed during the migrate-then-deploy window is lost; the new release never writes the column, and a later migration may drop the trigger.
 
 `content_items_enforce_pillar_rules` (`BEFORE INSERT OR UPDATE` on `content_items`) enforces: the key exists; inserts only on enabled pillars; and, for a `requires_news` pillar, at least one `source_refs` entry whenever a row is inserted as, or moves into, `ready`/`posted`, or its pillar or sources change while usable. This replaces the `content_items_news_requires_sources` check with the same rule for any news pillar. `commit_month_plan` and `commit_day_items` were redefined to take the pillar as `text`.
 
@@ -615,7 +617,7 @@ Partial indexes are used throughout because they stay small permanently: `idx_co
 
 `PRD §12` defines two roles: Member and Admin (`US-17`). The schema reflects this honestly:
 
-> **Content policies check *authentication*, never ownership.** Content belongs to Apexoria Learning, not to the person who happened to be signed in. `posted_by`, `actor_email` and `updated_by` are **attribution, not authorization** — they record who acted; they never gate what anyone may do.
+> **Content policies check *authentication*, never ownership.** Content belongs to Trailhead Simplified, not to the person who happened to be signed in. `posted_by`, `actor_email` and `updated_by` are **attribution, not authorization** — they record who acted; they never gate what anyone may do.
 
 Roles live in `app_users` (§5.9). Members can read only their own row and nothing can be written by `authenticated`; admin writes go through the server's scoped admin module (`ARCHITECTURE.md` §6.3).
 
@@ -845,7 +847,7 @@ The schema's contribution is `US-16`: real names appear only when a team member 
 `activity_log` is append-only by trigger (§7.4), which is a genuine conflict with an erasure request. The sanctioned procedure is explicit and audited:
 
 1. An administrator authors a migration that drops the two append-only triggers.
-2. The migration overwrites `actor_email`, `posted_by` and `updated_by` for the subject with a tombstone such as `removed-user@apexoria.invalid`.
+2. The migration overwrites `actor_email`, `posted_by` and `updated_by` for the subject with a tombstone such as `removed-user@trailhead.invalid`.
 3. The migration recreates the triggers.
 4. The migration is committed, so the erasure is itself part of the permanent record.
 
@@ -888,7 +890,7 @@ Separating `0007_rls.sql` is deliberate: RLS gets its own reviewable diff, so "d
 #### Hosted development migrations through GitHub Actions
 
 No local database is required to deploy migrations. The manually dispatched
-[manual migration workflow](./.github/workflows/migrate-development.yml)
+[manual migration workflow](../.github/workflows/migrate-development.yml)
 targets only `hkexglskvqaaeouvfdwm`. Under the temporary owner-approved exception
 in `ARCHITECTURE.md` §15.1, this project serves both preview and the live site.
 Treat it as production; its original development label is not an isolation
@@ -916,7 +918,7 @@ It never runs `db reset` or `--include-seed`; migration
 excluded.
 
 After applying, the workflow runs
-[read-only database checks](./scripts/verify-database.sql) over the development
+[read-only database checks](../scripts/verify-database.sql) over the development
 session pooler with TLS required by the client's `PGSSLMODE=require`.
 The same `psql` session prints `\conninfo` before running the checks.
 PostgreSQL's `pg_stat_ssl` describes the pooler-to-database connection, not
@@ -981,11 +983,20 @@ Salesforce wording, so generation is unchanged) and drops the member
 `brand_profile_update` policy; the admin module writes the profile. Apply it
 after `0017` and **before** deploying the code that reads the new columns; the
 old release only reads the profile and has no screen that writes it.
+Migration `0019` adds the `short` and `video` values to `content_format` (alone
+in its file, DATABASE.md §4). Migration `0020` is data only — the Trailhead
+Simplified rebrand of the profile, platform catalogue (adds `youtube`, retires
+LinkedIn and WhatsApp) and pillar catalogue (adds the channel plan's pillars,
+retires eight originals). Each step is safe to re-run, and the profile, labels
+and tones change only while they still hold their originally seeded values.
+Apply `0019`, then `0020`, after `0018` and **before** deploying code that
+offers the new formats. Planning from the previous release would still work
+afterwards, because it reads the catalogue.
 No other hosted target or automatic push/pull-request trigger is configured.
 
 #### Isolated behavioral tests and generated types
 
-[Database CI](./.github/workflows/database-tests.yml) starts PostgreSQL 15 on the
+[Database CI](../.github/workflows/database-tests.yml) starts PostgreSQL 15 on the
 GitHub runner, applies all migrations in throwaway databases, and runs the schema
 and fixture suites. It uses no hosted Supabase credentials. Local runs may skip
 when PostgreSQL is unavailable; CI requires the database and fails if unreachable.
@@ -1023,17 +1034,17 @@ that artifact after a migration when local generation is unavailable.
 insert into public.brand_profile (
   id, business_name, business_description, audience_description,
   courses, tone_instagram, tone_linkedin, tone_whatsapp, do_list, dont_list, links
-) values (1, 'Apexoria Learning', /* … real Apexoria content … */ )
+) values (1, 'Trailhead Simplified', /* … real Trailhead Simplified content … */ )
 on conflict (id) do nothing;
 ```
 
-`ON CONFLICT DO NOTHING` makes re-running the migration safe and guarantees a re-run never overwrites edits the team has made in Settings.
+`ON CONFLICT DO NOTHING` makes re-running the migration safe and guarantees a re-run never overwrites edits the team has made in Settings. The Trailhead Simplified rebrand of an existing profile is migration `0020`, which updates the row only while `business_name` still equals the original seeded value.
 
 Seeding real brand content is a `PRD §17` release-checklist item, because generation quality (`R1`) depends on it almost entirely. An empty brand profile produces exactly the generic, off-brand content the product exists to avoid.
 
 **Development seed — additionally:**
 - ~20 `news_items` with realistic Salesforce titles and valid URLs.
-- One `content_plans` row plus a full month of `content_items` spanning every status, platform, format and pillar — deliberately including edge cases the UI must handle: an overdue unposted item, a day with zero items, a day with two, a skipped item, and a sourceless non-news item.
+- One `content_plans` row plus a full month of `content_items` spanning every status, enabled platform (YouTube, Instagram), format and enabled pillar — deliberately including edge cases the UI must handle: an overdue unposted item, a day with zero items, a day with two, a skipped item, and a sourceless non-news item. Retired platforms and pillars carry no seeded content, because the catalogue triggers reject inserts on disabled rows.
 - 30 days of `daily_tips`.
 
 Development seed data is never applied to production and lives outside the numbered migration sequence.
@@ -1130,8 +1141,9 @@ Release gates for the data layer, mapping to `PRD §17`.
 - [ ] A third insert on one `scheduled_date` fails on the unique constraint
 - [ ] A `ready` item missing `caption`, `body` or `design_brief` is rejected
 - [ ] A `ready` item on a `requires_news` pillar (e.g. `salesforce_news`) with empty `source_refs` is rejected
-- [ ] A reel on LinkedIn is rejected
-- [ ] WhatsApp item with hashtags is rejected
+- [ ] A reel on YouTube is rejected
+- [ ] A YouTube item with more than five hashtags is rejected
+- [ ] New content on a retired platform (WhatsApp, LinkedIn) is rejected
 - [ ] `status = 'posted'` without `posted_at`/`posted_by` is rejected
 - [ ] Illegal status transitions raise (e.g. `idea → posted`, `skipped → posted`)
 - [ ] Content fields of a posted item cannot be updated

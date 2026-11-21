@@ -42,7 +42,7 @@ const context: GenerationContext = {
   pillar: "salesforce_tips",
   idea: "Plan",
   brand: {
-    business_name: "Apexoria",
+    business_name: "Trailhead Simplified",
     industry: "Salesforce training",
     business_description: "Salesforce training",
     audience_description: "Learners",
@@ -314,7 +314,7 @@ describe("month generation pipeline", () => {
     expect(result.items).toHaveLength(30);
     expect(generate).toHaveBeenCalledTimes(1);
     expect(generate.mock.calls[0]?.[0].messages[0].content).toContain(
-      "Apexoria",
+      "Trailhead Simplified",
     );
   });
 

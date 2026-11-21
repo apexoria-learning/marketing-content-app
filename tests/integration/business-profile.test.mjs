@@ -26,15 +26,15 @@ afterAll(async () => {
 });
 
 describeDatabase("business profile fields", () => {
-  it("backfills today's Salesforce wording so prompts keep their meaning", async () => {
+  it("rebrands the profile wording for Trailhead Simplified (0020)", async () => {
     const result = await db.query(
       "select industry, offerings_label, tip_topic from public.brand_profile",
     );
     expect(result.rows).toEqual([
       {
-        industry: "Salesforce training",
-        offerings_label: "Courses",
-        tip_topic: "Salesforce learning",
+        industry: "Salesforce education",
+        offerings_label: "Playlists",
+        tip_topic: "Practical Salesforce admin and developer skills",
       },
     ]);
   });
@@ -111,6 +111,40 @@ describeDatabase("upgrading an edited profile", () => {
         industry: "Salesforce training",
         offerings: 6,
       });
+    } finally {
+      await dropTestDatabase(legacy);
+    }
+  }, 120_000);
+
+  it("rebrands the catalogues but keeps an edited profile and labels (0020)", async () => {
+    const legacy = await createTestDatabase({
+      until: "0019_content_format_short_video.sql",
+    });
+    try {
+      await legacy.query(
+        "update public.brand_profile set business_name = 'Renamed Co' where id = 1",
+      );
+      await legacy.query(
+        "update public.pillars set label = 'Quick Tips' where key = 'salesforce_tips'",
+      );
+      const rebrand = "0020_rebrand_trailhead_simplified.sql";
+      await applyMigration(legacy, rebrand);
+      const snapshot = () =>
+        legacy.query(
+          `select
+             (select business_name from public.brand_profile) as name,
+             (select label from public.pillars where key = 'salesforce_tips') as tips,
+             (select array_agg(key order by sort_order) from public.platforms where is_enabled) as platforms,
+             (select array_agg(key || ':' || sort_order order by key) from public.pillars) as pillars`,
+        );
+      const first = (await snapshot()).rows[0];
+      expect(first).toMatchObject({
+        name: "Renamed Co",
+        tips: "Quick Tips",
+        platforms: ["youtube", "instagram"],
+      });
+      await applyMigration(legacy, rebrand);
+      expect((await snapshot()).rows[0]).toEqual(first);
     } finally {
       await dropTestDatabase(legacy);
     }

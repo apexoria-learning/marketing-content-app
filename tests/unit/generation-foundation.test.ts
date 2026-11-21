@@ -13,7 +13,7 @@ const context: GenerationContext = {
   pillar: "salesforce_tips",
   idea: "Explain flows",
   brand: {
-    business_name: "Apexoria",
+    business_name: "Trailhead Simplified",
     industry: "Salesforce training",
     business_description: "Salesforce training",
     audience_description: "Learners",
@@ -81,7 +81,7 @@ describe("generation foundation", () => {
       buildContentPrompt({ ...context, steer: "Be concise" }),
     );
     expect(prompt.messages).toHaveLength(5);
-    expect(prompt.messages[0]?.content).toContain("Apexoria");
+    expect(prompt.messages[0]?.content).toContain("Trailhead Simplified");
     expect(prompt.messages[1]?.content).toContain("Previous idea");
     expect(prompt.messages[1]?.content).not.toContain(
       "https://example.test/news",

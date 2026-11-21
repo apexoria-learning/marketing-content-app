@@ -48,7 +48,7 @@ it("includes every posted idea in the 60-day window without leaking brand audit 
             result = pillarRow(url);
           } else if (url.pathname.endsWith("/brand_profile")) {
             result = {
-              business_name: "Apexoria",
+              business_name: "Trailhead Simplified",
               industry: "Salesforce training",
               business_description: "Training",
               audience_description: "Learners",
@@ -110,7 +110,7 @@ it("accepts a whole content item and keeps only its slot fields (live item-gener
             ? pillarRow(url)
             : url.pathname.endsWith("/brand_profile")
               ? {
-                  business_name: "Apexoria",
+                  business_name: "Trailhead Simplified",
                   industry: "Salesforce training",
                   business_description: "Training",
                   audience_description: "Learners",

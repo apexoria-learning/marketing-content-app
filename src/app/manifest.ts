@@ -2,13 +2,13 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Apexoria Content Co-pilot",
-    short_name: "Apexoria",
-    description: "A daily content workspace for Apexoria Learning.",
+    name: "Trailhead Simplified Content Co-pilot",
+    short_name: "Trailhead Simplified",
+    description: "A daily content workspace for Trailhead Simplified.",
     start_url: "/",
     display: "standalone",
-    background_color: "#0A0A0B",
-    theme_color: "#0A0A0B",
+    background_color: "#0B111D",
+    theme_color: "#0B111D",
     icons: [
       {
         src: "/icons/icon-192.png",

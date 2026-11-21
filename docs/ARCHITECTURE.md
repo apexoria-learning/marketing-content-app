@@ -1,4 +1,4 @@
-# ARCHITECTURE.md — Apexoria Content Co-pilot
+# ARCHITECTURE.md — Trailhead Simplified Content Co-pilot
 
 **Source of truth for:** technical architecture, implementation structure, security boundaries and delivery.
 **Derived from:** `PRD.md` v1.0 and `DESIGN.md` v1.0.
@@ -385,7 +385,7 @@ A failure in any stage is recorded in `generation_runs` and does not prevent lat
 
 Postgres is used as a database, not as a key-value store with JSON in it. Enumerations are constrained, relationships are foreign keys, invariants are `CHECK` and `UNIQUE` constraints. The intent is that **the database rejects illegal states even if the application has a bug**.
 
-Variable-shaped payloads (carousel slides vs. reel scripts vs. poll options) are stored as `jsonb`, but every write passes through a Zod schema first, so the JSON shape is still guaranteed at the application boundary.
+Variable-shaped payloads (carousel slides vs. timecoded scripts vs. poll options) are stored as `jsonb`, but every write passes through a Zod schema first, so the JSON shape is still guaranteed at the application boundary. Reels, YouTube Shorts and long-form videos share one timecoded-script body schema.
 
 ### 5.2 Tables
 
@@ -422,7 +422,7 @@ Variable-shaped payloads (carousel slides vs. reel scripts vs. poll options) are
 | `plan_id` | `uuid` FK → `content_plans` | `ON DELETE SET NULL` — plans are disposable, items are not |
 | `scheduled_date` | `date` | Indexed |
 | `platform` | `text` | FK → admin-managed `platforms(key)`; format/hashtag rules from the catalogue (`DATABASE.md` §5.12–5.13) |
-| `format` | `text` | `CHECK IN ('carousel','reel','post','story','meme','poll')` |
+| `format` | `text` | `CHECK IN ('carousel','reel','post','story','meme','poll','short','video')` |
 | `pillar` | `text` | FK → admin-managed `pillars(key)`; news-sourcing rule from the catalogue (`DATABASE.md` §5.14) |
 | `title`, `hook`, `caption`, `cta` | `text` | |
 | `body` | `jsonb` | Slides / script / frame / poll — shape determined by `format` |
@@ -658,7 +658,7 @@ Invariants:
 ## 10. Folder structure
 
 ```
-apexoria-content-copilot/
+trailhead-simplified-content-copilot/
 ├─ PRD.md
 ├─ DESIGN.md
 ├─ ARCHITECTURE.md
@@ -891,7 +891,7 @@ AI calls are mocked at the `ai/client` boundary. Unit tests never make network c
 ### 14.2 Integration tests
 
 Run against a local Supabase instance or an isolated PostgreSQL 15 service in
-[database CI](./.github/workflows/database-tests.yml):
+[database CI](../.github/workflows/database-tests.yml):
 - RLS: the anon key returns zero rows for every table without a session (`L4`).
 - Triggers: the third item on a date is rejected; posted items cannot be content-edited.
 - Append-only: `activity_log` rows cannot be updated or deleted.
@@ -970,7 +970,7 @@ push → Vercel build
 Database migrations are applied through the Supabase CLI as an explicit step before the deployment that depends on them. Migrations are forward-only and backward-compatible within a release, so a rollback of application code never leaves the schema ahead in a breaking way.
 
 For the temporarily shared hosted database, the
-[manual migration workflow](./.github/workflows/migrate-development.yml) runs
+[manual migration workflow](../.github/workflows/migrate-development.yml) runs
 the CLI on GitHub's runner; developers do not need a local database. It is
 restricted to the default branch and the legacy `supabase-development` GitHub
 environment, previews changes by default, and applies only when explicitly
@@ -983,7 +983,7 @@ Production migration automation remains unconfigured.
 Mapping directly to `PRD §17`:
 
 - [ ] All migrations applied; RLS verified enabled on every table (`L4`)
-- [ ] Brand profile seeded with real Apexoria content
+- [ ] Brand profile seeded with real Trailhead Simplified content
 - [ ] All environment variables set in Vercel production
 - [ ] Google OAuth production client configured; redirect URIs exact; test users added
 - [ ] `CRON_SECRET` set; cron schedule registered; a manual invocation succeeds

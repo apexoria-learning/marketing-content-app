@@ -30,26 +30,32 @@ async function rows(sql, params) {
   return (await db.query(sql, params)).rows;
 }
 
-describeDatabase("brand profile (migration 0009)", () => {
-  it("holds genuine Apexoria content", async () => {
+describeDatabase("brand profile (migrations 0009 and 0020)", () => {
+  it("holds the Trailhead Simplified profile", async () => {
     const [profile] = await rows("select * from public.brand_profile");
 
-    expect(profile.business_name).toBe("Apexoria Learning");
-    expect(profile.business_description).toMatch(/Salesforce/);
-    expect(profile.audience_description).toMatch(/career switchers/i);
-    expect(profile.links.website).toBe("https://www.apexorialearning.in");
+    expect(profile.business_name).toBe("Trailhead Simplified");
+    expect(profile.business_description).toMatch(/@TrailheadSimplified/);
+    expect(profile.business_description).toMatch(/Hinglish/);
+    expect(profile.audience_description).toMatch(/admins/i);
+    expect(profile.audience_description).toMatch(/aspiring developers/i);
+    expect(profile.links).toEqual({
+      youtube: "https://www.youtube.com/@TrailheadSimplified",
+      instagram: "https://www.instagram.com/trailheadsimplified",
+    });
   });
 
-  it("lists the six real courses", async () => {
-    const [profile] = await rows("select courses from public.brand_profile");
+  it("lists the channel's four playlists", async () => {
+    const [profile] = await rows(
+      "select offerings_label, courses from public.brand_profile",
+    );
 
+    expect(profile.offerings_label).toBe("Playlists");
     expect(profile.courses).toEqual([
-      "Salesforce Foundation",
-      "Salesforce Crash Course",
-      "Salesforce Complete Course",
-      "Salesforce QA",
-      "Automation QA",
-      "Salesforce Interview Prep",
+      "Admin",
+      "Dev (Apex/LWC)",
+      "Best Practices",
+      "Agentforce",
     ]);
   });
 
@@ -91,25 +97,21 @@ describeDatabase("brand profile (migration 0009)", () => {
     expect(profile.business_name).toBe("Edited In Settings");
 
     await db.query(
-      "update public.brand_profile set business_name = 'Apexoria Learning' where id = 1",
+      "update public.brand_profile set business_name = 'Trailhead Simplified' where id = 1",
     );
   });
 });
 
 describeDatabase("content coverage", () => {
-  it("covers all three platforms", async () => {
+  it("covers both enabled platforms", async () => {
     const result = await rows(
       "select distinct platform from public.content_items order by platform",
     );
 
-    expect(result.map((row) => row.platform)).toEqual([
-      "instagram",
-      "linkedin",
-      "whatsapp",
-    ]);
+    expect(result.map((row) => row.platform)).toEqual(["instagram", "youtube"]);
   });
 
-  it("covers all six formats", async () => {
+  it("covers all eight formats", async () => {
     const result = await rows(
       "select distinct format from public.content_items",
     );
@@ -120,16 +122,22 @@ describeDatabase("content coverage", () => {
       "poll",
       "post",
       "reel",
+      "short",
       "story",
+      "video",
     ]);
   });
 
-  it("covers all ten pillars (M4)", async () => {
+  it("covers every enabled pillar (M4)", async () => {
     const result = await rows(
-      "select distinct pillar from public.content_items",
+      `select p.key from public.pillars p
+       where p.is_enabled
+         and not exists (
+           select 1 from public.content_items ci where ci.pillar = p.key
+         )`,
     );
 
-    expect(result).toHaveLength(10);
+    expect(result).toHaveLength(0);
   });
 
   it("covers all four statuses", async () => {
@@ -252,19 +260,23 @@ describeDatabase("payload integrity", () => {
     expect(result).toHaveLength(0);
   });
 
-  it("gives carousels numbered slides and reels timed scenes", async () => {
+  it("gives carousels numbered slides and reels, shorts and videos timed scenes", async () => {
     const [carousel] = await rows(
       `select body from public.content_items
        where format = 'carousel' and status in ('ready', 'posted') limit 1`,
     );
-    const [reel] = await rows(
-      `select body from public.content_items
-       where format = 'reel' and status in ('ready', 'posted') limit 1`,
+    const scripts = await rows(
+      `select format, body from public.content_items
+       where format in ('reel', 'short', 'video') and status in ('ready', 'posted')`,
     );
 
     expect(carousel.body.slides.length).toBeGreaterThanOrEqual(5);
     expect(carousel.body.slides[0]).toHaveProperty("headline");
-    expect(reel.body.scenes[0]).toHaveProperty("on_screen_text");
+    expect(new Set(scripts.map((row) => row.format))).toEqual(
+      new Set(["reel", "short", "video"]),
+    );
+    for (const script of scripts)
+      expect(script.body.scenes[0]).toHaveProperty("on_screen_text");
   });
 
   // jsonb does not preserve key insertion order, so the fixed subsection
@@ -299,9 +311,7 @@ describeDatabase("payload integrity", () => {
     );
 
     for (const row of result) {
-      if (row.platform === "whatsapp") {
-        expect(row.tag_count).toBe(0);
-      } else if (row.platform === "linkedin") {
+      if (row.platform === "youtube") {
         expect(row.tag_count).toBeLessThanOrEqual(5);
       } else {
         expect(row.tag_count).toBeGreaterThanOrEqual(8);

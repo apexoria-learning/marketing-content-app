@@ -1,4 +1,4 @@
-# IMPLEMENTATION-PLAN.md — Apexoria Content Co-pilot
+# IMPLEMENTATION-PLAN.md — Trailhead Simplified Content Co-pilot
 
 **Derived from:** `PRD.md` · `DESIGN.md` · `ARCHITECTURE.md` · `DATABASE.md` · `API.md` · `AGENTS.md`
 **Scope:** MVP (v1). No feature, library or capability appears here that is not already specified in those documents.
@@ -72,7 +72,8 @@ retries. Reuse the compatible boundary/error-handling patterns, not the other
 app's dependencies, credentials or user metadata.
 
 **Current gate:** the user subsequently provided the gateway integration example
-and confirmed authorization to use it for Apexoria's application/data.
+and confirmed authorization to use it for this application's data (given while
+the product was branded Apexoria; re-confirm it covers Trailhead Simplified).
 Model-alias routing supersedes the interim config-ID proposal: use the custom
 HTTPS endpoint and `@dsvertex/anthropic.claude-sonnet-5-5` per API.md §8.1,
 without a virtual key or config ID. Environment validation and isolated browser
@@ -213,7 +214,7 @@ declares `maxDuration = 300`, matching the evidence that a 60s cap is too short
 for large replies. Month planning checks horizon and existing plan before
 charging quota; the control shows a non-blocking progress banner and becomes a
 disabled "Month planned"/"Day planned" button after success. The item control
-keeps a stable key so the gold "Updated" eyebrow survives the refresh, cross-
+keeps a stable key so the accent "Updated" eyebrow survives the refresh, cross-
 fades in, and fades after 2s (opacity-only under reduced motion).
 Feature validation: 89 focused unit tests, 16 mocked browser checks (including
 design-system axe/CSP/reduced motion), typecheck, lint and production build pass.
@@ -322,11 +323,35 @@ with the two-step push (migration commit → apply → app commit):
    local PostgreSQL 17 (126 database tests) plus 681 total tests, typecheck,
    lint and production build. Migration `830f260` applied 2026-11-04 (after `0017`);
    app change committed and deployed after it.4. **Industry templates and setup wizard — not started.** Versioned templates
-   in the repo (Salesforce training = today's Apexoria setup, Python training,
+   in the repo (Salesforce training = the original Apexoria setup, Python training,
    general services), a first-run wizard, app name/short name/accent from
    configuration, and a new-company deployment runbook. Migration `0009`
-   still seeds Apexoria's sample profile in a fresh database; the wizard
-   overwrites it.
+   still seeds the original Apexoria sample profile in a fresh database;
+   migration `0020` then rebrands it to Trailhead Simplified, and the wizard
+   would overwrite both.
+5. **Trailhead Simplified rebrand — built 2026-11-21/22 (same Supabase
+   database and Google sign-in).** The product moved from Apexoria Learning to
+   Trailhead Simplified, Wishvesh Ujawane's YouTube channel and Instagram
+   account (`@TrailheadSimplified`), and from the `apexoria-learning` repository
+   to `wishvesh-ujawane/Trailhead-Simplified`, whose channel playbook now lives
+   in `content/`. Specifications moved to `docs/`; the proposed SaaS drafts were
+   removed. Design tokens, fonts (Poppins + Inter), icons and app strings follow
+   `docs/brand-kit/`. Migration `0019` adds `short` and `video` formats (alone,
+   per DATABASE.md §4). `0020` aligns the data with `content/PLAN.md`: a
+   Hinglish creator profile with signature lines and script lanes, YouTube and
+   Instagram only (LinkedIn and WhatsApp retired), and the plan's five pillars
+   plus a sourced release-news pillar (eight originals retired). Not done:
+   applying `0019`/`0020` to the hosted database (manual migration workflow,
+   dry run first, **before** deploying the code); regenerating
+   `database.types.ts` with the Supabase CLI (the `content_format` entry was
+   hand-written to match the generator; CI's drift gate verifies it);
+   reconnecting Vercel and the two GitHub Actions secrets to the new repository;
+   a canonical domain for `NEXT_PUBLIC_APP_URL`; confirming the AI gateway
+   authorization for the new brand; and the plan's weekly cadence (PRD FR-2.4),
+   which needs a planning change rather than data. Validated: typecheck, lint,
+   production build, 23 browser checks, and all 685 unit and database tests
+   against a local PostgreSQL 15.20 (none skipped); the seeded browser suite
+   still needs CI.
 
 ## 2. Phase map
 
@@ -402,7 +427,7 @@ None.
 |---|---|
 | 1.1 | `tokens.css` — all colour, type, spacing, radius, elevation and motion tokens (`DESIGN.md` §3–5), with the `[data-theme="light"]` remap |
 | 1.2 | Map tokens into the Tailwind theme as semantic names; confirm the Phase 0 lint rule enforces them |
-| 1.3 | Self-host and subset Space Grotesk, Inter, JetBrains Mono with metric-compatible fallbacks (no layout shift) |
+| 1.3 | Self-host and subset Poppins, Inter, JetBrains Mono with metric-compatible fallbacks (no layout shift) |
 | 1.4 | Primitives: `Button` (5 variants × 6 states), `Chip`, `Input`, `Textarea`, `SegmentedControl`, `Skeleton`, `Toast`, `BottomSheet` |
 | 1.5 | `StatusTick` (spring tick draw, haptics, real checkbox semantics) and `ProgressRing` |
 | 1.6 | `EmptyState`, `ErrorState`, `Banner` |
@@ -447,7 +472,7 @@ None.
 | 2.6 | `0006_triggers.sql` — bind functions, including both `activity_log` append-only triggers |
 | 2.7 | `0007_rls.sql` — enable RLS on all eight tables plus every policy; `rate_limits` gets **none** |
 | 2.8 | `0008_grants.sql` — revoke `consume_rate_limit` from public, grant to `authenticated` |
-| 2.9 | `0009_seed_brand_profile.sql` — **real Apexoria content**, idempotent via `ON CONFLICT DO NOTHING` |
+| 2.9 | `0009_seed_brand_profile.sql` — **real brand content** (originally Apexoria; rebranded to Trailhead Simplified by `0020`), idempotent via `ON CONFLICT DO NOTHING` |
 | 2.10 | **Development seed script** — a deterministic month of `content_items` covering every platform, format, pillar and status, and deliberately including: an overdue unposted item, an empty day, a two-item day, a skipped item, an un-hydrated `idea` item; plus ~20 `news_items` and 30 `daily_tips` |
 | 2.11 | Wire Supabase TypeScript type generation into the workflow |
 
@@ -480,7 +505,7 @@ The full `DATABASE.md` §11 list, notably:
 - [x] Phase 2 schema, RLS, constraint, trigger and concurrency gates from `DATABASE.md` §11 pass in CI
 - [x] Supabase CLI-generated types compile and type both database client factories; CI checks drift
 - [x] Dev seed supplies the rolling fixture window and all required edge cases in isolated CI databases
-- [x] Brand profile seeded with genuine Apexoria content, not placeholders
+- [x] Brand profile seeded with genuine brand content, not placeholders
 
 Hosted fixture browsing is deferred under the approved shared-database exception.
 The cron-idempotency, backup and restore release gates in `DATABASE.md` §11 remain
@@ -591,7 +616,7 @@ None.
 | 5.1 | Zod schemas: `ContentItem`, per-format `body` (slides / script / frame / poll), `DesignBrief`, `SourceRef`, `DailyTip`, `MonthSkeleton` |
 | 5.2 | Infer all TypeScript types from schemas — no hand-written parallel types |
 | 5.3 | `PlatformBadge` (3 variants), `PillarChip`, `FormatChip`, `StatusPill` |
-| 5.4 | `ContentCard` — full and condensed, including the posted treatment (dim + gold tick, no strikethrough) |
+| 5.4 | `ContentCard` — full and condensed, including the posted treatment (dim + accent tick, no strikethrough) |
 | 5.5 | `TipCard` — visually distinct from `ContentCard` so it is never mistaken for postable content |
 | 5.6 | `CopyBlock` — clipboard, long-press, inline "Copied", selectable fallback when the API is unavailable |
 | 5.7 | `SlideList`, `ScriptList`, `BriefSection` (fixed subsection order), `SourceList` (hidden when empty; `danger` warning on a sourceless news item) |

@@ -57,12 +57,19 @@ async function addPlatform(key, overrides = {}) {
 }
 
 describeDatabase("platform catalogue seed", () => {
-  it("seeds today's three platforms with their exact format rules and tones", async () => {
+  it("seeds YouTube and Instagram with their format rules and retires LinkedIn and WhatsApp (0016, 0020)", async () => {
     const platforms = await db.query(
       `select key, allows_hashtags, max_hashtags, is_enabled, tone <> '' as has_tone
        from public.platforms order by sort_order`,
     );
     expect(platforms.rows).toEqual([
+      {
+        key: "youtube",
+        allows_hashtags: true,
+        max_hashtags: 5,
+        is_enabled: true,
+        has_tone: true,
+      },
       {
         key: "instagram",
         allows_hashtags: true,
@@ -74,14 +81,14 @@ describeDatabase("platform catalogue seed", () => {
         key: "linkedin",
         allows_hashtags: true,
         max_hashtags: 30,
-        is_enabled: true,
+        is_enabled: false,
         has_tone: true,
       },
       {
         key: "whatsapp",
         allows_hashtags: false,
         max_hashtags: 0,
-        is_enabled: true,
+        is_enabled: false,
         has_tone: true,
       },
     ]);
@@ -96,13 +103,17 @@ describeDatabase("platform catalogue seed", () => {
       },
       { platform_key: "linkedin", formats: ["carousel", "poll", "post"] },
       { platform_key: "whatsapp", formats: ["meme", "story"] },
+      {
+        platform_key: "youtube",
+        formats: ["poll", "post", "short", "video"],
+      },
     ]);
   });
 
   it("lets members read the catalogue but never change it", async () => {
     await asRole(db, "authenticated", async () => {
       const rows = await db.query("select key from public.platforms");
-      expect(rows.rows).toHaveLength(3);
+      expect(rows.rows).toHaveLength(4);
       await expectRejection(() =>
         db.query(
           "insert into public.platforms (key, label, colour_slot, icon) values ('x_app', 'X', 4, 'chat')",
@@ -235,7 +246,7 @@ describeDatabase("content rules from the catalogue", () => {
             {
               platform: "youtube_shorts",
               format: "post",
-              pillar: "memes",
+              pillar: "agentforce",
               idea: "A short idea",
             },
           ]),

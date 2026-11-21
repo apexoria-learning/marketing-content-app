@@ -1,27 +1,27 @@
-# PRD — Apexoria Content Co-pilot
+# PRD — Trailhead Simplified Content Co-pilot
 
-**Product:** Apexoria Content Co-pilot
-**Owner:** Apexoria Learning (https://www.apexorialearning.in)
-**Document status:** Draft v1.0 — source of truth for implementation
+**Product:** Trailhead Simplified Content Co-pilot
+**Owner:** Trailhead Simplified (YouTube and Instagram: `@TrailheadSimplified`)
+**Document status:** Draft v1.0 — source of truth for implementation. Rebranded from Apexoria Learning to Trailhead Simplified on 2026-11-21; the database and Google sign-in are unchanged.
 **Scope:** MVP (v1)
 
 ---
 
 ## 1. Problem
 
-Apexoria Learning sells live, cohort-based Salesforce training with placement support. Its growth depends almost entirely on organic social reach on Instagram and LinkedIn, but today content happens by accident:
+Trailhead Simplified is a recently started YouTube channel and Instagram account (`@TrailheadSimplified`) run by Wishvesh Ujawane, a Salesforce Technical Lead. It teaches the real Salesforce skills used on projects — admin best practices, Apex, LWC, async Apex, integrations and Agentforce — explained simply, in Hinglish, for admins levelling up and aspiring developers (tagline: *Salesforce Simplified. Career Amplified.*). The creator's own channel plan lives in [content/](../content/PLAN.md). Growth depends almost entirely on organic reach from weekly YouTube how-tos repurposed into Instagram reels, but today content happens by accident:
 
-1. **No plan.** There is no monthly calendar, so posting is reactive and inconsistent. Gaps of several days are common, which is fatal for algorithmic reach.
-2. **Ideation is the bottleneck.** Deciding *what* to post each day costs more time than producing it. The topic space (Salesforce tips, releases, interview prep, placement stories, memes) is known, but nobody is systematically rotating through it.
-3. **Designers receive vague briefs.** A designer is handed "make a carousel on Apex triggers" with no hook, no slide text, no CTA, no dimensions. Round trips follow.
-4. **"Latest news" content is risky.** Salesforce ships three releases a year plus constant product changes. Posting stale or wrong information damages credibility with a technical audience.
+1. **No plan.** There is no monthly calendar, so posting is reactive and inconsistent. Gaps of several days are common, which is fatal for algorithmic reach on a new channel.
+2. **Ideation is the bottleneck.** Deciding *what* to post each day costs more time than producing it. The topic space (Salesforce tutorials, certification prep, releases, career advice, memes) is known, but nobody is systematically rotating through it.
+3. **Editors receive vague briefs.** An editor or designer is handed "make a reel on permission sets" with no hook, no scene-by-scene script, no CTA, no dimensions. Round trips follow.
+4. **"Latest news" content is risky.** Salesforce ships three releases a year plus constant product changes, and experienced viewers check every claim. Posting stale or wrong information damages credibility with a technical audience.
 5. **No memory.** Nobody can answer "what did we post last month?", "have we already used this idea?", or "which pillars are we neglecting?"
 
-The net effect: inconsistent posting, slow follower growth, and expensive designer time spent on thinking rather than designing.
+The net effect: inconsistent posting, slow subscriber growth, and expensive production time spent on thinking rather than making.
 
 ## 2. Value proposition
 
-> **A pocket marketing partner that shows up every morning with the day's content already written, researched, and briefed — so the only job left is to design it and hit post.**
+> **A pocket marketing partner that shows up every morning with the day's content already written, researched, and briefed — so the only job left is to record or design it and hit post.**
 
 The product compresses the ideate → write → brief → track loop into a single screen. It is deliberately *not* a social media management suite. It does one thing: it removes the blank page and the memory problem.
 
@@ -29,8 +29,8 @@ Measured value:
 
 | Today | With Content Co-pilot |
 |---|---|
-| ~30–45 min/day deciding and writing a post | ~2 min: open, read, copy, design |
-| Designer gets a one-line brief | Designer gets hook, slide-by-slide copy, CTA, dimensions, visual direction |
+| ~30–45 min/day deciding and writing a post | ~2 min: open, read, copy, record or design |
+| Editor gets a one-line brief | Editor gets hook, scene-by-scene script or slide copy, CTA, dimensions, visual direction |
 | Posting cadence is irregular | Every day of the month has a planned slot |
 | News claims unverified | Every news claim carries a source link |
 | No history | Permanent, searchable archive of everything posted |
@@ -39,13 +39,13 @@ Measured value:
 
 The app is an **internal team tool**, accessed by a small, known group.
 
-### Persona A — Rohit, the Founder/Owner (primary)
-Runs the business and the brand voice. Checks the app in the morning, approves or regenerates the day's plan, posts to LinkedIn himself. Cares about: credibility, consistency, not sounding like a bot.
-**Needs:** fast overview, trust in accuracy, ability to override anything.
+### Persona A — the Creator (primary)
+Wishvesh, a Salesforce Technical Lead with 2–4 hours a week for the channel. Checks the app, approves or regenerates the plan, records screen-share plus voiceover with short face-cam intros and outros, edits in DemoCreator and schedules. Cares about: credibility with admins and developers, consistency, steady pacing (130–150 words a minute), not sounding like a bot.
+**Needs:** fast overview, trust in accuracy, scripts already in the ON CAMERA / OFF CAMERA / SHOW ON SCREEN format, ability to override anything.
 
-### Persona B — Priya, the Designer / Marketing Partner (primary)
-Freelance or part-time. Opens the app, picks up what is due, designs it in Canva/Figma. Does not know Salesforce deeply.
-**Needs:** unambiguous briefs, copy she can paste without editing, clarity on format and dimensions, a list of what is still pending.
+### Persona B — the Editor / Designer (secondary; today the creator does this too)
+Picks up what is due, edits the video or designs the graphic in their tool of choice. May not know Salesforce deeply.
+**Needs:** unambiguous briefs, copy that can be pasted without editing, clarity on format and dimensions, a list of what is still pending.
 
 ### Persona C — Social Handler (secondary, may be the same person as A or B)
 Publishes and marks things as posted.
@@ -57,16 +57,16 @@ Publishes and marks things as posted.
 
 ### Goals
 - G1 — Guarantee a planned piece of content exists for every day of the month.
-- G2 — Reduce time from "open app" to "content ready to design" to under 2 minutes.
+- G2 — Reduce time from "open app" to "content ready to record or design" to under 2 minutes.
 - G3 — Make every Salesforce-news item verifiable against a real source.
 - G4 — Maintain a permanent record of what was posted, when, and by whom.
-- G5 — Grow Instagram and LinkedIn followers through consistency and pillar variety.
+- G5 — Grow YouTube subscribers and Instagram followers through consistency and pillar variety.
 
 ### Non-goals (v1)
 - Not a publishing tool — the app never posts on your behalf in v1.
-- Not an analytics platform — no follower/engagement data is ingested in v1.
-- Not a design tool — it produces briefs and copy, not finished graphics.
-- Not a multi-tenant SaaS — it serves exactly one brand, Apexoria Learning.
+- Not an analytics platform — no subscriber/follower/engagement data is ingested in v1.
+- Not a design or video-editing tool — it produces briefs, scripts and copy, not finished graphics or videos.
+- Not a multi-tenant SaaS — it serves exactly one brand, Trailhead Simplified.
 
 ## 5. Confirmed product decisions
 
@@ -81,48 +81,50 @@ These were agreed during discovery and are **fixed** for v1.
 | D5 | Generation strategy | **Scheduled pre-generation** (cron) + **on-demand regeneration** of individual items |
 | D6 | News grounding | **Live Salesforce RSS/Atom feeds** are ingested and used as factual grounding |
 | D7 | Visual assets | **Text + detailed design brief only.** AI image generation deferred |
-| D8 | Platforms | **Admin-managed catalogue** (`US-18`), seeded with **Instagram, LinkedIn, WhatsApp Status** |
+| D8 | Platforms | **Admin-managed catalogue** (`US-18`), enabled for **YouTube and Instagram**; LinkedIn and WhatsApp Status are retired (disabled, never deleted; re-enable from Admin) |
 | D9 | Cadence | AI plans the month; **maximum 2 pieces per day**, varying by day |
 | D10 | Tip of the Day | **Marketing tips for the internal team** (not audience-facing content) |
 | D11 | Auto-publishing | **Out of scope for v1**, designed for as a future phase |
-| D12 | Tone | **Mixed** — playful and meme-literate for Instagram/WhatsApp, credible and professional for LinkedIn |
+| D12 | Tone | **Hinglish** (Hindi in Roman script mixed with English, Salesforce terms in English), friendly and clear, as a Technical Lead teaching real project skills; signature intro and outro lines and the ON CAMERA / OFF CAMERA / SHOW ON SCREEN script lanes from [content/CONTENT-RULES.md](../content/CONTENT-RULES.md) are seeded into the brand profile and platform guidance |
 
 ## 6. Content model concepts
 
 ### 6.1 Content pillars
-Every piece of content belongs to exactly one pillar. The planner rotates across every enabled pillar and avoids repeating a pillar on consecutive days. Pillars are an admin-managed catalogue (`US-19`); the ten below are the seeded defaults, and `salesforce_news` is the seeded pillar that requires verified news sources.
+Every piece of content belongs to exactly one pillar. The planner rotates across every enabled pillar and avoids repeating a pillar on consecutive days. Pillars are an admin-managed catalogue (`US-19`). Since the Trailhead Simplified rebrand (migration `0020`) the enabled pillars are the five topic pillars from the channel plan plus a sourced release-news pillar; the original ten keys still exist (keys never change), and eight of them are retired — disabled, never deleted, re-enable from Admin → Pillars. The brand-kit **series tags** (Tutorials, Certifications, Career Tips, Deep Dives) are reel and thumbnail labels only, not pillars (`DESIGN.md` §2.1).
 
-| Pillar | Intent | Typical formats |
-|---|---|---|
-| `salesforce_tips` | Teach something small and useful | Carousel, Reel, Post |
-| `salesforce_news` | Releases, features, deprecations | Post, Carousel |
-| `memes` | Relatable humour, reach driver | Meme, Reel |
-| `interview_questions` | Interview prep value | Carousel, Post, Reel |
-| `success_stories` | Placement and student wins | Post, Carousel, Reel |
-| `course_promos` | Batch launches, offers | Post, Story, Reel |
-| `career_guidance` | Advice for freshers/switchers | Carousel, Post |
-| `behind_the_scenes` | Trainer POV, classroom moments | Reel, Story |
-| `myth_busting` | Correct common misconceptions | Carousel, Reel |
-| `polls_engagement` | Deliberate engagement bait | Poll, Story |
+| Pillar (key) | Label | Intent | Typical formats |
+|---|---|---|---|
+| `salesforce_tips` | Admin Tips | Settings, automation and best practices that admins miss | Video, Reel, Short, Carousel |
+| `dev_beginners` | Dev for Beginners | Apex, LWC and SOQL explained simply for admins becoming developers | Video, Reel, Carousel |
+| `async_integration` | Async Apex & Integration | Future, Queueable, Batch, Schedulable, REST callouts, Named Credentials, Platform Events | Video, Short, Carousel |
+| `project_lessons` | Real-Project Lessons | Gotchas, patterns and decisions from real projects — only lessons the creator supplies, never invented | Video, Post, Story |
+| `agentforce` | Agentforce | Learn-in-public series: the creator documents their own Agentforce journey | Video, Reel, Carousel |
+| `salesforce_news` | Release Deep Dive | Releases, features, deprecations — **requires verified sources** | Video, Post, Carousel |
+
+Retired by `0020`: `memes`, `interview_questions`, `success_stories`, `course_promos`, `career_guidance`, `behind_the_scenes`, `myth_busting`, `polls_engagement`. Polls and memes remain available as **formats** under the enabled pillars.
 
 ### 6.2 Formats
 
 | Format | Platforms | Required payload |
 |---|---|---|
-| `carousel` | Instagram, LinkedIn | 5–10 slides, each with headline + body + optional visual note; cover slide hook |
-| `reel` | Instagram | Hook (first 3s), scene-by-scene script, on-screen text per scene, audio/pacing suggestion, duration |
-| `post` | Instagram, LinkedIn | Single-image visual concept + caption |
-| `story` | Instagram, WhatsApp Status | Single frame copy + interaction prompt |
-| `meme` | Instagram, WhatsApp Status | Meme template reference, top/bottom text, caption |
-| `poll` | Instagram, LinkedIn | Question + 2–4 options + follow-up caption |
+| `carousel` | Instagram | 5–10 slides, each with headline + body + optional visual note; cover slide hook |
+| `reel` | Instagram | 60 seconds, one tip: hook (first 2s), scene-by-scene script, on-screen text per scene, audio/pacing suggestion, duration |
+| `short` | YouTube | Same payload as `reel`: vertical, under 60 seconds, hook in the first 2s |
+| `video` | YouTube | Same timecoded payload as `reel` for a 5–10 minute how-to: ON CAMERA hook and promise, OFF CAMERA teaching segments with SHOW ON SCREEN notes, ON CAMERA recap and call to action |
+| `post` | Instagram, YouTube (community post) | Single-image visual concept + caption |
+| `story` | Instagram | Single frame copy + interaction prompt |
+| `meme` | Instagram | Meme template reference, top/bottom text, caption |
+| `poll` | Instagram, YouTube (community poll) | Question + 2–4 options + follow-up caption |
+
+`short` and `video` share the reel's body schema, so they need no new renderer; they differ only in the platform rules, durations and guidance the generator is given. The script lanes (ON CAMERA, OFF CAMERA, SHOW ON SCREEN) are written into each scene's `action` text by prompt guidance, not a separate schema field.
 
 ### 6.3 Anatomy of a generated content item
 Every item, regardless of format, carries:
 
 - **Hook** — the scroll-stopping first line
-- **Caption** — full platform-appropriate caption, ready to paste
+- **Caption** — full platform-appropriate caption (YouTube: the video description), ready to paste
 - **Body payload** — slides / script / frame, depending on format
-- **Hashtags** — platform-appropriate set (Instagram: 8–15; LinkedIn: 3–5; WhatsApp: none)
+- **Hashtags** — platform-appropriate set (Instagram: 8–15; YouTube: up to 5)
 - **CTA** — the specific action the viewer should take
 - **Design brief** — objective, visual direction, colour/mood guidance, typography emphasis, layout notes, asset dimensions, text-safe areas, and explicit "must include" / "must avoid" notes
 - **Source references** — URLs backing any factual claim (required for news pillars such as `salesforce_news`)
@@ -135,7 +137,7 @@ Every item, regardless of format, carries:
 2. Lands on **Today**. Sees the date, a month-progress ring, and the **Marketing Tip of the Day**.
 3. Swipes through today's 1–2 content cards.
 4. Taps a card to read the full caption and design brief.
-5. Taps **Copy everything**, pastes into LinkedIn, posts.
+5. Taps **Copy everything**, pastes into YouTube Studio or Instagram, posts.
 6. Taps the **Posted** checkbox. Animation confirms; the month ring advances.
 
 **Success:** under 2 minutes, zero typing.
@@ -144,7 +146,7 @@ Every item, regardless of format, carries:
 1. Opens the app, taps **Create**.
 2. Sees pending items grouped by format: 3 carousels, 2 reels, 1 meme.
 3. Opens a carousel. Reads the slide-by-slide copy and design brief.
-4. Taps **Copy slides** → pastes into Canva, designs, exports.
+4. Taps **Copy slides** (or **Copy script** for a reel, Short or video) → pastes into their editing or design tool, produces it, exports.
 5. Hands off; the social handler marks it posted.
 
 **Success:** no clarifying questions needed.
@@ -316,7 +318,8 @@ Every item, regardless of format, carries:
 ### FR-2 Content planning engine
 - FR-2.1 Generate a full-month plan: every date populated with 1–2 items.
 - FR-2.2 Rotate pillars; no pillar repeats on consecutive days; every pillar appears at least twice per month.
-- FR-2.3 Distribute platforms with an Instagram-weighted mix; WhatsApp Status used for lightweight formats only.
+- FR-2.3 Distribute platforms across YouTube (videos, Shorts) and Instagram (reels and supporting formats).
+- FR-2.4 *(Known gap.)* The channel plan's cadence is one YouTube video plus two or three reels a week, each video repurposed into reels; the planner still fills every day of the month (at most two items a day). A weekly cadence is a separate, not-yet-scheduled change to planning and `commit_month_plan`.
 - FR-2.4 Vary formats; avoid the same format two days running on the same platform.
 - FR-2.5 Exclude ideas substantially similar to items posted in the previous 60 days.
 - FR-2.6 Validate all AI output against a strict schema; retry once on invalid output, then fail the run with a logged error.
@@ -359,7 +362,7 @@ Every item, regardless of format, carries:
 
 ### FR-8 Brand profile
 - FR-8.1 Single editable business profile record (admin-only since `US-16` was extended), describing any industry.
-- FR-8.2 Fields: business description, courses, offers, audience, tone rules per platform, do list, don't list, links.
+- FR-8.2 Fields: business description, offerings (playlists), offers, audience, tone rules per platform, do list, don't list, links.
 - FR-8.3 Used as context in every generation prompt.
 
 ### FR-9 PWA
@@ -514,7 +517,7 @@ Actor key, action key, window start, count.
 - No audience or student personal data is stored.
 - Success-story content must not include real student names unless explicitly entered by the team into the brand profile.
 
-> **Decision requiring approval — DR-2:** Should `success_stories` content use placeholder names ("a recent learner from Pune") by default rather than real names? *Recommendation: yes — real names only when the team types them in manually.*
+> **Decision requiring approval — DR-2:** Should `success_stories` content use placeholder names ("a viewer from Pune") by default rather than real names? *Recommendation: yes — real names only when the team types them in manually.*
 
 ## 14. Integrations
 
@@ -566,7 +569,7 @@ Principles: plain language, name what failed, offer one clear recovery action, n
 | Context | Message | Recovery |
 |---|---|---|
 | Sign-in failed | "We couldn't sign you in. Please try again." | Retry |
-| Access not granted | "This account doesn't have access yet. Ask the Apexoria team to add you." | Sign out and try another account |
+| Access not granted | "This account doesn't have access yet. Ask the Trailhead Simplified team to add you." | Sign out and try another account |
 | Content failed to load | "Couldn't load your content." | Retry |
 | Generation failed | "Generation didn't complete. Nothing was changed." | Try again |
 | Rate limit hit | "You've hit today's regeneration limit. It resets at midnight." | Dismiss only |
@@ -586,7 +589,7 @@ Principles: plain language, name what failed, offer one clear recovery action, n
 ### In scope for v1
 1. Google sign-in with access gating; no signup, no profiles.
 2. Installable mobile-first PWA.
-3. Automated monthly content planning, max 2 items/day, across Instagram, LinkedIn and WhatsApp Status.
+3. Automated monthly content planning, max 2 items/day, across YouTube and Instagram.
 4. All six formats with complete, paste-ready payloads and design briefs.
 5. Salesforce news ingestion with mandatory source attribution on news content.
 6. Daily internal marketing tip.
@@ -598,7 +601,7 @@ Principles: plain language, name what failed, offer one clear recovery action, n
 12. Production security hardening and automated tests.
 
 ### Out of scope for v1
-- Auto-publishing to Instagram, LinkedIn or WhatsApp (planned as a future phase, D11).
+- Auto-publishing to YouTube or Instagram (planned as a future phase, D11).
 - AI image, carousel or meme image generation (D7).
 - Engagement and follower analytics ingestion.
 - Multi-brand or multi-tenant support.
@@ -632,15 +635,15 @@ The product must not become a generic "social media manager". Every v1 feature m
 | M1 — Posting consistency: days in the month with ≥1 item posted | Ad-hoc | ≥ 90% |
 | M2 — Plan completion: planned items actually posted | n/a | ≥ 70% |
 | M3 — Time from app open to content copied | ~30–45 min | < 2 min (median) |
-| M4 — Pillar coverage: distinct pillars used per month | ~3 | ≥ 8 |
+| M4 — Pillar coverage: distinct pillars used per month | ~3 | Every enabled pillar (6 after `0020`) |
 | M5 — Regeneration rate (proxy for AI quality; lower is better) | n/a | < 25% of items |
-| M6 — Instagram follower growth | current | +30% over 90 days |
-| M7 — LinkedIn follower growth | current | +30% over 90 days |
+| M6 — Instagram follower growth | current (new account) | +30% over 90 days |
+| M7 — YouTube subscriber growth | current (new channel) | +30% over 90 days |
 | M8 — Designer clarification questions per item | several | ~0 |
 
-M1, M2, M4 and M5 are measurable from the app's own data. M6 and M7 are read manually from the platforms. M3 and M8 are qualitative check-ins with the team.
+M1, M2, M4 and M5 are measurable from the app's own data. M6 and M7 are read manually from the platforms (or VidIQ). M3 and M8 are qualitative check-ins with the team.
 
-> **Decision requiring approval — DR-3:** Are the +30% follower targets right, and what are the current baselines? Targets are a placeholder until actual follower counts are supplied.
+> **Decision requiring approval — DR-3:** Are the +30% growth targets right, and what are the current baselines? Targets are a placeholder until actual follower and subscriber counts are supplied — for a recently started channel, absolute targets may suit better than percentages.
 
 ## 18. Assumptions
 
@@ -652,7 +655,7 @@ M1, M2, M4 and M5 are measurable from the app's own data. M6 and M7 are read man
 | A4 | The team posts manually and reliably marks items posted | Tracking metrics M1/M2 become unreliable |
 | A5 | Claude Sonnet via Portkey produces schema-valid JSON reliably with retries | Higher failure rate; stricter repair logic needed |
 | A6 | Supabase and Vercel free tiers are sufficient at this usage level | Minor hosting cost |
-| A7 | Content is authored in English | Localisation work |
+| A7 | Content is authored in Hinglish (Roman script); the app UI stays in English | Localisation work |
 | A8 | One brand only, now and for the foreseeable future | Multi-tenant rework |
 | A9 | Google OAuth in test-user mode (≤100 users, "unverified app" notice) is acceptable | Consent screen verification required |
 
@@ -662,7 +665,7 @@ M1, M2, M4 and M5 are measurable from the app's own data. M6 and M7 are read man
 |---|---|---|
 | DR-1 | Introduce a read-only Designer role to protect AI spend? | Defer to v1.1 unless an external designer is onboarded at launch |
 | DR-2 | Use placeholder names in success stories by default? | Yes — real names only when manually entered |
-| DR-3 | Confirm follower-growth targets and current baselines | Supply current Instagram and LinkedIn follower counts |
+| DR-3 | Confirm growth targets and current baselines | Supply current Instagram follower and YouTube subscriber counts |
 | DR-4 | Day of month and time for automatic next-month planning | Suggest the 25th, early morning IST |
 | DR-5 | Daily per-user regeneration cap | Suggest 20 regenerations per user per day |
 | DR-6 | How far ahead the calendar should be planned | Suggest current month + next month only |

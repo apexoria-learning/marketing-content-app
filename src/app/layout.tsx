@@ -1,14 +1,15 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google";
+import { Inter, JetBrains_Mono, Poppins } from "next/font/google";
 import type { ReactNode } from "react";
 import { MotionProvider } from "@/components/ui/MotionProvider";
 import { ToastProvider } from "@/components/ui/Toast";
 import "@/styles/globals.css";
 
-const spaceGrotesk = Space_Grotesk({
+const poppins = Poppins({
   subsets: ["latin"],
+  weight: ["600", "700"],
   display: "swap",
-  variable: "--font-space-grotesk",
+  variable: "--font-poppins",
 });
 const inter = Inter({
   subsets: ["latin"],
@@ -22,16 +23,16 @@ const jetBrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  applicationName: "Apexoria Content Co-pilot",
+  applicationName: "Trailhead Simplified Content Co-pilot",
   title: {
-    default: "Apexoria Content Co-pilot",
-    template: "%s · Apexoria",
+    default: "Trailhead Simplified Content Co-pilot",
+    template: "%s · Trailhead Simplified",
   },
-  description: "A daily content workspace for Apexoria Learning.",
+  description: "A daily content workspace for Trailhead Simplified.",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Apexoria",
+    title: "Trailhead Simplified",
   },
   icons: {
     icon: "/icons/icon.svg",
@@ -39,7 +40,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0A0A0B",
+  themeColor: "#0B111D",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -51,7 +52,7 @@ export default function RootLayout({
   return (
     <html lang="en" data-theme="dark">
       <body
-        className={`${spaceGrotesk.variable} ${inter.variable} ${jetBrainsMono.variable}`}
+        className={`${poppins.variable} ${inter.variable} ${jetBrainsMono.variable}`}
       >
         <MotionProvider>
           <ToastProvider>{children}</ToastProvider>

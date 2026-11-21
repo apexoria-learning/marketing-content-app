@@ -93,7 +93,7 @@ async function fetchOnce(
         family: 4,
         lookup: (_hostname, _options, callback) => callback(null, address, 4),
         headers: {
-          "User-Agent": "ApexoriaContentCopilot/1.0",
+          "User-Agent": "TrailheadSimplifiedContentCopilot/1.0",
           Accept:
             "application/rss+xml, application/atom+xml, application/xml, text/xml",
           ...(validators.etag ? { "If-None-Match": validators.etag } : {}),

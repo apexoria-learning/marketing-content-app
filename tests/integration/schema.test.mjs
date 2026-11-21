@@ -665,7 +665,6 @@ describeDatabase("content_items constraints", () => {
     await expect(
       insertContentItem(db, {
         scheduled_date: "2026-08-04",
-        pillar: "memes",
         format: "meme",
         status: "ready",
         ...hydratedFields(),
@@ -673,11 +672,11 @@ describeDatabase("content_items constraints", () => {
     ).resolves.toBeDefined();
   });
 
-  it("rejects a reel on LinkedIn", async () => {
+  it("rejects a reel on YouTube", async () => {
     const message = await expectRejection(() =>
       insertContentItem(db, {
         scheduled_date: "2026-08-05",
-        platform: "linkedin",
+        platform: "youtube",
         format: "reel",
       }),
     );
@@ -685,11 +684,11 @@ describeDatabase("content_items constraints", () => {
     expect(message).toMatch(/Format is not enabled for this platform/);
   });
 
-  it("rejects a carousel on WhatsApp", async () => {
+  it("rejects a carousel on YouTube", async () => {
     const message = await expectRejection(() =>
       insertContentItem(db, {
         scheduled_date: "2026-08-06",
-        platform: "whatsapp",
+        platform: "youtube",
         format: "carousel",
       }),
     );
@@ -697,17 +696,31 @@ describeDatabase("content_items constraints", () => {
     expect(message).toMatch(/Format is not enabled for this platform/);
   });
 
-  it("rejects a WhatsApp item carrying hashtags", async () => {
+  it("rejects a YouTube item with more hashtags than the platform allows", async () => {
     const message = await expectRejection(() =>
       insertContentItem(db, {
         scheduled_date: "2026-08-07",
-        platform: "whatsapp",
-        format: "story",
-        hashtags: "{#salesforce}",
+        platform: "youtube",
+        format: "short",
+        hashtags: "{#a,#b,#c,#d,#e,#f}",
       }),
     );
 
     expect(message).toMatch(/Too many hashtags for this platform/);
+  });
+
+  it("rejects new content on the retired WhatsApp and LinkedIn platforms", async () => {
+    for (const [index, platform] of ["whatsapp", "linkedin"].entries()) {
+      const message = await expectRejection(() =>
+        insertContentItem(db, {
+          scheduled_date: `2026-08-1${index}`,
+          platform,
+          format: platform === "whatsapp" ? "story" : "post",
+        }),
+      );
+
+      expect(message).toMatch(/Platform is disabled/);
+    }
   });
 
   it("rejects posted without posted_at and posted_by", async () => {

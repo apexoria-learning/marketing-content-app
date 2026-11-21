@@ -1,8 +1,8 @@
-# Apexoria Content Co-pilot — Agent Guidelines
+# Trailhead Simplified Content Co-pilot — Agent Guidelines
 
-A mobile-first PWA that generates, schedules and tracks social content for Apexoria Learning (Salesforce training). Next.js on Vercel, Supabase Postgres, Claude Sonnet via Portkey.
+A mobile-first PWA that generates, schedules and tracks social content for Trailhead Simplified, Wishvesh Ujawane's Salesforce YouTube channel and Instagram account (`@TrailheadSimplified`). Next.js on Vercel, Supabase Postgres, Claude Sonnet via Portkey.
 
-**This file is loaded on every request. It contains only the rules that apply to all work.** Depth lives in the six specification documents — read the relevant one before you touch the area it owns.
+**This file is loaded on every request. It contains only the rules that apply to all work.** Depth lives in the six specification documents in [docs/](./docs) — read the relevant one before you touch the area it owns.
 
 ---
 
@@ -28,12 +28,14 @@ Prefer the smallest correct change. Do not restructure a module, swap an approac
 
 | Document | Owns |
 |---|---|
-| [PRD.md](./PRD.md) | Scope, user stories, acceptance criteria, state specs, what is out of scope |
-| [DESIGN.md](./DESIGN.md) | Design tokens, component inventory, layout, motion, accessibility |
-| [ARCHITECTURE.md](./ARCHITECTURE.md) | Stack, folder structure, data flow, generation pipeline, security boundaries |
-| [DATABASE.md](./DATABASE.md) | Schema, constraints, indexes, RLS, migrations |
-| [API.md](./API.md) | Route handlers, Server Actions, validation, errors, rate limits, integrations |
-| [IMPLEMENTATION-PLAN.md](./IMPLEMENTATION-PLAN.md) | Phase order, task breakdown, completion criteria |
+| [docs/PRD.md](./docs/PRD.md) | Scope, user stories, acceptance criteria, state specs, what is out of scope |
+| [docs/DESIGN.md](./docs/DESIGN.md) | Design tokens, brand kit, component inventory, layout, motion, accessibility |
+| [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) | Stack, folder structure, data flow, generation pipeline, security boundaries |
+| [docs/DATABASE.md](./docs/DATABASE.md) | Schema, constraints, indexes, RLS, migrations |
+| [docs/API.md](./docs/API.md) | Route handlers, Server Actions, validation, errors, rate limits, integrations |
+| [docs/IMPLEMENTATION-PLAN.md](./docs/IMPLEMENTATION-PLAN.md) | Phase order, task breakdown, completion criteria |
+
+[docs/PROGRESS.md](./docs/PROGRESS.md) records dated status and evidence only; it never creates or waives requirements. [docs/brand-kit/](./docs/brand-kit/Main.dc.html) is a visual reference mockup, not production code. [content/](./content/README.md) is the creator's channel playbook (plan, production rules, idea bank, scripts); it is owned by the creator, is not an app specification, and reaches the generator only through the brand profile and catalogue data. Spec section references elsewhere in this file and in code comments (`DATABASE.md §7.7`) mean the file in `docs/`.
 
 **Rules:**
 
@@ -67,7 +69,7 @@ Never mark work complete on code you have not executed.
 
 ## 4. Structure
 
-Full tree in [ARCHITECTURE.md §10](./ARCHITECTURE.md). The rules that matter on every change:
+Full tree in [ARCHITECTURE.md §10](./docs/ARCHITECTURE.md). The rules that matter on every change:
 
 ```
 components/   what things look like   — reusable, zero data access
@@ -122,26 +124,26 @@ handlers/ ┘        ├──▶ ai/
 - **Zod schemas are the single definition.** Derive TypeScript types from schemas with `z.infer` — never hand-write a type that parallels a schema. They will drift.
 - **Supabase generated types are the database truth.** Regenerate after every migration; never hand-edit them.
 - **Never type-assert external data into shape.** Parse it. This applies to request input, search params, RSS feeds and — especially — model output.
-- Prefer discriminated unions over optional-field soup. The result envelope in [API.md §4.1](./API.md) is the house pattern.
+- Prefer discriminated unions over optional-field soup. The result envelope in [API.md §4.1](./docs/API.md) is the house pattern.
 
 ---
 
 ## 7. Component reuse
 
-**Check before you create.** Search `components/ui`, `components/content`, `components/calendar`, `components/shell`, `components/feedback` first. [DESIGN.md §6](./DESIGN.md) is the authoritative inventory of ~26 components — if what you need is listed there, it exists or belongs there, not inlined into a screen.
+**Check before you create.** Search `components/ui`, `components/content`, `components/calendar`, `components/shell`, `components/feedback` first. [DESIGN.md §6](./docs/DESIGN.md) is the authoritative inventory of ~26 components — if what you need is listed there, it exists or belongs there, not inlined into a screen.
 
 - **Extend, don't fork.** Need a variant? Add a prop to the existing component. Never copy a component to tweak it.
-- **Tokens only.** No literal colours, pixel values or durations. [DESIGN.md §3–5](./DESIGN.md). Arbitrary Tailwind values containing raw colours or px are lint errors.
-- **`"use client"` on the smallest possible component**, never on a page or layout. The permitted client components are enumerated in [ARCHITECTURE.md §3.2](./ARCHITECTURE.md); adding one outside that list needs justification.
+- **Tokens only.** No literal colours, pixel values or durations. [DESIGN.md §3–5](./docs/DESIGN.md). Arbitrary Tailwind values containing raw colours or px are lint errors.
+- **`"use client"` on the smallest possible component**, never on a page or layout. The permitted client components are enumerated in [ARCHITECTURE.md §3.2](./docs/ARCHITECTURE.md); adding one outside that list needs justification.
 - Client components receive plain serialisable props — never a database client or a server utility.
-- **Every surface needs loading, empty and error states.** A blank region is a bug. [DESIGN.md §9](./DESIGN.md) specifies each one.
-- Match the design review checklist in [DESIGN.md §14](./DESIGN.md) before considering UI work done.
+- **Every surface needs loading, empty and error states.** A blank region is a bug. [DESIGN.md §9](./docs/DESIGN.md) specifies each one.
+- Match the design review checklist in [DESIGN.md §14](./docs/DESIGN.md) before considering UI work done.
 
 ---
 
 ## 8. Dependencies
 
-The production dependency list in [ARCHITECTURE.md §2.1](./ARCHITECTURE.md) is **closed at thirteen packages**. [§2.3](./ARCHITECTURE.md) records what was rejected and why.
+The production dependency list in [ARCHITECTURE.md §2.1](./docs/ARCHITECTURE.md) is **closed at thirteen packages**. [§2.3](./docs/ARCHITECTURE.md) records what was rejected and why.
 
 Before adding anything:
 
@@ -156,7 +158,7 @@ Before adding anything:
 
 ## 9. Error handling
 
-Full spec: [API.md §4](./API.md), [ARCHITECTURE.md §12](./ARCHITECTURE.md).
+Full spec: [API.md §4](./docs/API.md), [ARCHITECTURE.md §12](./docs/ARCHITECTURE.md).
 
 - **Server Actions never throw across the client boundary.** Return the result envelope. Thrown production errors become an opaque digest and the UI cannot render the right recovery.
 - Use the six codes — `UNAUTHENTICATED`, `FORBIDDEN`, `VALIDATION`, `RATE_LIMITED`, `GENERATION_FAILED`, `UNEXPECTED`. Do not invent new ones.
@@ -194,13 +196,13 @@ If a task appears to require breaking one of these, **stop and ask**.
 - **Constraints are the invariant layer.** Never work around one in application code. If a constraint blocks legitimate behaviour, the schema or the understanding is wrong — flag it.
 - Validate every input and every search param with Zod. Invalid search params fall back to defaults, never echo.
 - Respect the rate limiter. Never add an AI-calling path without consuming the budget.
-- Adding a route handler requires justification — [API.md §1.1](./API.md) deliberately keeps the surface at three.
+- Adding a route handler requires justification — [API.md §1.1](./docs/API.md) deliberately keeps the surface at three.
 
 ---
 
 ## 12. Testing
 
-Priorities, per [ARCHITECTURE.md §14](./ARCHITECTURE.md):
+Priorities, per [ARCHITECTURE.md §14](./docs/ARCHITECTURE.md):
 
 | Always test | Why |
 |---|---|
@@ -222,7 +224,7 @@ Priorities, per [ARCHITECTURE.md §14](./ARCHITECTURE.md):
 ## 13. Documentation
 
 - **Update the owning spec in the same change** when behaviour, schema, API surface or design rules change. The specs are the contract.
-- **Do not create new markdown files.** No summary docs, no notes, no plans, no migration guides — unless explicitly asked. The six documents in §2 plus this file are the complete set.
+- **Do not create new markdown files.** No summary docs, no notes, no plans, no migration guides — unless explicitly asked. The six documents in §2 (in `docs/`), `docs/PROGRESS.md` plus this file are the complete set; `docs/brand-kit/` is a reference mockup, and `content/` belongs to the creator — edit it only when asked.
 - Do not duplicate spec content into code comments or READMEs. Link instead.
 - Keep `.env.example` current when adding configuration — names and comments, never values.
 
@@ -232,7 +234,7 @@ Priorities, per [ARCHITECTURE.md §14](./ARCHITECTURE.md):
 
 ### Repository and work-laptop credential gate
 
-- The intended repository is [apexoria-learning/marketing-content-app](https://github.com/apexoria-learning/marketing-content-app). Use `https://github.com/apexoria-learning/marketing-content-app.git` as `origin` only after the checks below pass.
+- The intended repository is [wishvesh-ujawane/Trailhead-Simplified](https://github.com/wishvesh-ujawane/Trailhead-Simplified) (the app moved here from `apexoria-learning/marketing-content-app`). Use `https://github.com/wishvesh-ujawane/Trailhead-Simplified.git` as `origin` only after the checks below pass.
 - **Before initializing Git, committing, or any fetch, pull or push**, inspect Windows Credential Manager metadata (`cmdkey /list`), the configured credential helper, and Git author identity. If available, use `gh auth status` to identify the active GitHub account. Never retrieve or display passwords or tokens.
 - **Stop if the relevant GitHub account or Git identity is work-related**, including `cat.com`, `ujawan_cat`, or similar corporate identifiers. Missing or ambiguous GitHub account metadata also blocks proceeding. Ask the user to authenticate an authorized non-work GitHub account and confirm a non-work commit name and email; never assume an unrelated Windows credential is GitHub authentication.
 - This is a shared work laptop: never delete or replace stored work credentials, change global Git configuration, or reuse corporate credentials for this repository. Once confirmed, set author identity at repository scope only. Never store credentials in this file, repository files, or remote URLs.

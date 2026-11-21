@@ -2,7 +2,7 @@
 # Secrets are never stored here — real values live in .env.local and Vercel
 # (ARCHITECTURE.md §11). Auth providers are configured in Phase 3.
 
-project_id = "apexoria-content-copilot"
+project_id = "trailhead-simplified-content-copilot"
 
 [api]
 enabled = true

@@ -1,4 +1,4 @@
-# DESIGN.md — Apexoria Content Co-pilot
+# DESIGN.md — Trailhead Simplified Content Co-pilot
 
 **Source of truth for:** visual design, interaction design and UX rules.
 **Derived from:** `PRD.md` v1.0.
@@ -47,9 +47,9 @@ Do not produce the default AI-SaaS look. The following are banned:
 ## 2. Visual direction
 
 **Concept: "Morning Briefing".**
-The product is a dark, editorial desk. Think a well-set newspaper column or a professional writing tool, not a dashboard. Typographic hierarchy does the heavy lifting; surfaces are near-black and separated by hairlines and small lightness steps rather than shadows. One warm accent — **Apexoria Gold** — marks what is actionable and what is achieved.
+The product is a dark, editorial desk. Think a well-set newspaper column or a professional writing tool, not a dashboard. Typographic hierarchy does the heavy lifting; surfaces are near-black navy and separated by hairlines and small lightness steps rather than shadows. One accent — **Trailhead Blue** — marks what is actionable and what is achieved.
 
-**Why dark-first:** the app is used on a phone early in the morning and late at night; the content being previewed (Instagram/LinkedIn posts) reads as light text on dark surfaces the same way the target apps do in dark mode; and a near-black canvas lets the three platform colours act as unambiguous data encoding.
+**Why dark-first:** the app is used on a phone early in the morning and late at night; the content being previewed (Instagram reels, YouTube Shorts) reads as light text on dark surfaces the same way the target apps do in dark mode; and a near-black canvas lets the platform colours act as unambiguous data encoding.
 
 **Texture and form language**
 - Rectilinear, generously rounded (16–24px on cards), no circles except avatars, dots and the progress ring.
@@ -58,7 +58,32 @@ The product is a dark, editorial desk. Think a well-set newspaper column or a pr
 - Content blocks use a recessed surface, not a raised one — captions sit *in* the page like a quote, not *on top* of it.
 
 **Brand expression**
-Apexoria is a career-outcome brand: "apex" = reaching the top. Gold communicates achievement and warmth, and is deliberately distinct from Instagram pink, LinkedIn blue and WhatsApp green so brand and data never fight.
+Trailhead Simplified teaches real Salesforce skills from real projects, simply and in Hinglish (tagline: *Salesforce Simplified. Career Amplified.*). Blue carries trust and the Trailhead association; **Mint** is the single keyword highlight. The accent is a deep blue, deliberately darker than the sky-blue platform slot, and platform colours are always paired with a glyph, so brand and data never fight.
+
+### 2.1 Brand kit
+
+The source mockup is [brand-kit/](./brand-kit/Main.dc.html) — a visual reference, not production code. Its values are implemented in `src/styles/tokens.css`, `public/icons/` and the layout fonts; where the two disagree, this document and the tokens win and the kit is updated. The creator's production rules (script lanes, signature lines, pacing, screen-share settings) live in [content/CONTENT-RULES.md](../content/CONTENT-RULES.md) and reach the generator through the brand profile and platform guidance.
+
+| Rule | Value |
+|---|---|
+| Logo | Blue circle, white hexagon outline, white check mark (`public/icons/icon.svg`). Avatar variant: Deep Navy `#00386B` circle with `#8FB3DA` strokes, for profile pictures |
+| Logo spacing | Clear space of half the logo width on every side; minimum size 48px |
+| Logo never | Stretched, rotated, recoloured or given shadows |
+| Colour balance | About 60% Night or White, 30% Blue and Navy, 10% Green and Mint |
+| Brand colours | Trailhead Blue `#0070D2`, Deep Navy `#00386B`, Night `#0B111D`, Pill Green `#1E6B4B`, Mint `#A8E6C4`, White `#FFFFFF` |
+| Reel / Short template | 9:16, captions on, text kept clear of the top and bottom safe zones; hook in the first 2 seconds, then the concept, then a 2-second end card with the logo, "Follow for tomorrow's tip" and `@TrailheadSimplified`; same low-volume music style every time |
+| Reel type sizes | Hooks in Poppins Bold, 64–72px; captions in Inter Medium, 40–44px; labels 28px; highlight one keyword in Mint |
+
+**Series tags** (reel and thumbnail design only — not UI colours, and not pillars; the planner's pillars are in `PRD.md` §6.1 and stay uncoloured, §6.2). The designer or editor picks the series that fits each piece:
+
+| Series | Colour |
+|---|---|
+| Tutorials | `#4ADE9B` |
+| Certifications | `#5BB5FF` |
+| Career Tips | `#F5A524` |
+| Deep Dives | `#B79CFF` |
+
+**Check before posting:** brand colours and fonts only · hook visible in the first 2 seconds · captions readable on a small phone · logo and end card present · facts checked against Salesforce documentation · series tag and call to action added.
 
 ---
 
@@ -68,42 +93,45 @@ Apexoria is a career-outcome brand: "apex" = reaching the top. Gold communicates
 - Colour is a data channel first, decoration never.
 - **Never encode meaning in colour alone** (NFR-5.3). Colour always pairs with an icon, a label or a shape.
 - Exactly one accent for "primary action". Platform colours are reserved for platform identity and must never be used for buttons.
-- Posted state is **not** a colour. It is a treatment: reduced surface contrast + a gold tick + an eyebrow label.
+- Posted state is **not** a colour. It is a treatment: reduced surface contrast + an accent tick + an eyebrow label.
 
 ### 3.2 Palette — dark theme (default)
 
-**Neutrals (warm-tinted, not blue-grey)**
+**Neutrals (Night-based, blue-tinted)**
 
 | Token | Value | Use |
 |---|---|---|
-| `canvas` | `#0A0A0B` | Page background (base of the subtle gradient) |
-| `canvas-raised` | `#101012` | Top of the page gradient |
-| `surface-1` | `#141416` | Cards, sheets, nav |
-| `surface-2` | `#1B1B1E` | Nested surfaces, hovered rows |
-| `surface-sunken` | `#09090A` | Copy blocks, code/hashtag blocks, inputs |
+| `canvas` | `#0B111D` | Page background (base of the subtle gradient) |
+| `canvas-raised` | `#0F1727` | Top of the page gradient |
+| `surface-1` | `#131C2E` | Cards, sheets, nav |
+| `surface-2` | `#18243A` | Nested surfaces, hovered rows |
+| `surface-sunken` | `#080D17` | Copy blocks, code/hashtag blocks, inputs |
 | `border` | `rgba(255,255,255,0.08)` | Default hairline |
 | `border-strong` | `rgba(255,255,255,0.16)` | Focused/selected edges |
-| `text-primary` | `#F6F4F1` | Headings, captions, body |
-| `text-secondary` | `#A6A29B` | Supporting copy, metadata |
-| `text-tertiary` | `#6B6862` | Eyebrows, timestamps, disabled |
+| `text-primary` | `#F5F8FC` | Headings, captions, body |
+| `text-secondary` | `#A9B6C9` | Supporting copy, metadata |
+| `text-tertiary` | `#76849A` | Eyebrows, timestamps, disabled |
 
-**Accent — Apexoria Gold**
+**Accent — Trailhead Blue**
 
 | Token | Value | Use |
 |---|---|---|
-| `accent` | `#FFB224` | Primary buttons, progress ring, posted tick, focus ring |
-| `accent-hover` | `#FFC04A` | Pressed/hover |
-| `accent-muted` | `rgba(255,178,36,0.14)` | Accent-tinted backgrounds, selected chips |
-| `accent-on` | `#1A1203` | Text/icon on top of a solid accent fill |
+| `accent` | `#0070D2` | Primary buttons, progress ring, posted tick, focus ring |
+| `accent-hover` | `#005FB2` | Pressed/hover |
+| `accent-muted` | `rgba(0,112,210,0.18)` | Accent-tinted backgrounds, selected chips |
+| `accent-on` | `#FFFFFF` | Text/icon on top of a solid accent fill (4.9:1) |
+| `highlight` | `#A8E6C4` (Mint) | The single keyword highlight and success confirmation |
+
+On the dark theme `accent` holds 3.1–3.8:1 against the surfaces: enough for glyphs, rings and focus indicators (§3.4), **not** for body-size text.
 
 **Platform encoding** — each pairs with a mandatory icon. Platforms are admin-managed catalogue rows (`DATABASE.md` §5.12); each picks one of eight contrast-tested **colour slots** and one glyph from the icon set. Admins cannot enter arbitrary colours or upload logos.
 
 | Token | Dark value | Slot name | Seeded for |
 |---|---|---|---|
 | `platform-1` | `#FF4D8D` | Pink | Instagram (camera glyph) |
-| `platform-2` | `#3B9BFF` | Blue | LinkedIn ("in" glyph) |
-| `platform-3` | `#2BD97C` | Green | WhatsApp Status (chat-bubble glyph) |
-| `platform-4` | `#FF9640` | Orange | — |
+| `platform-2` | `#3B9BFF` | Blue | LinkedIn ("in" glyph) — retired by migration `0020` |
+| `platform-3` | `#2BD97C` | Green | WhatsApp Status (chat-bubble glyph) — retired by migration `0020` |
+| `platform-4` | `#FF9640` | Orange | YouTube (`video` glyph) |
 | `platform-5` | `#B28CFF` | Violet | — |
 | `platform-6` | `#2FD0E0` | Cyan | — |
 | `platform-7` | `#A6E33B` | Lime | — |
@@ -117,7 +145,7 @@ Each slot has a `-muted` variant (14% dark, 12% light) for chip backgrounds and 
 |---|---|---|
 | `danger` | `#FF5B52` | Overdue items, destructive confirm, error states |
 | `danger-muted` | `rgba(255,91,82,0.14)` | Error banner background |
-| `success` | `accent` (alias) | Success is expressed in gold, not green — green is reserved for WhatsApp |
+| `success` | `highlight` (alias) | Success is expressed in Mint (Pill Green in the light theme), not the platform green |
 | `skeleton` | `rgba(255,255,255,0.06)` | Shimmer base |
 
 ### 3.3 Light theme
@@ -125,18 +153,19 @@ Light mode is available from Settings but is **not** the default. It is a token 
 
 | Token | Light value |
 |---|---|
-| `canvas` | `#FBFAF8` |
+| `canvas` | `#F5F8FC` |
 | `canvas-raised` | `#FFFFFF` |
 | `surface-1` | `#FFFFFF` |
-| `surface-2` | `#F4F2EE` |
-| `surface-sunken` | `#F0EEE9` |
-| `border` | `rgba(16,15,13,0.10)` |
-| `text-primary` | `#16150F` |
-| `text-secondary` | `#5C584F` |
-| `text-tertiary` | `#8E897E` |
-| `accent` | `#9A6200` (darkened for 4.5:1 with `accent-on`) |
+| `surface-2` | `#EEF3F9` |
+| `surface-sunken` | `#E8EEF6` |
+| `border` | `rgba(11,17,29,0.10)` |
+| `text-primary` | `#0B111D` |
+| `text-secondary` | `#3A4658` |
+| `text-tertiary` | `#66748A` |
+| `accent` | `#0070D2` (4.9:1 with `accent-on`) |
 | `accent-on` | `#FFFFFF` |
-| Platform colours | darkened ~12% to hold 3:1 against white (WhatsApp `#1A9453`, which needed more) |
+| `highlight` | `#1E6B4B` (Pill Green; Mint is too light on white) |
+| Platform colours | darkened ~12% to hold 3:1 against the light surfaces (WhatsApp `#1A9453`, which needed more) |
 
 ### 3.4 Contrast requirements
 - Body and caption text: ≥ 4.5:1 against its surface.
@@ -153,7 +182,7 @@ Light mode is available from Settings but is **not** the default. It is a token 
 
 | Role | Family | Rationale |
 |---|---|---|
-| Display / headings | **Space Grotesk** (600, 700) | Technical, slightly idiosyncratic grotesque — gives the product character without costing legibility |
+| Display / headings | **Poppins** (600, 700) | The brand kit's heading face: friendly and geometric, strong at reel-hook sizes |
 | UI / body / content | **Inter Variable** (400, 500, 600) | Highest-legibility workhorse at small sizes on mobile; renders generated captions neutrally |
 | Numerals (calendar, counts) | Inter with `font-variant-numeric: tabular-nums` | Calendar columns must not jitter |
 | Mono | **JetBrains Mono** (400, 500) | Hashtag blocks, dimensions, technical specs — signals "machine-exact, copy me verbatim" |
@@ -166,9 +195,9 @@ Mobile-first. One scale; do not invent intermediate sizes.
 
 | Token | Size / line-height | Weight | Tracking | Family | Use |
 |---|---|---|---|---|---|
-| `display` | 32 / 36 | 700 | -0.02em | Space Grotesk | Today's date, big empty-state statements |
-| `h1` | 24 / 30 | 600 | -0.015em | Space Grotesk | Screen titles, item hook |
-| `h2` | 20 / 26 | 600 | -0.01em | Space Grotesk | Section headings, slide headlines |
+| `display` | 32 / 36 | 700 | -0.02em | Poppins | Today's date, big empty-state statements |
+| `h1` | 24 / 30 | 600 | -0.015em | Poppins | Screen titles, item hook |
+| `h2` | 20 / 26 | 600 | -0.01em | Poppins | Section headings, slide headlines |
 | `h3` | 17 / 24 | 600 | 0 | Inter | Card titles, sheet headers |
 | `body` | 16 / 26 | 400 | 0 | Inter | **Generated captions and all reading content** |
 | `body-strong` | 16 / 26 | 500 | 0 | Inter | Emphasis within body |
@@ -183,7 +212,7 @@ Mobile-first. One scale; do not invent intermediate sizes.
 - Maximum measure for reading content: **68 characters**. On wide viewports the column is constrained, not stretched.
 - One `display` or `h1` per screen. Never stack two headings without content between them.
 - `eyebrow` is the only uppercase style in the product.
-- No italics anywhere except quoted student testimonials inside generated content.
+- No italics anywhere except quoted viewer testimonials inside generated content.
 - Headings never wrap to more than three lines; hooks clamp to three lines in previews.
 
 ---
@@ -265,7 +294,7 @@ No search in v1.
 
 **BottomNav — floating pill**
 A `r-pill` bar, `e3`, 64px tall, inset 20px from each side, floating 16px above the safe-area inset. Four destinations: **Today, Calendar, Create, Archive**.
-Each item: icon above an 11px label. Active item shows the label in `text-primary`, icon in `accent`, and a 4px gold dot beneath. Inactive: `text-tertiary`.
+Each item: icon above an 11px label. Active item shows the label in `text-primary`, icon in `accent`, and a 4px accent dot beneath. Inactive: `text-tertiary`.
 Rationale: the pill keeps the reachable thumb arc clear of screen edges, and the absence of a centre FAB is deliberate (P3) — the primary action is contextual, not global.
 
 **ActionBar — contextual primary action**
@@ -294,7 +323,7 @@ Always colour **and** icon **and** — in `full` — text. Label, colour slot an
 `r-pill`, `surface-2`, `border`, `eyebrow` text, no colour coding (up to fourteen pillars cannot be colour-coded legibly). The short label comes from the pillar catalogue via `PillarCatalogueProvider` (seeded: *Tips, News, Meme, Interview, Success, Promo, Career, BTS, Myths, Poll*); an unknown key renders its humanised key. `PillarName` renders the label as plain text (queue rows).
 
 **FormatChip**
-`r-sm`, icon + `eyebrow` label: Carousel, Reel, Post, Story, Meme, Poll. Carries a format glyph; no colour.
+`r-sm`, icon + `eyebrow` label: Carousel, Reel, Post, Story, Meme, Poll, Short, Video. Carries a format glyph; no colour.
 
 **StatusPill**
 `eyebrow` text in a muted pill. States: `Planned` (neutral), `Ready` (neutral, border-strong), `Posted` (accent-muted + tick glyph), `Skipped` (strikethrough label, `text-tertiary`), `Overdue` (danger-muted + alert glyph).
@@ -310,10 +339,10 @@ Structure, top to bottom:
 4. Footer row — scheduled date (`caption`), and a `StatusTick` on the right
 
 Surface `e1`, `r-xl`, padding `24`. Whole card is tappable to the detail route; the `StatusTick` stops propagation.
-**Posted treatment (approved accessibility refinement):** use the sunken surface and a subdued accent border, retaining readable text and platform glyphs at full contrast. The Posted label and gold tick remain explicit. Do not apply 55% opacity to reading content: it fails the 4.5:1 body-text requirement, particularly in light mode. No strikethrough on content.
+**Posted treatment (approved accessibility refinement):** use the sunken surface and a subdued accent border, retaining readable text and platform glyphs at full contrast. The Posted label and accent tick remain explicit. Do not apply 55% opacity to reading content: it fails the 4.5:1 body-text requirement, particularly in light mode. No strikethrough on content.
 
 **TipCard**
-Visually distinct from `ContentCard` so it is never mistaken for postable content: `surface-sunken`, a 2px left gold rule, `eyebrow` label "Tip of the day", tip in `body-strong`. No status, no copy-all, no tick.
+Visually distinct from `ContentCard` so it is never mistaken for postable content: `surface-sunken`, a 2px left accent rule, `eyebrow` label "Tip of the day", tip in `body-strong`. No status, no copy-all, no tick.
 
 **CopyBlock** — the workhorse
 A recessed `surface-sunken`, `r-md` block that renders generated text verbatim with preserved line breaks.
@@ -327,7 +356,7 @@ A recessed `surface-sunken`, `r-md` block that renders generated text verbatim w
 Ordered list for carousels. Each slide: a 28px `r-sm` numbered square (slide index, `mono`), slide headline (`h3`), slide body (`body`), optional visual note (`caption`, `text-tertiary`, prefixed with a small image glyph). Slides are separated by hairlines, not cards. A single **Copy all slides** action sits in the section header and produces numbered plain text.
 
 **ScriptList**
-Reel scripts. Each scene: timestamp range (`mono`, fixed-width gutter), action/direction (`body`), on-screen text (nested `CopyBlock`-styled inline chip so the designer can see exactly what goes on screen). Header shows total duration and a **Copy script** action.
+Reel, Short and video scripts. Each scene: timestamp range (`mono`, fixed-width gutter), action/direction (`body`), on-screen text (nested `CopyBlock`-styled inline chip so the designer can see exactly what goes on screen). Header shows total duration and a **Copy script** action.
 
 **BriefSection**
 Design brief rendering. Fixed subsection order so designers learn the shape: **Objective → Visual direction → Layout notes → Typography → Must include → Must avoid → Specs**.
@@ -357,7 +386,7 @@ Accessible as a real checkbox with the label "Mark *[hook]* as posted".
 This is the most-used control in the product; it is deliberately over-sized relative to its visual weight.
 
 **ProgressRing**
-A 56px ring showing `posted / planned` for the current month. Gold arc on a `border` track, count in `h3` tabular numerals at the centre, `eyebrow` label beneath. Animates the arc when a tick lands. Tapping it navigates to Calendar — the number is also a destination.
+A 56px ring showing `posted / planned` for the current month. Accent arc on a `border` track, count in `h3` tabular numerals at the centre, `eyebrow` label beneath. Animates the arc when a tick lands. Tapping it navigates to Calendar — the number is also a destination.
 
 **SegmentedControl**
 `r-pill` track on `surface-2` with a sliding `surface-1` thumb. Maximum four segments. Used for Archive month scope and Create format filter.
@@ -389,7 +418,7 @@ Full-width inline strip at the top of the content area for persistent background
 
 **DayCell**
 - Date numeral top-left, `sm`, tabular.
-- Up to two indicators bottom-centre: 8px platform dots. Pending = hollow ring in the platform colour; posted = filled dot with a 6px gold tick overlay.
+- Up to two indicators bottom-centre: 8px platform dots. Pending = hollow ring in the platform colour; posted = filled dot with a 6px accent tick overlay.
 - Today: `accent` 1.5px ring around the cell.
 - Selected: `surface-2` fill.
 - Outside current month: 35% opacity, non-interactive.
@@ -492,7 +521,7 @@ Skip is disabled for unfinished ideas during this batch, with an explanation tha
 |---|---|---|---|---|
 | Today — nothing planned | calendar-plus | "No content planned for today." | "Generate a plan and you'll have something to post in under a minute." | Generate today's content |
 | Today — all posted | check-circle | "All done for today." | Shows month progress inline. | See tomorrow |
-| Calendar — month not planned | sparkle | "This month isn't planned yet." | "We'll map out every day across Instagram, LinkedIn and WhatsApp." | Plan this month |
+| Calendar — month not planned | sparkle | "This month isn't planned yet." | "We'll map out every day across your enabled platforms." | Plan this month |
 | Day sheet — empty day | plus-circle | "Nothing scheduled." | — | Generate for this day |
 | Create — queue empty | layers | "Nothing waiting to be designed." | "Everything planned has been posted or skipped." | See the calendar |
 | Archive — nothing posted | archive | "Nothing posted yet." | "Mark your first post and it'll show up here." | Go to Today |
@@ -557,7 +586,7 @@ Tap → `instant` press scale → tick path draws over `base` → card settles i
 Press → `instant` scale on the control → label swaps to "Copied" with a tick → reverts after 1.5s. Long-press on a `CopyBlock` body triggers the same with a medium haptic. No toast.
 
 **Regenerate**
-Opens a steer sheet → on confirm the sheet dismisses and the item enters its inline loading state → on success the new content cross-fades in over `base` with a brief gold "Updated" eyebrow that fades after 2s.
+Opens a steer sheet → on confirm the sheet dismisses and the item enters its inline loading state → on success the new content cross-fades in over `base` with a brief accent "Updated" eyebrow that fades after 2s.
 
 **Pull to refresh**
 Available on Today, Calendar, Create and Archive. Custom indicator: the `ProgressRing` geometry reused as a rotating arc. Haptic at the trigger threshold.
@@ -661,7 +690,7 @@ Tapping a day opens `DaySheet`. Swipe left/right changes month.
 1. Header "Create" + filter icon.
 2. `SegmentedControl` for format scope (All · Carousel · Reel · Post).
 3. **Overdue** group first, if any, with a `danger` eyebrow and count.
-4. Format groups in fixed order, each with an eyebrow heading and count: Carousels → Reels → Posts → Stories → Memes → Polls. Empty groups are omitted entirely.
+4. Format groups in fixed order, each with an eyebrow heading and count: Carousels → Reels → Posts → Stories → Memes → Polls → Shorts → Videos. Empty groups are omitted entirely.
 5. `QueueRow`s, ordered by scheduled date ascending.
 
 Optimised for scanning: a designer should see their whole workload in one screen without opening anything.
@@ -671,7 +700,7 @@ Optimised for scanning: a designer should see their whole workload in one screen
 2. Meta row: `PlatformBadge full` · `FormatChip` · `PillarChip` · scheduled date.
 3. **Hook** in `h1`.
 4. `CopyBlock` — CAPTION.
-5. Format-specific body: `SlideList` (carousel), `ScriptList` (reel), frame copy (story/meme), or question + options (poll).
+5. Format-specific body: `SlideList` (carousel), `ScriptList` (reel, short and video), frame copy (story/meme), or question + options (poll).
 6. `CopyBlock` — HASHTAGS (mono).
 7. CTA block — single line, `body-strong`, accent left rule.
 8. `BriefSection` — the designer's section, visually separated by a `48` gap and a section eyebrow "DESIGN BRIEF".

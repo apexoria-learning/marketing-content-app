@@ -1,9 +1,9 @@
 :root {
   color-scheme: dark;
-  --canvas: #0a0a0b;
-  --text-primary: #f6f4f1;
-  --text-secondary: #a6a29b;
-  --accent: #ffb224;
+  --canvas: #0b111d;
+  --text-primary: #f5f8fc;
+  --text-secondary: #a9b6c9;
+  --accent: #5bb5ff;
 }
 * {
   box-sizing: border-box;

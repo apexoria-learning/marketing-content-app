@@ -100,7 +100,7 @@ export function Gallery({
 
         <Section title="Chips">
           <div className="flex flex-wrap gap-3">
-            {["Instagram", "LinkedIn", "WhatsApp"].map((label) => (
+            {["Instagram", "LinkedIn", "YouTube"].map((label) => (
               <Chip
                 key={label}
                 selected={chips.includes(label)}
@@ -134,7 +134,7 @@ export function Gallery({
         <Section title="Inputs">
           <Input
             label="Brand name"
-            placeholder="Apexoria Learning"
+            placeholder="Trailhead Simplified"
             helper="Used in every piece of content we generate."
           />
           <Input

@@ -66,7 +66,7 @@ function dependencies() {
       pillar: item.pillar,
       idea: item.idea,
       brand: {
-        business_name: "Apexoria",
+        business_name: "Trailhead Simplified",
         industry: "Salesforce training",
         business_description: "Training",
         audience_description: "Learners",
