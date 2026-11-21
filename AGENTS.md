@@ -35,7 +35,7 @@ Prefer the smallest correct change. Do not restructure a module, swap an approac
 | [docs/API.md](./docs/API.md) | Route handlers, Server Actions, validation, errors, rate limits, integrations |
 | [docs/IMPLEMENTATION-PLAN.md](./docs/IMPLEMENTATION-PLAN.md) | Phase order, task breakdown, completion criteria |
 
-[docs/PROGRESS.md](./docs/PROGRESS.md) records dated status and evidence only; it never creates or waives requirements. [docs/brand-kit/](./docs/brand-kit/Main.dc.html) is a visual reference mockup, not production code. [content/](./content/README.md) is the creator's channel playbook (plan, production rules, idea bank, scripts); it is owned by the creator, is not an app specification, and reaches the generator only through the brand profile and catalogue data. Spec section references elsewhere in this file and in code comments (`DATABASE.md §7.7`) mean the file in `docs/`.
+[docs/PROGRESS.md](./docs/PROGRESS.md) records dated status and evidence only; it never creates or waives requirements. [docs/brand-kit/](./docs/brand-kit/Main.dc.html) is a visual reference mockup, not production code. [content/](./content/PLAN.md) is the creator's channel playbook (plan, production rules, idea bank, scripts), indexed by the root [README.md](./README.md); it is owned by the creator, is not an app specification, and reaches the generator only through the brand profile and catalogue data. Spec section references elsewhere in this file and in code comments (`DATABASE.md §7.7`) mean the file in `docs/`.
 
 **Rules:**
 
