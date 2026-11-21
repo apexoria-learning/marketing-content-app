@@ -20,12 +20,12 @@ afterAll(async () => {
 describe.skipIf(!canRun)(
   "domain schemas against actual migrated seed rows",
   () => {
-    it("validates every content row and all six body formats", async () => {
+    it("validates every content row and all eight body formats", async () => {
       const { rows } = await db.query(
         "select to_jsonb(item) as item from public.content_items item",
       );
       const items = rows.map(({ item }) => ContentItemSchema.parse(item));
-      expect(new Set(items.map((item) => item.format)).size).toBe(6);
+      expect(new Set(items.map((item) => item.format)).size).toBe(8);
       expect(new Set(items.map((item) => item.status)).size).toBe(4);
     });
     it("validates tips and month skeletons", async () => {

@@ -29,6 +29,8 @@ test.describe("isolated, genuinely authenticated content journeys", () => {
       const labels = {
         carousel: "All slides",
         reel: /Script ·/,
+        short: /Script ·/,
+        video: /Script ·/,
         post: "Visual concept",
         story: "Story frame",
         meme: "Meme text",
@@ -37,7 +39,7 @@ test.describe("isolated, genuinely authenticated content journeys", () => {
       const body = page
         .getByRole("region", {
           name: labels[fixture.format],
-          exact: fixture.format !== "reel",
+          exact: !["reel", "short", "video"].includes(fixture.format),
         })
         .locator("p")
         .first();

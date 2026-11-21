@@ -51,7 +51,7 @@ describe("generated database query contracts", () => {
       "linkedin",
       "whatsapp",
     ]);
-    expect(Constants.public.Enums.content_format).toHaveLength(6);
+    expect(Constants.public.Enums.content_format).toHaveLength(8);
     expect(Constants.public.Enums.content_pillar).toHaveLength(10);
   });
 });

@@ -45,18 +45,25 @@ export function ScreenLoading({
           </>
         ) : null}
         {surface === "Create"
-          ? ["Carousels", "Reels", "Posts", "Stories", "Memes", "Polls"].map(
-              (group) => (
-                <section key={group}>
-                  <h2 className="mb-3 text-eyebrow text-secondary">{group}</h2>
-                  <div className="space-y-3">
-                    {[1, 2, 3].map((row) => (
-                      <Skeleton key={row} className="h-16 rounded-md" />
-                    ))}
-                  </div>
-                </section>
-              ),
-            )
+          ? [
+              "Carousels",
+              "Reels",
+              "Posts",
+              "Stories",
+              "Memes",
+              "Polls",
+              "Shorts",
+              "Videos",
+            ].map((group) => (
+              <section key={group}>
+                <h2 className="mb-3 text-eyebrow text-secondary">{group}</h2>
+                <div className="space-y-3">
+                  {[1, 2, 3].map((row) => (
+                    <Skeleton key={row} className="h-16 rounded-md" />
+                  ))}
+                </div>
+              </section>
+            ))
           : null}
         {surface === "Content details"
           ? [

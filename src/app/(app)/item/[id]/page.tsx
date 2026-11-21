@@ -95,7 +95,10 @@ export default async function ItemPage({
         {item.format === "carousel" && item.body ? (
           <SlideList body={item.body} />
         ) : null}
-        {item.format === "reel" && item.body ? (
+        {(item.format === "reel" ||
+          item.format === "short" ||
+          item.format === "video") &&
+        item.body ? (
           <ScriptList body={item.body} />
         ) : null}
         {item.format === "post" && item.body ? (

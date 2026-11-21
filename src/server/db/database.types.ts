@@ -719,7 +719,15 @@ export type Database = {
         | "regenerated"
         | "status_changed"
         | "note_added";
-      content_format: "carousel" | "reel" | "post" | "story" | "meme" | "poll";
+      content_format:
+        | "carousel"
+        | "reel"
+        | "post"
+        | "story"
+        | "meme"
+        | "poll"
+        | "short"
+        | "video";
       content_pillar:
         | "salesforce_tips"
         | "salesforce_news"
@@ -875,7 +883,16 @@ export const Constants = {
         "status_changed",
         "note_added",
       ],
-      content_format: ["carousel", "reel", "post", "story", "meme", "poll"],
+      content_format: [
+        "carousel",
+        "reel",
+        "post",
+        "story",
+        "meme",
+        "poll",
+        "short",
+        "video",
+      ],
       content_pillar: [
         "salesforce_tips",
         "salesforce_news",

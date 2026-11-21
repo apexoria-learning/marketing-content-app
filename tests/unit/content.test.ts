@@ -75,7 +75,7 @@ const fixture = {
 describe("domain schemas and plain-text rendering", () => {
   it("matches all generated enum unions", () => {
     expectTypeOf<ContentFormat>().toEqualTypeOf<Enums<"content_format">>();
-    expect(FormatSchema.options).toHaveLength(6);
+    expect(FormatSchema.options).toHaveLength(8);
   });
   it("accepts any well-formed catalogue platform or pillar key and nothing else", () => {
     expectTypeOf<Pillar>().toEqualTypeOf<string>();
@@ -117,6 +117,16 @@ describe("domain schemas and plain-text rendering", () => {
       body: { template: "Reaction", top_text: "Top", bottom_text: "Bottom" },
     },
     { format: "poll", body: { question: "Which?", options: ["A", "B"] } },
+    ...(["short", "video"] as const).map((format) => ({
+      format,
+      body: {
+        duration_seconds: format === "short" ? 40 : 480,
+        scenes: [
+          { from: "0:00", to: "0:20", action: "Hook", on_screen_text: "Text" },
+        ],
+        audio: "Voiceover",
+      },
+    })),
   ])("parses and renders $format", (body) => {
     const parsed = ContentItemSchema.parse({ ...fixture, ...body });
     expect(

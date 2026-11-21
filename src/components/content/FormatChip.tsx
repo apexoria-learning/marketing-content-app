@@ -7,6 +7,8 @@ export const FORMAT_LABELS: Record<ContentFormat, string> = {
   story: "Story",
   meme: "Meme",
   poll: "Poll",
+  short: "Short",
+  video: "Video",
 };
 export function FormatChip({ format }: { format: ContentFormat }) {
   return (

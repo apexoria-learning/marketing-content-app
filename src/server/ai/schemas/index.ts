@@ -34,6 +34,8 @@ export const GeneratedContentSchema = z.discriminatedUnion("format", [
   fields.extend({ format: z.literal("story"), body: StoryBodySchema }).strict(),
   fields.extend({ format: z.literal("meme"), body: MemeBodySchema }).strict(),
   fields.extend({ format: z.literal("poll"), body: PollBodySchema }).strict(),
+  fields.extend({ format: z.literal("short"), body: ReelBodySchema }).strict(),
+  fields.extend({ format: z.literal("video"), body: ReelBodySchema }).strict(),
 ]);
 
 export const GenerationContextSchema = z

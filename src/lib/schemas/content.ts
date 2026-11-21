@@ -20,6 +20,8 @@ export const FormatSchema = z.enum([
   "story",
   "meme",
   "poll",
+  "short",
+  "video",
 ]);
 export const StatusSchema = z.enum(["idea", "ready", "posted", "skipped"]);
 const text = z.string().min(1);
@@ -159,6 +161,15 @@ export const ContentItemSchema = z
     }),
     base.extend({ format: z.literal("meme"), body: MemeBodySchema.nullable() }),
     base.extend({ format: z.literal("poll"), body: PollBodySchema.nullable() }),
+    // YouTube Shorts and long-form videos share the timecoded script shape.
+    base.extend({
+      format: z.literal("short"),
+      body: ReelBodySchema.nullable(),
+    }),
+    base.extend({
+      format: z.literal("video"),
+      body: ReelBodySchema.nullable(),
+    }),
   ])
   .superRefine((item, context) => {
     // Platform/format and hashtag rules are catalogue data enforced by the

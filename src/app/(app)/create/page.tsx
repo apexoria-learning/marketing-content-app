@@ -20,6 +20,8 @@ const groups = {
   story: "Stories",
   meme: "Memes",
   poll: "Polls",
+  short: "Shorts",
+  video: "Videos",
 };
 export default async function CreatePage({
   searchParams,

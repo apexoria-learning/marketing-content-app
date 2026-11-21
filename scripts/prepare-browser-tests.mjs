@@ -86,9 +86,9 @@ try {
   const fixtures = await db.query(
     "select distinct on (format) id, format from public.content_items where body is not null and status in ('ready','posted') order by format, scheduled_date desc",
   );
-  if (fixtures.rows.length !== 6)
+  if (fixtures.rows.length !== 8)
     throw new Error(
-      "Isolated browser fixtures must cover all six hydrated formats.",
+      "Isolated browser fixtures must cover all eight hydrated formats.",
     );
   await writeFile(
     "test-results/content-fixtures.json",
