@@ -154,12 +154,22 @@ test.describe("isolated, genuinely authenticated content journeys", () => {
     await expect(page.getByRole("heading", { name: /Overdue/ })).toBeVisible();
     const headings = await page.locator("main section > h2").allTextContents();
     expect(headings[0]).toContain("Overdue");
-    const order = ["Carousels", "Reels", "Posts", "Stories", "Memes", "Polls"];
+    const order = [
+      "Carousels",
+      "Reels",
+      "Posts",
+      "Stories",
+      "Memes",
+      "Polls",
+      "Shorts",
+      "Videos",
+    ];
     const positions = headings
       .slice(1)
       .map((heading) =>
         order.findIndex((format) => heading.startsWith(format)),
       );
+    expect(positions).not.toContain(-1);
     expect(positions).toEqual([...positions].sort((a, b) => a - b));
     await page.goto("/create?format=%3Cscript%3E&platform=invalid");
     await expect(
