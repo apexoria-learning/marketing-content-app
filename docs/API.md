@@ -592,16 +592,22 @@ Four outbound integrations. None is in the critical path for reading content.
 
 **Why a gateway rather than calling the provider directly:** retries, timeouts, fallbacks and per-request token/cost accounting live at the gateway instead of in application code, and the provider credential is held by Portkey rather than in the application's environment. Switching models becomes a configuration change.
 
-**Owner-approved routing refinement (2026-11-01):** the owner confirmed that
-the custom Perficient gateway is authorized for this application's data (confirmed
-while the product was branded Apexoria; re-confirm the authorization covers
-Trailhead Simplified before relying on it for new data).
-Use `https://portkeygateway.perficient.com/v1` with model alias
-`@dsvertex/anthropic.claude-sonnet-5-5`. This supersedes the initial virtual-key
-setup and the interim config-ID proposal. Paid calls still require separate
-approval; gateway retry and cost-metadata behavior must be verified before
-declaring Phase 8 complete. SDK token limits use lowercase `max_tokens`,
-not the example's uppercase `MAX_TOKENS`.
+**Owner-approved routing refinement (2026-11-01):** model-alias routing through
+an HTTPS `/v1` gateway, with no virtual key or config ID. This supersedes the
+initial virtual-key setup and the interim config-ID proposal. Paid calls still
+require separate approval; gateway retry and cost-metadata behavior must be
+verified before declaring Phase 8 complete. SDK token limits use lowercase
+`max_tokens`, not the example's uppercase `MAX_TOKENS`.
+
+**Gateway ownership (2026-11-22):** the Apexoria deployment used the Perficient
+corporate gateway, authorized for that application only. The Trailhead
+Simplified deployment runs on the creator's own Vercel account and uses the
+creator's own Portkey account: `PORTKEY_BASE_URL=https://api.portkey.ai/v1`
+with a Model Catalog alias such as `@<anthropic-provider-slug>/<claude-model>`
+in `AI_MODEL`. `PORTKEY_BASE_URL` has **no default**; a deployment that omits it
+fails at start-up rather than reaching another organisation's gateway. The admin
+override (`app_settings.ai_base_url`) still wins over the environment, so clear
+it in Admin → Settings if it holds the corporate endpoint.
 
 **Request composition** (`ARCHITECTURE.md` §9.2): system layer (role, brand profile, tone rules, hard constraints) → context layer (recent `news_items`, pillar history, 60-day posted ideas) → task layer (instruction plus output schema) → optional steer layer. Structured output is requested via JSON/tool schema.
 
@@ -737,7 +743,7 @@ Canonical list (`ARCHITECTURE.md` §11), annotated with the integration each ser
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Client + server | No | Supabase clients | RLS-constrained access |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server | **Yes** | `/api/cron/daily`; scoped admin module (`ARCHITECTURE.md` §6.3) | Bypasses RLS |
 | `PORTKEY_API_KEY` | Server | **Yes** | `server/ai/client` | Gateway auth; never stored or shown in the admin panel |
-| `PORTKEY_BASE_URL` | Server | No | `server/ai/client` | Owner-authorized HTTPS gateway `/v1` endpoint; admin-overridable default |
+| `PORTKEY_BASE_URL` | Server | No | `server/ai/client` | **Required**, no default: the deployment's own HTTPS gateway `/v1` endpoint (§8.1); admin-overridable |
 | `AI_MODEL` | Server | No | `server/ai/client` | Model identifier; admin-overridable default |
 | `CRON_SECRET` | Server | **Yes** | `/api/cron/daily` | Bearer authentication |
 | `ADMIN_EMAILS` | Server | No | Callback, middleware, layout, action wrapper | Owners: always admins, never changeable from the panel |

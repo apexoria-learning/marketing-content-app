@@ -7,9 +7,9 @@ export const envSchema = z.object({
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
   PORTKEY_API_KEY: z.string().min(1),
-  PORTKEY_BASE_URL: GatewayBaseUrlSchema.default(
-    "https://portkeygateway.perficient.com/v1",
-  ),
+  // Required, never defaulted: each deployment names its own gateway, so a
+  // missing value fails closed instead of reaching someone else's (API.md §8.1).
+  PORTKEY_BASE_URL: GatewayBaseUrlSchema,
   AI_MODEL: z.string().min(1),
   AI_GENERATION_ENABLED: z.enum(["true", "false"]).default("false"),
   CRON_SECRET: z.string().min(32),

@@ -151,8 +151,8 @@ Development seed: [supabase/seed.sql](../supabase/seed.sql) (a rolling 31-day fi
 | External Firebase admin bridge | Group C scope change | Superseded by the in-app admin panel; intentionally not built |
 | Industry templates, first-run setup wizard, configurable app name/accent, new-company runbook | Universal roadmap step 4 | Not started; `0009` seeds the original profile and `0020` rebrands it |
 | Apply `0019`/`0020` to the hosted database | Trailhead Simplified rebrand | Manual reviewed-migration workflow (dry run first), **before** deploying; then regenerate `database.types.ts` with the Supabase CLI (the `content_format` entry is hand-written) |
-| Canonical domain, AI gateway re-confirmation, real YouTube/Instagram profile URLs | Trailhead Simplified rebrand | Profile links are derived from `@TrailheadSimplified`; confirm them, the app URL (`NEXT_PUBLIC_APP_URL`) and that the Portkey gateway authorization covers the new brand |
-| Reconnect hosting and CI to the new repository | Repository move | Point the Vercel project at `wishvesh-ujawane/Trailhead-Simplified`; add `SUPABASE_ACCESS_TOKEN` and `SUPABASE_DB_PASSWORD` as Actions secrets there; set the default branch the migration workflow requires |
+| Personal Vercel project, own AI gateway, real YouTube/Instagram profile URLs | Trailhead Simplified rebrand | New Vercel project on the creator's account with its own `NEXT_PUBLIC_APP_URL`; the new `/auth/callback` added to Supabase Auth redirect URLs; the creator's own Portkey account (`PORTKEY_BASE_URL` is now required, API.md §8.1) and any corporate `ai_base_url` override cleared in Admin → Settings; profile links derived from `@TrailheadSimplified` confirmed |
+| Reconnect hosting and CI to the new repository | Repository move | Import `wishvesh-ujawane/Trailhead-Simplified` into the new personal Vercel project; add `SUPABASE_ACCESS_TOKEN` and `SUPABASE_DB_PASSWORD` as Actions secrets there; set the default branch the migration workflow requires |
 
 ### 4.2 Open gates on built work
 | Gate | Phase | Status |

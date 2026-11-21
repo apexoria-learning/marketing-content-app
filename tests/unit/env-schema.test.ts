@@ -6,6 +6,7 @@ const VALID_ENV = {
   NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon-key",
   SUPABASE_SERVICE_ROLE_KEY: "service-role-key",
   PORTKEY_API_KEY: "portkey-key",
+  PORTKEY_BASE_URL: "https://gateway.example.com/v1",
   AI_MODEL: "claude-sonnet",
   CRON_SECRET: "x".repeat(32),
   NEXT_PUBLIC_APP_URL: "https://app.example.com",
@@ -25,18 +26,18 @@ describe("parseEnv", () => {
       "https://www.salesforce.com/news/feed/,https://www.salesforceben.com/feed/",
     );
     expect(env.NEWS_RETENTION_DAYS).toBe(30);
-    expect(env.PORTKEY_BASE_URL).toBe(
-      "https://portkeygateway.perficient.com/v1",
-    );
   });
 
-  it("rejects a missing required variable and names it", () => {
-    const withoutCronSecret: Record<string, unknown> = { ...VALID_ENV };
+  it.each(["CRON_SECRET", "PORTKEY_BASE_URL"])(
+    "rejects a missing required %s and names it",
+    (name) => {
+      const withoutVariable: Record<string, unknown> = { ...VALID_ENV };
 
-    delete withoutCronSecret.CRON_SECRET;
+      delete withoutVariable[name];
 
-    expect(() => parseEnv(withoutCronSecret)).toThrowError(/CRON_SECRET/);
-  });
+      expect(() => parseEnv(withoutVariable)).toThrowError(new RegExp(name));
+    },
+  );
 
   it("accepts model-alias routing without a virtual key or config ID", () => {
     const env = parseEnv({

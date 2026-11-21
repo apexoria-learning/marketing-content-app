@@ -73,10 +73,12 @@ app's dependencies, credentials or user metadata.
 
 **Current gate:** the user subsequently provided the gateway integration example
 and confirmed authorization to use it for this application's data (given while
-the product was branded Apexoria; re-confirm it covers Trailhead Simplified).
+the product was branded Apexoria; the Trailhead Simplified deployment does not use it).
 Model-alias routing supersedes the interim config-ID proposal: use the custom
-HTTPS endpoint and `@dsvertex/anthropic.claude-sonnet-5-5` per API.md §8.1,
-without a virtual key or config ID. Environment validation and isolated browser
+HTTPS endpoint and a model alias per API.md §8.1, without a virtual key or
+config ID. (Since 2026-11-22 the Trailhead Simplified deployment uses the
+creator's own Portkey account instead of the corporate gateway, and
+`PORTKEY_BASE_URL` has no default.) Environment validation and isolated browser
 configuration are updated for that setup. The server-only SDK transport now
 requests non-streamed JSON, uses lowercase token limits, enforces a 60s abort
 deadline, disables SDK retries, rejects incomplete/refused responses and requires
@@ -345,9 +347,11 @@ with the two-step push (migration commit → apply → app commit):
    dry run first, **before** deploying the code); regenerating
    `database.types.ts` with the Supabase CLI (the `content_format` entry was
    hand-written to match the generator; CI's drift gate verifies it);
-   reconnecting Vercel and the two GitHub Actions secrets to the new repository;
-   a canonical domain for `NEXT_PUBLIC_APP_URL`; confirming the AI gateway
-   authorization for the new brand; and the plan's weekly cadence (PRD FR-2.4),
+   a new personal Vercel project (with its own `NEXT_PUBLIC_APP_URL` and the
+   new callback in Supabase Auth redirect URLs) and the two GitHub Actions
+   secrets on the new repository; the creator's own Portkey account in place of
+   the corporate gateway (`PORTKEY_BASE_URL` no longer has a default); and the
+   plan's weekly cadence (PRD FR-2.4),
    which needs a planning change rather than data. Validated: typecheck, lint,
    production build, 23 browser checks, and all 685 unit and database tests
    against a local PostgreSQL 15.20 (none skipped); the seeded browser suite

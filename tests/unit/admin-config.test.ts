@@ -210,6 +210,7 @@ describe("runtime configuration", () => {
       NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon",
       SUPABASE_SERVICE_ROLE_KEY: "service",
       PORTKEY_API_KEY: "key",
+      PORTKEY_BASE_URL: "https://gateway.example.test/v1",
       AI_MODEL: "model",
       CRON_SECRET: "x".repeat(32),
       NEXT_PUBLIC_APP_URL: "https://app.example.test",

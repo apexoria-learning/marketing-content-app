@@ -757,7 +757,7 @@ trailhead-simplified-content-copilot/
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Client + server | No | Both | RLS-constrained access |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server | **Yes** | Cron; scoped admin module (§6.3) | Bypasses RLS — the highest-value secret |
 | `PORTKEY_API_KEY` | Server | **Yes** | `ai/client` | Gateway authentication; never stored in the database or shown in the panel |
-| `PORTKEY_BASE_URL` | Server | No | `ai/client` | Owner-authorized HTTPS `/v1` endpoint; model-alias routing per API.md §8.1. Default; admin-overridable |
+| `PORTKEY_BASE_URL` | Server | No | `ai/client` | **Required**, no default: the deployment's own HTTPS `/v1` gateway endpoint; model-alias routing per API.md §8.1. Admin-overridable |
 | `AI_MODEL` | Server | No | `ai/client` | Model identifier — config, not code. Default; admin-overridable |
 | `ADMIN_EMAILS` | Server | No | `auth/` | Comma-separated owners: always admins, cannot be changed from the panel |
 | `ALLOWED_EMAILS` | Server | No | `auth/` | Legacy comma-separated allowlist, honoured until imported into `app_users` from `/admin/users`. Empty admits no one |
