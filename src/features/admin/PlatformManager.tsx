@@ -70,7 +70,7 @@ export function PlatformManager({
               >
                 <Icon name={toPlatformIcon(platform.icon)} />
               </span>
-              <div className="min-w-0 flex-1 space-y-1">
+              <div className="min-w-48 flex-1 space-y-1">
                 <p className="font-semibold text-primary">
                   {platform.label}
                   {platform.is_enabled ? "" : " · Retired"}
@@ -85,7 +85,9 @@ export function PlatformManager({
                     : ""}
                 </p>
               </div>
-              <div className="flex items-center gap-1">
+              {/* Narrow screens move the controls to their own line rather
+                  than squeezing the name into a letter-wide column. */}
+              <div className="ml-auto flex items-center gap-1">
                 <Button
                   variant="icon"
                   aria-label={`Move ${platform.label} up`}

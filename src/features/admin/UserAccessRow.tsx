@@ -68,7 +68,7 @@ export function UserAccessRow({
 
   return (
     <li className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-surface-1 p-4">
-      <div className="min-w-0 flex-1 space-y-1">
+      <div className="min-w-48 flex-1 space-y-1">
         <p className="font-semibold text-primary">{displayName}</p>
         {entry.name ? (
           <p className="text-sm text-secondary">{entry.email}</p>

@@ -109,7 +109,7 @@ export function SegmentedControl<T extends string>({
             onClick={() => onChange(segment.value)}
             onKeyDown={onKeyDown}
             className={cx(
-              "relative min-h-11 rounded-pill px-3 text-sm font-semibold transition-colors duration-(--motion-fast)",
+              "relative min-h-11 rounded-pill px-1 text-sm font-semibold whitespace-nowrap transition-colors duration-(--motion-fast)",
               "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
               checked ? "text-primary" : "text-secondary hover:text-primary",
             )}

@@ -49,7 +49,7 @@ export function PillarManager({ pillars }: { pillars: PillarRecord[] }) {
                 !pillar.is_enabled && "opacity-75",
               )}
             >
-              <div className="min-w-0 flex-1 space-y-1">
+              <div className="min-w-48 flex-1 space-y-1">
                 <p className="font-semibold text-primary">
                   {pillar.label}
                   {pillar.requires_news ? " · Needs news" : ""}
@@ -59,7 +59,7 @@ export function PillarManager({ pillars }: { pillars: PillarRecord[] }) {
                   {pillar.description}
                 </p>
               </div>
-              <div className="flex items-center gap-1">
+              <div className="ml-auto flex items-center gap-1">
                 <Button
                   variant="icon"
                   aria-label={`Move ${pillar.label} up`}
