@@ -331,31 +331,29 @@ with the two-step push (migration commit → apply → app commit):
    still seeds the original Apexoria sample profile in a fresh database;
    migration `0020` then rebrands it to Trailhead Simplified, and the wizard
    would overwrite both.
-5. **Trailhead Simplified rebrand — built 2026-11-21/22 (same Supabase
-   database and Google sign-in).** The product moved from Apexoria Learning to
-   Trailhead Simplified, Wishvesh Ujawane's YouTube channel and Instagram
-   account (`@TrailheadSimplified`), and from the `apexoria-learning` repository
-   to `wishvesh-ujawane/Trailhead-Simplified`, whose channel playbook now lives
-   in `content/`. Specifications moved to `docs/`; the proposed SaaS drafts were
-   removed. Design tokens, fonts (Poppins + Inter), icons and app strings follow
-   `docs/brand-kit/`. Migration `0019` adds `short` and `video` formats (alone,
-   per DATABASE.md §4). `0020` aligns the data with `content/PLAN.md`: a
-   Hinglish creator profile with signature lines and script lanes, YouTube and
-   Instagram only (LinkedIn and WhatsApp retired), and the plan's five pillars
-   plus a sourced release-news pillar (eight originals retired). Not done:
-   applying `0019`/`0020` to the hosted database (manual migration workflow,
-   dry run first, **before** deploying the code); regenerating
-   `database.types.ts` with the Supabase CLI (the `content_format` entry was
-   hand-written to match the generator; CI's drift gate verifies it);
-   a new personal Vercel project (with its own `NEXT_PUBLIC_APP_URL` and the
-   new callback in Supabase Auth redirect URLs) and the two GitHub Actions
-   secrets on the new repository; the creator's own Portkey account in place of
-   the corporate gateway (`PORTKEY_BASE_URL` no longer has a default); and the
-   plan's weekly cadence (PRD FR-2.4),
-   which needs a planning change rather than data. Validated: typecheck, lint,
-   production build, 23 browser checks, and all 685 unit and database tests
-   against a local PostgreSQL 15.20 (none skipped); the seeded browser suite
-   still needs CI.
+5. **Trailhead Simplified rebrand — built 2026-11-21/22, deployed 2026-11-22
+   (same repository, Vercel project, Supabase database and Google sign-in).**
+   The product moved from Apexoria Learning to Trailhead Simplified, Wishvesh
+   Ujawane's YouTube channel and Instagram account (`@TrailheadSimplified`);
+   the creator's channel playbook now lives in `content/`. Specifications
+   moved to `docs/`; the proposed SaaS drafts were removed. Design tokens,
+   fonts (Poppins + Inter), icons and app strings follow `docs/brand-kit/`.
+   Migration `0019` adds `short` and `video` formats (alone, per DATABASE.md
+   §4). `0020` aligns the data with `content/PLAN.md`: a Hinglish creator
+   profile with signature lines and script lanes, YouTube and Instagram only
+   (LinkedIn and WhatsApp retired), and the plan's five pillars plus a sourced
+   release-news pillar (eight originals retired). Released code first, then
+   `0019`/`0020` via the manual migration workflow (DATABASE.md §9.2 explains
+   the order). AI generation now uses the creator's own Portkey account
+   (`PORTKEY_BASE_URL` no longer has a default); owner-confirmed working live.
+   Narrow-screen fixes shipped alongside (segmented-control labels and admin
+   rows no longer break mid-word at 320–360px). Validated: typecheck, lint,
+   production build, all 685 unit and database tests against a local
+   PostgreSQL 15.20 (none skipped), and both CI workflows, including the
+   generated-types drift gate and the seeded browser journeys. Months planned
+   before `0020` keep their original items, because a planned month cannot be
+   re-planned. Not done: the plan's weekly cadence (PRD FR-2.4), which needs a
+   planning change rather than data.
 
 ## 2. Phase map
 

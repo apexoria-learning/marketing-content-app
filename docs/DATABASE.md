@@ -989,9 +989,12 @@ Simplified rebrand of the profile, platform catalogue (adds `youtube`, retires
 LinkedIn and WhatsApp) and pillar catalogue (adds the channel plan's pillars,
 retires eight originals). Each step is safe to re-run, and the profile, labels
 and tones change only while they still hold their originally seeded values.
-Apply `0019`, then `0020`, after `0018` and **before** deploying code that
-offers the new formats. Planning from the previous release would still work
-afterwards, because it reads the catalogue.
+Unlike `0016`–`0018`, these go **after** the code: deploy the release that
+knows `short` and `video` first, then apply `0019` and `0020` promptly. The
+previous release's format schema rejects the YouTube platform's `short`/`video`
+rows, so migrating first would break its Platforms page and planning, while the
+new release works unchanged against the pre-`0020` data. Applied to the shared
+database on 2026-11-22 in that order.
 No other hosted target or automatic push/pull-request trigger is configured.
 
 #### Isolated behavioral tests and generated types

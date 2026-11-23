@@ -601,8 +601,8 @@ verified before declaring Phase 8 complete. SDK token limits use lowercase
 
 **Gateway ownership (2026-11-22):** the Apexoria deployment used the Perficient
 corporate gateway, authorized for that application only. The Trailhead
-Simplified deployment runs on the creator's own Vercel account and uses the
-creator's own Portkey account: `PORTKEY_BASE_URL=https://api.portkey.ai/v1`
+Simplified deployment uses the creator's own Portkey account:
+`PORTKEY_BASE_URL=https://api.portkey.ai/v1`
 with a Model Catalog alias such as `@<anthropic-provider-slug>/<claude-model>`
 in `AI_MODEL`. `PORTKEY_BASE_URL` has **no default**; a deployment that omits it
 fails at start-up rather than reaching another organisation's gateway. The admin

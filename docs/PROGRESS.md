@@ -1,6 +1,6 @@
 # PROGRESS.md — Trailhead Simplified Content Co-pilot
 
-**Status date:** 2026-11-22 · **Base commit:** `6a2965b` from `apexoria-learning/marketing-content-app`; the rebrand and repository move to `wishvesh-ujawane/Trailhead-Simplified` follow it
+**Status date:** 2026-11-22 · **Latest commit:** `aeb71c5` on `apexoria-learning/marketing-content-app` (the Trailhead Simplified rebrand, deployed from the existing repository and Vercel project)
 **Sources:** [IMPLEMENTATION-PLAN.md](./IMPLEMENTATION-PLAN.md) (authoritative phase gates) · [PRD.md](./PRD.md) · codebase inspection · local test run.
 
 > This document summarises what is built and what is not. Phase completion
@@ -21,7 +21,7 @@
 | Settings screen `/settings` (S8) | ❌ Not built (some of it now lives in Admin) |
 | Security hardening, test completion, production deployment, backups | ❌ Not started (Phases 14–16) |
 | Industry templates and first-run setup wizard (universal roadmap step 4) | ❌ Not started |
-| Trailhead Simplified rebrand (name, brand-kit tokens, YouTube platform, `short`/`video` formats, channel-plan profile and pillars, migrations `0019`–`0020`) | 🟡 Built and locally validated; migrations not yet applied to the hosted database; generated types and the seeded browser suite await CI |
+| Trailhead Simplified rebrand (name, brand-kit tokens, YouTube platform, `short`/`video` formats, channel-plan profile and pillars, migrations `0019`–`0020`) | ✅ Deployed 2026-11-22; `0019`/`0020` applied after the code; both CI workflows green; AI generation on the creator's own Portkey account owner-confirmed working. Months planned before `0020` keep their original items |
 | Weekly cadence from `content/PLAN.md` (1 video + 2–3 reels a week, reels repurposed from videos) | ❌ Not started — the planner still fills every day (PRD FR-2.4) |
 
 **Latest local test run (2026-11-22):** 49 files and 685 tests, all passed and none skipped, including
@@ -150,9 +150,7 @@ Development seed: [supabase/seed.sql](../supabase/seed.sql) (a rolling 31-day fi
 | Native share sheet for combined content | FR-6.6 | `navigator.share` not used |
 | External Firebase admin bridge | Group C scope change | Superseded by the in-app admin panel; intentionally not built |
 | Industry templates, first-run setup wizard, configurable app name/accent, new-company runbook | Universal roadmap step 4 | Not started; `0009` seeds the original profile and `0020` rebrands it |
-| Apply `0019`/`0020` to the hosted database | Trailhead Simplified rebrand | Manual reviewed-migration workflow (dry run first), **before** deploying; then regenerate `database.types.ts` with the Supabase CLI (the `content_format` entry is hand-written) |
-| Personal Vercel project, own AI gateway, real YouTube/Instagram profile URLs | Trailhead Simplified rebrand | New Vercel project on the creator's account with its own `NEXT_PUBLIC_APP_URL`; the new `/auth/callback` added to Supabase Auth redirect URLs; the creator's own Portkey account (`PORTKEY_BASE_URL` is now required, API.md §8.1) and any corporate `ai_base_url` override cleared in Admin → Settings; profile links derived from `@TrailheadSimplified` confirmed |
-| Reconnect hosting and CI to the new repository | Repository move | Import `wishvesh-ujawane/Trailhead-Simplified` into the new personal Vercel project; add `SUPABASE_ACCESS_TOKEN` and `SUPABASE_DB_PASSWORD` as Actions secrets there; set the default branch the migration workflow requires |
+| Real YouTube/Instagram profile URLs | Trailhead Simplified rebrand | Profile links were derived from `@TrailheadSimplified`; confirm them in Admin → Business |
 
 ### 4.2 Open gates on built work
 | Gate | Phase | Status |
@@ -160,8 +158,8 @@ Development seed: [supabase/seed.sql](../supabase/seed.sql) (a rolling 31-day fi
 | Owner-approved real smoke call returning valid output | 8 | Open. The owner has since confirmed live generation works, but the formal Phase 8 checkboxes are unticked |
 | Verified gateway pricing / monetary spend enforcement | 8 | Deferred by owner; cost stored as `NULL` |
 | Ingestion idempotency proven against a database | 9 | Not wired, so not proven live |
-| CI drift check of hand-written generated types for `0016`–`0019` | — | Pending CI confirmation |
-| `0015`–`0020` SQL validated on PostgreSQL 15 | — | Validated locally on PostgreSQL 15.20 (2026-11-22); CI run is the confirmation |
+| CI drift check of hand-written generated types for `0016`–`0019` | — | ✅ Passed in CI on 2026-11-22 |
+| `0015`–`0020` SQL validated on PostgreSQL 15 | — | ✅ Validated locally on PostgreSQL 15.20 and in CI (2026-11-22) |
 | Real item/month latency and token counts from gateway logs | 10–11 | Not recorded by the agent |
 | Live non-allowlisted denial check after each auth change | 3 | Manual owner check |
 
