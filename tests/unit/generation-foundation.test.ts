@@ -56,7 +56,10 @@ const output = {
   caption: "First line\nSecond line",
   hashtags: ["#Salesforce"],
   cta: "Learn more",
-  body: { visual_concept: "A flow diagram" },
+  body: {
+    visual_concept: "A flow diagram",
+    design_prompt: 'Square post: a flow diagram titled "Learn flows".',
+  },
   design_brief: {
     objective: "Teach",
     visual_direction: "Simple",
@@ -96,6 +99,64 @@ describe("generation foundation", () => {
       validateGeneratedContent(JSON.stringify(output), context).caption,
     ).toBe("First line\nSecond line");
     expect(() => validateGeneratedContent("{}", context)).toThrow();
+  });
+
+  it("requires a design prompt on every generated graphic, slide by slide", () => {
+    const issuesFor = (candidate: object, format: "post" | "carousel") => {
+      try {
+        validateGeneratedContent(JSON.stringify(candidate), {
+          ...context,
+          format,
+        });
+      } catch (failure) {
+        return (failure as { issues: string[] }).issues;
+      }
+      return [];
+    };
+    expect(
+      issuesFor(
+        { ...output, body: { visual_concept: "A flow diagram" } },
+        "post",
+      ),
+    ).toEqual(["body.design_prompt: invalid_type"]);
+    const slide = { headline: "Cover", body: "Text", visual_note: null };
+    const carousel = {
+      ...output,
+      format: "carousel",
+      body: {
+        slides: [
+          { ...slide, index: 1, design_prompt: "Slide 1 of 2: cover." },
+          { ...slide, index: 2 },
+        ],
+      },
+    };
+    expect(issuesFor(carousel, "carousel")).toEqual([
+      "body.slides.1.design_prompt: invalid_type",
+    ]);
+    carousel.body.slides[1] = {
+      ...slide,
+      index: 2,
+      design_prompt: "Slide 2 of 2: the fix.",
+    };
+    expect(issuesFor(carousel, "carousel")).toEqual([]);
+    expect(
+      issuesFor(
+        {
+          ...output,
+          body: { ...output.body, design_prompt: "x".repeat(2001) },
+        },
+        "post",
+      ),
+    ).toEqual(["body.design_prompt: too_big"]);
+  });
+
+  it("asks for a design prompt on graphics only, never on filmed formats", () => {
+    const task = (format: GenerationContext["format"]) =>
+      buildContentPrompt({ ...context, format }).messages[2]?.content;
+    for (const format of ["carousel", "post", "story", "meme", "poll"] as const)
+      expect(task(format)).toContain("pastes into an image generator");
+    for (const format of ["reel", "short", "video"] as const)
+      expect(task(format)).not.toContain("pastes into an image generator");
   });
 
   it("strips invented URLs and uses canonical ingested source labels", () => {

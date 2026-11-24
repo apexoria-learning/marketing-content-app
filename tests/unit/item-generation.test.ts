@@ -40,7 +40,7 @@ const content = {
   hashtags: [],
   cta: "Learn more",
   format: "post",
-  body: { visual_concept: "Flow" },
+  body: { visual_concept: "Flow", design_prompt: "Square post: a flow." },
   design_brief: {
     objective: "Teach",
     visual_direction: "Diagram",
@@ -127,7 +127,7 @@ describe("item generation lifecycle", () => {
     expect(deps.save).toHaveBeenCalledWith({
       item,
       content,
-      prompt_version: "content-v3",
+      prompt_version: "content-v4",
       regenerate: true,
     });
   });

@@ -1,7 +1,8 @@
 import "server-only";
 import { z } from "zod";
 import {
-  CarouselBodySchema,
+  carouselBodySchema,
+  CarouselSlideSchema,
   DesignBriefSchema,
   FormatSchema,
   MemeBodySchema,
@@ -25,15 +26,42 @@ const fields = z.object({
   source_refs: z.array(SourceRefSchema).max(20),
 });
 
+// Stored bodies tolerate a missing design prompt (items hydrated before
+// content-v4); every newly generated graphic must carry one.
+const withDesignPrompt = { design_prompt: true } as const;
+
 export const GeneratedContentSchema = z.discriminatedUnion("format", [
   fields
-    .extend({ format: z.literal("carousel"), body: CarouselBodySchema })
+    .extend({
+      format: z.literal("carousel"),
+      body: carouselBodySchema(CarouselSlideSchema.required(withDesignPrompt)),
+    })
     .strict(),
   fields.extend({ format: z.literal("reel"), body: ReelBodySchema }).strict(),
-  fields.extend({ format: z.literal("post"), body: PostBodySchema }).strict(),
-  fields.extend({ format: z.literal("story"), body: StoryBodySchema }).strict(),
-  fields.extend({ format: z.literal("meme"), body: MemeBodySchema }).strict(),
-  fields.extend({ format: z.literal("poll"), body: PollBodySchema }).strict(),
+  fields
+    .extend({
+      format: z.literal("post"),
+      body: PostBodySchema.required(withDesignPrompt),
+    })
+    .strict(),
+  fields
+    .extend({
+      format: z.literal("story"),
+      body: StoryBodySchema.required(withDesignPrompt),
+    })
+    .strict(),
+  fields
+    .extend({
+      format: z.literal("meme"),
+      body: MemeBodySchema.required(withDesignPrompt),
+    })
+    .strict(),
+  fields
+    .extend({
+      format: z.literal("poll"),
+      body: PollBodySchema.required(withDesignPrompt),
+    })
+    .strict(),
   fields.extend({ format: z.literal("short"), body: ReelBodySchema }).strict(),
   fields.extend({ format: z.literal("video"), body: ReelBodySchema }).strict(),
 ]);

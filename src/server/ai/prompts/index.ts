@@ -1,13 +1,15 @@
 import "server-only";
 import { z } from "zod";
 import type { AiRequest } from "../client";
+import type { ContentFormat } from "../../../lib/schemas/content";
+import { isGraphicFormat } from "../../../lib/utils/design-prompt";
 import {
   GeneratedContentSchema,
   GenerationContextSchema,
   type GenerationContext,
 } from "../schemas";
 
-export const PROMPT_VERSION = "content-v3";
+export const PROMPT_VERSION = "content-v4";
 // A full item (copy, per-format body and design brief) is far larger than the
 // 60s default suits. Each request may take 120s; the item's parse/schema/
 // business repairs share one 240s budget so the 300s function cap holds.
@@ -75,6 +77,13 @@ export function pillarRule(rules: PillarRules): string {
     : "";
 }
 
+/** How to write design_prompt; filmed formats carry none. */
+export function designPromptRule(format: ContentFormat): string {
+  return isGraphicFormat(format)
+    ? "design_prompt: a brief, self-contained prompt in English, under 100 words, that the team pastes into an image generator to produce the finished graphic. State the asset type and aspect ratio, the composition and the visual idea, and quote the exact on-image text as it must appear. Do not name colours, fonts or logos: the brand styling is appended afterwards. In a carousel every slide has its own prompt, which names its position (for example slide 2 of 6) and stands alone."
+    : "";
+}
+
 // Admin-written pillar names, purposes and guidance are reference data in
 // their own subordinate message, like platform guidance, so they can steer
 // topics but never override the factual, sourcing or schema rules.
@@ -136,6 +145,7 @@ export function buildContentPrompt(input: GenerationContext): AiRequest {
           })}`,
           platformRule(context.platform_rules),
           pillarRule(context.pillar_rules),
+          designPromptRule(context.format),
           `Output schema: ${JSON.stringify(
             z.toJSONSchema(GeneratedContentSchema, {
               unrepresentable: "any",

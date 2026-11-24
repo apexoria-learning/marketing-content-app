@@ -26,6 +26,7 @@ import { getPillarDisplays } from "@/server/services/pillar-display";
 import { pillarDisplayFor } from "@/lib/schemas/pillars";
 import { displayDate, displayTimestamp } from "@/lib/utils/dates";
 import { hasHydratedContent } from "@/lib/utils/status";
+import { designPromptBlocks, isGraphicFormat } from "@/lib/utils/design-prompt";
 import { getActivity, getItem, withPosterNames } from "@/server/db/queries";
 
 export const metadata: Metadata = { title: "Content details" };
@@ -46,6 +47,11 @@ export default async function ItemPage({
     (await withPosterNames([item]))[0]?.posted_by_name ?? null;
   const { canGenerate } = await getViewerCapabilities();
   const pillar = pillarDisplayFor(await getPillarDisplays(), item.pillar);
+  const designPrompts = designPromptBlocks(item);
+  const canGainDesignPrompt =
+    Boolean(item.body) &&
+    isGraphicFormat(item.format) &&
+    item.status !== "posted";
   return (
     <>
       <PageHeader
@@ -132,6 +138,26 @@ export default async function ItemPage({
           <CopyBlock label="Hashtags" text={item.hashtags.join(" ")} mono />
         ) : null}
         {item.cta ? <CopyBlock label="Call to action" text={item.cta} /> : null}
+        {designPrompts.length ? (
+          <div className="space-y-4">
+            <p className="text-sm text-secondary">
+              Paste a design prompt into ChatGPT to create the graphic. Brand
+              colours and fonts are included.
+            </p>
+            {designPrompts.map((prompt) => (
+              <CopyBlock
+                key={prompt.label}
+                label={prompt.label}
+                text={prompt.text}
+              />
+            ))}
+          </div>
+        ) : canGainDesignPrompt ? (
+          <p className="text-sm text-secondary">
+            This item was generated before design prompts existed. Regenerate it
+            to add one.
+          </p>
+        ) : null}
         {item.design_brief ? <BriefSection brief={item.design_brief} /> : null}
         <SourceList sources={item.source_refs} isNews={pillar.requires_news} />
         <ItemActions

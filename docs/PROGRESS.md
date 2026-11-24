@@ -94,7 +94,7 @@ Development seed: [supabase/seed.sql](../supabase/seed.sql) (a rolling 31-day fi
 - **Today** (`/`): progress ring, tip card, swipeable deck ([TodayDeck.tsx](../src/features/content/TodayDeck.tsx)).
 - **Calendar** (`/calendar`): agenda below 400px and a month grid on wider screens, filters, day sheet, and month/day planning controls ([CalendarView.tsx](../src/features/calendar/CalendarView.tsx)).
 - **Create** (`/create`): format groups, overdue items first, filters.
-- **Item detail** (`/item/[id]`): copy blocks, slides/script, brief, sources, generation control, post/skip/note.
+- **Item detail** (`/item/[id]`): copy blocks, slides/script, design prompts, brief, sources, generation control, post/skip/note.
 - **Archive** (`/archive`): posted items only (approved refinement), scope and filters, counts, keyset pagination.
 - Actions: `markPosted` (optimistic, Undo), `skipItem`, `addNote` ([server/actions/index.ts](../src/server/actions/index.ts)).
 - Loading, empty and error states; the activity log and history.
@@ -106,7 +106,8 @@ Development seed: [supabase/seed.sql](../supabase/seed.sql) (a rolling 31-day fi
 
 ### 3.6 AI and generation (`US-10`–`US-12`, FR-2, FR-4)
 - Portkey client: non-streamed JSON, strict OpenAI compliance, no SDK retries, abort deadlines, incomplete/refused output rejected ([client.ts](../src/server/ai/client.ts)).
-- Versioned prompts (`content-v3`, `month-plan-v3`, `day-plan-v3`, `daily-tip-v2`), generated-output schemas, one repair per stage, and source URL cross-checks.
+- Versioned prompts (`content-v4`, `month-plan-v3`, `day-plan-v3`, `daily-tip-v2`), generated-output schemas, one repair per stage, and source URL cross-checks.
+- Design prompts: every generated post, story, meme, poll and carousel slide carries a brief prompt to paste into ChatGPT; the brand kit is appended when it is shown ([design-prompt.ts](../src/lib/utils/design-prompt.ts)). Items generated before `content-v4` gain one when regenerated.
 - Per-call `generation_runs` logging that fails closed; tokens are recorded and cost is `NULL` (unknown).
 - Deterministic planning validator: pillar rotation, format variety, 60-day near-duplicate check (Jaccard ≥ 0.70) ([planning-rules.ts](../src/lib/utils/planning-rules.ts)).
 - Services: month and day planning, item hydration and regeneration, hydration batch (240s / 30 items), daily tip with 30-day anti-repetition ([server/services/](../src/server/services/index.ts)).

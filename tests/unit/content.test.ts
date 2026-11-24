@@ -24,6 +24,8 @@ import {
   todayInIst,
 } from "../../src/lib/utils/dates";
 import { canChangeStatus } from "../../src/lib/utils/status";
+import { designPromptBlocks } from "../../src/lib/utils/design-prompt";
+import { BRAND_KIT_PROMPT } from "../../src/lib/constants/brand-kit";
 import { ContentCard } from "../../src/components/content/ContentCard";
 import { SourceList } from "../../src/components/content/SourceList";
 import { BriefSection } from "../../src/components/content/BriefSection";
@@ -210,6 +212,79 @@ describe("domain schemas and plain-text rendering", () => {
         createElement(SourceList, { sources: [], isNews: false }),
       ),
     ).toBe("");
+  });
+  it("offers one branded design prompt per graphic and per carousel slide", () => {
+    const post = ContentItemSchema.parse({
+      ...fixture,
+      body: { visual_concept: "One frame", design_prompt: "Portrait post." },
+    });
+    expect(designPromptBlocks(post)).toEqual([
+      { label: "Design prompt", text: `Portrait post.\n\n${BRAND_KIT_PROMPT}` },
+    ]);
+    const slide = { headline: "Cover", body: "Text", visual_note: null };
+    const carousel = ContentItemSchema.parse({
+      ...fixture,
+      format: "carousel",
+      body: {
+        slides: [
+          { ...slide, index: 1, design_prompt: "Slide 1 of 2." },
+          { ...slide, index: 2, design_prompt: "Slide 2 of 2." },
+        ],
+      },
+    });
+    expect(designPromptBlocks(carousel)).toEqual([
+      {
+        label: "Design prompt · slide 1",
+        text: `Slide 1 of 2.\n\n${BRAND_KIT_PROMPT}`,
+      },
+      {
+        label: "Design prompt · slide 2",
+        text: `Slide 2 of 2.\n\n${BRAND_KIT_PROMPT}`,
+      },
+    ]);
+  });
+  it("offers no design prompt for earlier items, ideas or filmed formats", () => {
+    expect(designPromptBlocks(ContentItemSchema.parse(fixture))).toEqual([]);
+    expect(
+      designPromptBlocks(
+        ContentItemSchema.parse({
+          ...fixture,
+          status: "idea",
+          body: null,
+          caption: null,
+          hook: null,
+          design_brief: null,
+          hydrated_at: null,
+        }),
+      ),
+    ).toEqual([]);
+    const scene = {
+      from: "0:00",
+      to: "0:20",
+      action: "Hook",
+      on_screen_text: "Text",
+    };
+    expect(
+      ContentItemSchema.safeParse({
+        ...fixture,
+        format: "reel",
+        body: {
+          duration_seconds: 28,
+          scenes: [scene],
+          audio: "Voiceover",
+          design_prompt: "A frame.",
+        },
+      }).success,
+    ).toBe(false);
+    expect(
+      designPromptBlocks(
+        ContentItemSchema.parse({
+          ...fixture,
+          format: "reel",
+          body: { duration_seconds: 28, scenes: [scene], audio: "Voiceover" },
+        }),
+      ),
+    ).toEqual([]);
   });
   it("renders design brief sections in fixed order", () => {
     const html = renderToStaticMarkup(

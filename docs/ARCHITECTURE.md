@@ -304,7 +304,7 @@ hydrate_batch(limit = N)
       LIMIT N                              ← the queue is just a query
   → for each item:
         · gather grounding (news_items for the News pillar)
-        · one Claude call → full caption, body payload, hashtags, CTA, design brief
+        · one Claude call → full caption, body payload (with a design prompt per graphic), hashtags, CTA, design brief
         · validate against the format-specific schema
         · on success → UPDATE row, status = 'ready'
         · on failure → leave status = 'idea', record the error, continue
@@ -425,7 +425,7 @@ Variable-shaped payloads (carousel slides vs. timecoded scripts vs. poll options
 | `format` | `text` | `CHECK IN ('carousel','reel','post','story','meme','poll','short','video')` |
 | `pillar` | `text` | FK → admin-managed `pillars(key)`; news-sourcing rule from the catalogue (`DATABASE.md` §5.14) |
 | `title`, `hook`, `caption`, `cta` | `text` | |
-| `body` | `jsonb` | Slides / script / frame / poll — shape determined by `format` |
+| `body` | `jsonb` | Slides / script / frame / poll — shape determined by `format`. Graphic formats hold a `design_prompt` (per slide for carousels); it is required in generated output and optional when read, because items hydrated before `content-v4` have none |
 | `hashtags` | `text[]` | |
 | `design_brief` | `jsonb` | Fixed subsection shape (`DESIGN.md §6.3`) |
 | `source_refs` | `jsonb` | `[{ title, url, source }]` |
@@ -619,7 +619,7 @@ Six layers, assembled in a fixed order so that caching and reasoning both behave
 | **Editorial instructions** | Admin-authored house style per scope (`content`, `planning`, `daily_tip`; `DATABASE.md` §5.11), ≤ 2,000 chars, sent as its own message explicitly subordinate to the factual, privacy, platform and schema rules | Per saved version |
 | **Steer** | Optional user instruction from the regeneration sheet | Per request |
 
-Every prompt carries a `prompt_version`, persisted on the row it produced (`NFR-7.2`). When editorial instructions are active the version gains a `+i<version>` suffix (e.g. `content-v3+i4`; `v2` added catalogue pillar rules, `v3` the industry-neutral profile; `daily-tip-v2` takes its topic from the profile), so output changes stay attributable. Admin planning filters are enforced again by the deterministic validator (§4.4), never trusted to the prompt alone.
+Every prompt carries a `prompt_version`, persisted on the row it produced (`NFR-7.2`). When editorial instructions are active the version gains a `+i<version>` suffix (e.g. `content-v4+i4`; `v2` added catalogue pillar rules, `v3` the industry-neutral profile, `v4` the design prompt on graphic formats; `daily-tip-v2` takes its topic from the profile), so output changes stay attributable. The design prompt is written without colours, fonts or logos; the brand kit is appended when the prompt is displayed (`lib/utils/design-prompt`), so it never passes through the model and a kit change reaches every stored item at once. Admin planning filters are enforced again by the deterministic validator (§4.4), never trusted to the prompt alone.
 
 ### 9.3 Structured output and validation
 
@@ -1012,7 +1012,7 @@ These are recorded so v1 does not pre-build them. **None may influence v1 implem
 | Future need | Change required | Why v1 is not blocked |
 |---|---|---|
 | **Auto-publishing** (`D11`) | A `publish/` service module, platform OAuth token storage, and a second cron stage | Publishing is a new service beside `ai/` and `news/`; the data model already records intent and timing |
-| **AI image generation** (`D7`) | An image generator in `ai/`, Supabase Storage for assets, an `asset_url` column | The design brief already encodes everything an image generator would need as a prompt |
+| **AI image generation** (`D7`) | An image generator in `ai/`, Supabase Storage for assets, an `asset_url` column | Each graphic already stores the design prompt an image generator would be given (`PRD.md` §6.3) |
 | **Analytics feedback loop** | A `post_metrics` table, platform API ingestion, metrics fed into the context prompt layer | The prompt's Context layer (§9.2) is the designed insertion point |
 | **Read-only Designer role** (`DR-1`) | A `user_roles` table and tightened RLS policies on mutations | Attribution and authorization are already separate concepts (§6.3) |
 | **Multiple brands** | A `brand_id` foreign key across content tables and RLS scoped to brand membership | Everything already hangs off a single `brand_profile`; the join column is additive |

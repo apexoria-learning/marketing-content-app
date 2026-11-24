@@ -354,6 +354,20 @@ with the two-step push (migration commit → apply → app commit):
    before `0020` keep their original items, because a planned month cannot be
    re-planned. Not done: the plan's weekly cadence (PRD FR-2.4), which needs a
    planning change rather than data.
+6. **Design prompts for ChatGPT — built 2026-11-25, not yet deployed.** Owner
+   request: a brief prompt per graphic to paste into ChatGPT, for posts,
+   carousels (one per slide), stories, memes and polls; never for reels,
+   Shorts or videos. Owner decisions: written by the generator rather than
+   assembled from the brief; shown above the design brief; the brand kit
+   appended to every prompt. The prompt lives inside the `body` payload, so
+   there is no migration; prompt version `content-v4`. Items generated earlier
+   show a line asking for a regenerate. **Deviation from the universal
+   roadmap:** the brand kit text is a code constant
+   (`src/lib/constants/brand-kit.ts`), like the design tokens, and belongs in
+   configuration with step 4. Validated: typecheck, lint, production build and
+   the unit tests. Not validated: a paid live generation (output quality,
+   tokens and latency of the longer carousel payload) and the seeded browser
+   journeys, which run only in CI.
 
 ## 2. Phase map
 

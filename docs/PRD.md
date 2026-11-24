@@ -80,7 +80,7 @@ These were agreed during discovery and are **fixed** for v1.
 | D4 | AI model | **Claude Sonnet**, routed through the **Portkey AI Gateway** |
 | D5 | Generation strategy | **Scheduled pre-generation** (cron) + **on-demand regeneration** of individual items |
 | D6 | News grounding | **Live Salesforce RSS/Atom feeds** are ingested and used as factual grounding |
-| D7 | Visual assets | **Text + detailed design brief only.** AI image generation deferred |
+| D7 | Visual assets | **Text, a detailed design brief and a paste-ready design prompt** for each graphic (the team pastes it into ChatGPT). Image generation inside the app is deferred |
 | D8 | Platforms | **Admin-managed catalogue** (`US-18`), enabled for **YouTube and Instagram**; LinkedIn and WhatsApp Status are retired (disabled, never deleted; re-enable from Admin) |
 | D9 | Cadence | AI plans the month; **maximum 2 pieces per day**, varying by day |
 | D10 | Tip of the Day | **Marketing tips for the internal team** (not audience-facing content) |
@@ -118,6 +118,8 @@ Retired by `0020`: `memes`, `interview_questions`, `success_stories`, `course_pr
 
 `short` and `video` share the reel's body schema, so they need no new renderer; they differ only in the platform rules, durations and guidance the generator is given. The script lanes (ON CAMERA, OFF CAMERA, SHOW ON SCREEN) are written into each scene's `action` text by prompt guidance, not a separate schema field.
 
+The graphic formats (`carousel`, `post`, `story`, `meme`, `poll`) also carry a **design prompt** in their payload: one per item, or one per slide for a carousel. Filmed formats (`reel`, `short`, `video`) carry none.
+
 ### 6.3 Anatomy of a generated content item
 Every item, regardless of format, carries:
 
@@ -127,6 +129,7 @@ Every item, regardless of format, carries:
 - **Hashtags** — platform-appropriate set (Instagram: 8–15; YouTube: up to 5)
 - **CTA** — the specific action the viewer should take
 - **Design brief** — objective, visual direction, colour/mood guidance, typography emphasis, layout notes, asset dimensions, text-safe areas, and explicit "must include" / "must avoid" notes
+- **Design prompt** (graphic formats only) — a brief, self-contained prompt written by the generator, under 100 words, that the team copies into ChatGPT to produce the graphic: asset type and aspect ratio, composition, and the exact on-image text. The app appends the brand kit (colours, fonts, logo rule; `DESIGN.md` §2.1) when it is shown, so every copied prompt is complete. Items generated before prompt version `content-v4` have none until they are regenerated
 - **Source references** — URLs backing any factual claim (required for news pillars such as `salesforce_news`)
 - **Metadata** — date, platform, pillar, format, status
 
@@ -248,6 +251,7 @@ Every item, regardless of format, carries:
 - AC1: Every item exposes objective, visual direction, layout notes, dimensions, and must-include/must-avoid lists.
 - AC2: Carousels expose numbered slides with headline and body text per slide.
 - AC3: Reels expose a scene-by-scene script with on-screen text and duration.
+- AC4: Posts, stories, memes and polls expose one copyable design prompt, and carousels one per slide, each ending with the brand kit rules. Reels, Shorts and videos expose none.
 
 **US-9** — As a designer, I want one-tap copy, so that I never retype content.
 - AC1: Separate copy actions exist for caption, hashtags, slides/script, and everything combined.
@@ -350,7 +354,7 @@ Every item, regardless of format, carries:
 - FR-6.2 Monthly calendar with per-day indicators, filters, and a day detail sheet.
 - FR-6.3 Create queue grouped by format with overdue prioritisation.
 - FR-6.4 Item detail exposing the full payload, design brief and sources.
-- FR-6.5 Copy actions: caption, hashtags, slides/script, everything.
+- FR-6.5 Copy actions: caption, hashtags, slides/script, design prompt, everything.
 - FR-6.6 Native share sheet for the combined content.
 
 ### FR-7 Status tracking
@@ -602,7 +606,7 @@ Principles: plain language, name what failed, offer one clear recovery action, n
 
 ### Out of scope for v1
 - Auto-publishing to YouTube or Instagram (planned as a future phase, D11).
-- AI image, carousel or meme image generation (D7).
+- Image, carousel or meme image generation inside the app (D7); the app supplies the design prompt, the team generates the image elsewhere.
 - Engagement and follower analytics ingestion.
 - Multi-brand or multi-tenant support.
 - Comment and DM management.

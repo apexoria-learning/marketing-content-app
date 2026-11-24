@@ -62,7 +62,7 @@ Trailhead Simplified teaches real Salesforce skills from real projects, simply a
 
 ### 2.1 Brand kit
 
-The source mockup is [brand-kit/](./brand-kit/Main.dc.html) — a visual reference, not production code. Its values are implemented in `src/styles/tokens.css`, `public/icons/` and the layout fonts; where the two disagree, this document and the tokens win and the kit is updated. The creator's production rules (script lanes, signature lines, pacing, screen-share settings) live in [content/CONTENT-RULES.md](../content/CONTENT-RULES.md) and reach the generator through the brand profile and platform guidance.
+The source mockup is [brand-kit/](./brand-kit/Main.dc.html) — a visual reference, not production code. Its values are implemented in `src/styles/tokens.css`, `public/icons/` and the layout fonts; where the two disagree, this document and the tokens win and the kit is updated. The colour, type and logo rules below are also written out as instructions for an image generator in `src/lib/constants/brand-kit.ts`, which the app appends to every design prompt (`PRD.md` §6.3); change that file whenever those rows change. The creator's production rules (script lanes, signature lines, pacing, screen-share settings) live in [content/CONTENT-RULES.md](../content/CONTENT-RULES.md) and reach the generator through the brand profile and platform guidance.
 
 | Rule | Value |
 |---|---|
@@ -703,9 +703,10 @@ Optimised for scanning: a designer should see their whole workload in one screen
 5. Format-specific body: `SlideList` (carousel), `ScriptList` (reel, short and video), frame copy (story/meme), or question + options (poll).
 6. `CopyBlock` — HASHTAGS (mono).
 7. CTA block — single line, `body-strong`, accent left rule.
-8. `BriefSection` — the designer's section, visually separated by a `48` gap and a section eyebrow "DESIGN BRIEF".
-9. `SourceList` — only when sources exist; a `danger` warning if the pillar is News and sources are absent.
-10. `ActionBar`: **Copy everything** (primary) + `StatusTick` (secondary).
+8. Design prompts (graphic formats only) — a one-line `sm` `text-secondary` hint, then one `CopyBlock` labelled DESIGN PROMPT, or one per carousel slide labelled DESIGN PROMPT · SLIDE N, each ending with the brand kit rules (§2.1). An item generated before design prompts existed shows a single `sm` `text-secondary` line asking for a regenerate instead, unless it is posted. Reels, Shorts and videos show nothing here.
+9. `BriefSection` — the designer's section, visually separated by a `48` gap and a section eyebrow "DESIGN BRIEF".
+10. `SourceList` — only when sources exist; a `danger` warning if the pillar is News and sources are absent.
+11. `ActionBar`: **Copy everything** (primary) + `StatusTick` (secondary).
 
 Section order is fixed across all formats so returning users navigate by muscle memory.
 

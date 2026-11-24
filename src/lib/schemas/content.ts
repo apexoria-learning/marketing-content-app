@@ -53,25 +53,33 @@ export const DesignBriefSchema = z
       .strict(),
   })
   .strict();
-export const CarouselBodySchema = z
+// A paste-ready image-generator prompt for one graphic (PRD §6.3). Optional
+// when stored: items hydrated before content-v4 carry none.
+const designPrompt = text.max(2000).optional();
+export const CarouselSlideSchema = z
   .object({
-    slides: z
-      .array(
-        z
-          .object({
-            index: z.number().int().positive(),
-            headline: text,
-            body: text,
-            visual_note: text.nullable(),
-          })
-          .strict(),
-      )
-      .min(1)
-      .refine((slides) =>
-        slides.every((slide, index) => slide.index === index + 1),
-      ),
+    index: z.number().int().positive(),
+    headline: text,
+    body: text,
+    visual_note: text.nullable(),
+    design_prompt: designPrompt,
   })
   .strict();
+export function carouselBodySchema<Slide extends z.ZodType<{ index: number }>>(
+  slide: Slide,
+) {
+  return z
+    .object({
+      slides: z
+        .array(slide)
+        .min(1)
+        .refine((slides) =>
+          slides.every((entry, index) => entry.index === index + 1),
+        ),
+    })
+    .strict();
+}
+export const CarouselBodySchema = carouselBodySchema(CarouselSlideSchema);
 const timecode = z.string().regex(/^\d{1,2}:[0-5]\d$/);
 function seconds(value: string) {
   const [minutes, remainder] = value.split(":").map(Number);
@@ -104,12 +112,23 @@ export const ReelBodySchema = z
           seconds(scene.from) >= seconds(scenes[index - 1]?.to ?? "0:00")),
     ),
   );
-export const PostBodySchema = z.object({ visual_concept: text }).strict();
+export const PostBodySchema = z
+  .object({ visual_concept: text, design_prompt: designPrompt })
+  .strict();
 export const StoryBodySchema = z
-  .object({ frame: text, interaction_prompt: text })
+  .object({
+    frame: text,
+    interaction_prompt: text,
+    design_prompt: designPrompt,
+  })
   .strict();
 export const MemeBodySchema = z
-  .object({ template: text, top_text: text, bottom_text: text })
+  .object({
+    template: text,
+    top_text: text,
+    bottom_text: text,
+    design_prompt: designPrompt,
+  })
   .strict();
 export const PollBodySchema = z
   .object({
@@ -119,6 +138,7 @@ export const PollBodySchema = z
       .min(2)
       .max(4)
       .refine((values) => new Set(values).size === values.length),
+    design_prompt: designPrompt,
   })
   .strict();
 const base = z.object({
