@@ -170,11 +170,6 @@ export default async function ItemPage({
           <GenerationControl
             key={item.id}
             enabled={canGenerate}
-            auto={
-              item.status === "idea" &&
-              !hasHydratedContent(item) &&
-              !item.generation_error
-            }
             target={{
               kind: hasHydratedContent(item) ? "regenerate" : "hydrate",
               itemId: item.id,

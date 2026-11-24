@@ -313,9 +313,9 @@ hydrate_batch(limit = N)
 
 The batch is bounded by *time*, not only by count, so a slow model response cannot cause a timeout mid-write.
 
-**Just-in-time hydration.** If a user opens an item still in `idea` status, the detail page hydrates that single item on demand and shows the staged inline loading state from `DESIGN.md §9.1`. The user is never blocked waiting for a nightly job to catch up.
+**Just-in-time hydration.** If a user opens an item still in `idea` status, the detail page offers a **Generate content** button; tapping it hydrates that single item on demand and shows the staged inline loading state from `DESIGN.md §9.1`. Generation never starts by itself on opening the page (owner decision, 2026-11-25): an AI call spends allowance, so it always follows an explicit tap. The user is never blocked waiting for a nightly job to catch up.
 
-**Why this shape earns its complexity:** it is the minimum structure that fits a 300-second serverless cap and a once-daily cron without adding a queue service — and it maps exactly onto the `idea → ready` statuses the PRD already defined for product reasons. A 300s budget drains roughly 20–30 items per run, so a fresh month reaches fully-`ready` within two to three nightly runs; just-in-time hydration covers anything a user reaches first.
+**Why this shape earns its complexity:** it is the minimum structure that fits a 300-second serverless cap and a once-daily cron without adding a queue service — and it maps exactly onto the `idea → ready` statuses the PRD already defined for product reasons. A 300s budget drains roughly 20–30 items per run, so a fresh month reaches fully-`ready` within two to three nightly runs; just-in-time hydration covers anything a user wants sooner.
 
 ### 4.4 Planning rules are code, not prompt
 

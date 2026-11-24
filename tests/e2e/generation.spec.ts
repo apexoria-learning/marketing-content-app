@@ -35,7 +35,7 @@ async function mockGeneration(
   return () => requests;
 }
 
-test("automatic hydration starts once, progresses, and confirms an update", async ({
+test("hydration waits for a tap, starts once, progresses, and confirms an update", async ({
   page,
 }) => {
   let release: () => void = () => {};
@@ -43,8 +43,17 @@ test("automatic hydration starts once, progresses, and confirms an update", asyn
     release = resolve;
   });
   const requests = await mockGeneration(page, { ok: true, data: {} }, { gate });
-  await page.goto("/design-system?generation=auto");
+  await page.goto("/design-system?generation=true");
   const section = page.getByRole("region", { name: "Generation examples" });
+  const generate = section.getByRole("button", {
+    name: "Generate content",
+    exact: true,
+  });
+  await expect(generate).toBeEnabled();
+  await page.waitForLoadState("networkidle");
+  expect(requests()).toBe(0);
+  await expect(section.getByText(/Researching/)).toHaveCount(0);
+  await generate.click();
   try {
     await expect(section.getByText(/Researching/)).toBeVisible();
     await expect(section.getByText(/Writing/)).toBeVisible({ timeout: 10000 });

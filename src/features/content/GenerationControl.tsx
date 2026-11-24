@@ -4,7 +4,6 @@ import {
   useCallback,
   useEffect,
   useId,
-  useRef,
   useState,
   useTransition,
 } from "react";
@@ -37,11 +36,9 @@ type GenerationTarget =
 export function GenerationControl({
   target,
   enabled,
-  auto = false,
 }: {
   target: GenerationTarget;
   enabled: boolean;
-  auto?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [steer, setSteer] = useState("");
@@ -56,7 +53,6 @@ export function GenerationControl({
   const router = useRouter();
   const toast = useToast();
   const reducedMotion = useReducedMotion();
-  const autoStarted = useRef(false);
   const steerId = useId();
   const stages = ["Researching…", "Writing…", "Briefing…"];
   const createsRows = target.kind === "month" || target.kind === "day";
@@ -140,13 +136,6 @@ export function GenerationControl({
     toast,
     router,
   ]);
-  // Automatic hydration uses the same authorized action and budget as the button.
-  useEffect(() => {
-    if (!auto || !enabled || target.kind !== "hydrate" || autoStarted.current)
-      return;
-    autoStarted.current = true;
-    execute();
-  }, [auto, enabled, target.kind, execute]);
 
   const label =
     target.kind === "month"

@@ -368,6 +368,12 @@ with the two-step push (migration commit → apply → app commit):
    the unit tests. Not validated: a paid live generation (output quality,
    tokens and latency of the longer carousel payload) and the seeded browser
    journeys, which run only in CI.
+7. **Generation waits for a tap — built 2026-11-25, not yet deployed.** Owner
+   request: opening an unfinished idea no longer starts generation; the item
+   page shows **Generate content** and waits. The automatic path was removed
+   from the control rather than switched off (ARCHITECTURE.md §4.3, API.md
+   `hydrateItem`). The browser check that covered automatic hydration now
+   asserts that nothing is requested until the button is tapped.
 
 ## 2. Phase map
 

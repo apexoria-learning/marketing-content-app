@@ -18,13 +18,7 @@ export default async function DesignSystemPage({
   return (
     <Gallery
       theme={theme === "light" ? "light" : "dark"}
-      generation={
-        generation === "auto"
-          ? "auto"
-          : generation === "true"
-            ? "manual"
-            : undefined
-      }
+      generation={generation === "true"}
     />
   );
 }

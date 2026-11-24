@@ -379,7 +379,7 @@ Rules: **blocked when `status = 'posted'`** (`US-11 AC3`) — enforced in the se
 | Returns | The hydrated item payload |
 | Rate limited | Yes — shares the regeneration budget |
 
-Just-in-time hydration (`ARCHITECTURE.md` §4.3) when a user opens an item still in `idea`. A no-op returning success if the item is already hydrated, so a double-tap or a race with the cron is harmless.
+Just-in-time hydration (`ARCHITECTURE.md` §4.3): called when a user taps **Generate content** on an item still in `idea`, never automatically on opening it. A no-op returning success if the item is already hydrated, so a double-tap or a race with the cron is harmless.
 
 Already hydrated, non-posted items pass the allowance check without charging
 another generation quota. A race after that check remains guarded by the

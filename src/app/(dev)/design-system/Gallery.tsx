@@ -33,7 +33,7 @@ export function Gallery({
   generation,
 }: {
   theme: "dark" | "light";
-  generation?: "auto" | "manual";
+  generation?: boolean;
 }) {
   const toast = useToast();
   const [chips, setChips] = useState<string[]>(["Instagram"]);
@@ -78,7 +78,6 @@ export function Gallery({
           <Section title="Generation examples">
             <GenerationControl
               enabled
-              auto={generation === "auto"}
               target={{
                 kind: "hydrate",
                 itemId: "00000000-0000-4000-8000-000000000001",
